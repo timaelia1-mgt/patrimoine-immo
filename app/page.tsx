@@ -1,65 +1,73 @@
-import Image from "next/image";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+      <div className="max-w-2xl mx-auto text-center px-4">
+        <div className="mb-8">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-8 h-8 text-white"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+              />
+            </svg>
+          </div>
+          <h1 className="text-5xl font-bold text-slate-900 mb-4">
+            Patrimoine Immo
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-slate-600 mb-8">
+            Pilotez votre patrimoine immobilier en toute clarté
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <Link href="/dashboard">
+          <Button size="lg" className="text-lg px-8 py-6">
+            Accéder au Dashboard
+          </Button>
+        </Link>
+
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">📊</span>
+            </div>
+            <h3 className="font-semibold text-slate-900 mb-2">Suivi en temps réel</h3>
+            <p className="text-sm text-slate-600">
+              Visualisez instantanément la rentabilité de vos biens
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">💰</span>
+            </div>
+            <h3 className="font-semibold text-slate-900 mb-2">Gestion des loyers</h3>
+            <p className="text-sm text-slate-600">
+              Suivez les paiements et gérez vos revenus facilement
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">📈</span>
+            </div>
+            <h3 className="font-semibold text-slate-900 mb-2">Analyses détaillées</h3>
+            <p className="text-sm text-slate-600">
+              Prenez les meilleures décisions avec des données précises
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
-  );
+  )
 }
