@@ -1,0 +1,231 @@
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { formatCurrency } from "@/lib/calculations"
+import { useState } from "react"
+
+interface FinancementProps {
+  bien: any
+}
+
+export function Financement({ bien }: FinancementProps) {
+  const [editing, setEditing] = useState(false)
+  const [formData, setFormData] = useState({
+    mensualiteCredit: bien.mensualiteCredit?.toString() || "0",
+    montantCredit: bien.montantCredit?.toString() || "0",
+    tauxCredit: bien.tauxCredit?.toString() || "0",
+    dureeCredit: bien.dureeCredit?.toString() || "0",
+  })
+
+  // Calcul de la progression du crédit
+  const calculerProgressionCredit = () => {
+    if (bien.typeFinancement !== "CREDIT" || !bien.dateDebutCredit || !bien.dureeCredit) {
+      return null
+    }
+
+    const dateDebut = new Date(bien.dateDebutCredit)
+    const maintenant = new Date()
+    
+    const moisEcoules = Math.floor(
+      (maintenant.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24 * 30)
+    )
+    
+    const dureeTotal = parseInt(bien.dureeCredit?.toString() || "0")
+    const moisRestants = Math.max(0, dureeTotal - moisEcoules)
+    const progression = Math.min(100, (moisEcoules / dureeTotal) * 100)
+    
+    return {
+      moisEcoules: Math.max(0, moisEcoules),
+      moisRestants,
+      dureeTotal,
+      progression
+    }
+  }
+
+  const progressionCredit = calculerProgressionCredit()
+
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`/api/biens/${bien.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mensualiteCredit: parseFloat(formData.mensualiteCredit),
+          montantCredit: parseFloat(formData.montantCredit),
+          tauxCredit: parseFloat(formData.tauxCredit),
+          dureeCredit: parseInt(formData.dureeCredit),
+        }),
+      })
+
+      if (response.ok) {
+        setEditing(false)
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+    }
+  }
+
+  if (bien.typeFinancement === "CASH") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Financement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-lg font-medium">Ce bien a été payé comptant.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Aucun crédit en cours.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Informations du crédit</CardTitle>
+            {editing ? (
+              <div className="flex gap-2">
+                <Button onClick={handleSave} size="sm">Enregistrer</Button>
+                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+              </div>
+            ) : (
+              <Button onClick={() => setEditing(true)} size="sm">Modifier</Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="mensualiteCredit">Mensualité (€)</Label>
+              <Input
+                id="mensualiteCredit"
+                type="number"
+                step="0.01"
+                value={formData.mensualiteCredit}
+                onChange={(e) => setFormData({ ...formData, mensualiteCredit: e.target.value })}
+                disabled={!editing}
+              />
+            </div>
+            <div>
+              <Label htmlFor="montantCredit">Montant total emprunté (€)</Label>
+              <Input
+                id="montantCredit"
+                type="number"
+                step="0.01"
+                value={formData.montantCredit}
+                onChange={(e) => setFormData({ ...formData, montantCredit: e.target.value })}
+                disabled={!editing}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="tauxCredit">Taux d'intérêt (%)</Label>
+              <Input
+                id="tauxCredit"
+                type="number"
+                step="0.01"
+                value={formData.tauxCredit}
+                onChange={(e) => setFormData({ ...formData, tauxCredit: e.target.value })}
+                disabled={!editing}
+              />
+            </div>
+            <div>
+              <Label htmlFor="dureeCredit">Durée (mois)</Label>
+              <Input
+                id="dureeCredit"
+                type="number"
+                value={formData.dureeCredit}
+                onChange={(e) => setFormData({ ...formData, dureeCredit: e.target.value })}
+                disabled={!editing}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {bien.typeFinancement === "CREDIT" && progressionCredit && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Progression du remboursement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-medium text-sm">Progression du remboursement</h3>
+                <span className="text-2xl font-bold text-blue-600">
+                  {progressionCredit.progression.toFixed(0)}%
+                </span>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all"
+                  style={{ width: `${progressionCredit.progression}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Mois écoulés</p>
+                  <p className="font-bold text-blue-600">{progressionCredit.moisEcoules}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Mois restants</p>
+                  <p className="font-bold text-orange-600">{progressionCredit.moisRestants}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Durée totale</p>
+                  <p className="font-bold">{progressionCredit.dureeTotal} mois</p>
+                </div>
+              </div>
+
+              {progressionCredit.progression >= 100 && (
+                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-center">
+                  <p className="text-sm font-medium text-green-700">
+                    🎉 Crédit entièrement remboursé !
+                  </p>
+                </div>
+              )}
+
+              {progressionCredit.progression < 100 && bien.dateDebutCredit && (
+                <div className="mt-3 text-xs text-muted-foreground text-center">
+                  Crédit commencé le {new Date(bien.dateDebutCredit).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {bien.typeFinancement === "CREDIT" && !progressionCredit && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Progression du remboursement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-900">
+                ⚠️ <strong>Date de début manquante :</strong> Cliquez sur "Modifier" pour ajouter la date de début du crédit 
+                afin de voir la progression du remboursement.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
