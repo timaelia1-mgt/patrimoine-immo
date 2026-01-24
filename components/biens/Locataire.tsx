@@ -13,54 +13,69 @@ interface LocataireProps {
 }
 
 export function Locataire({ bien }: LocataireProps) {
-  // Pour l'instant on utilise localStorage
-  // TODO: Créer table Locataire dans Prisma et sauvegarder en base
   const [editing, setEditing] = useState(false)
-  const [formData, setFormData] = useState(() => {
-    // Charger depuis localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`locataire-${bien.id}`)
-      if (saved) {
-        return JSON.parse(saved)
-      }
-    }
-    
-    return {
-      nom: "",
-      prenom: "",
-      email: "",
-      telephone: "",
-      dateEntree: "",
-      montantAPL: "0",
-      modePaiement: "virement",
-    }
+  const [formData, setFormData] = useState({
+    nom: "",
+    prenom: "",
+    email: "",
+    telephone: "",
+    dateEntree: "",
+    montantAPL: "0",
+    modePaiement: "virement",
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log("Composant Locataire monté, bien.id:", bien.id)
-    const saved = localStorage.getItem(`locataire-${bien.id}`)
-    console.log("Données localStorage:", saved)
+    const fetchLocataire = async () => {
+      try {
+        const response = await fetch(`/api/biens/${bien.id}/locataire`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data) {
+            setFormData({
+              nom: data.nom || "",
+              prenom: data.prenom || "",
+              email: data.email || "",
+              telephone: data.telephone || "",
+              dateEntree: data.dateEntree ? new Date(data.dateEntree).toISOString().split("T")[0] : "",
+              montantAPL: data.montantAPL?.toString() || "0",
+              modePaiement: data.modePaiement || "virement",
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Erreur chargement locataire:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLocataire()
   }, [bien.id])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      // Validation
       if (!formData.nom || !formData.prenom) {
         alert("Le nom et le prénom sont obligatoires")
         return
       }
 
-      // Sauvegarder dans localStorage
-      localStorage.setItem(`locataire-${bien.id}`, JSON.stringify(formData))
-      
-      console.log("Données sauvegardées:", formData)
-      console.log("Clé localStorage:", `locataire-${bien.id}`)
-      
-      setEditing(false)
-      alert("✓ Informations locataire sauvegardées localement. Rechargez la page manuellement pour voir les changements dans l'onglet Loyers.")
-    } catch (error: any) {
+      const response = await fetch(`/api/biens/${bien.id}/locataire`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setEditing(false)
+        alert("✓ Informations locataire sauvegardées")
+        window.location.reload()
+      } else {
+        alert("Erreur lors de la sauvegarde")
+      }
+    } catch (error) {
       console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde: " + error.message)
+      alert("Erreur lors de la sauvegarde")
     }
   }
 
@@ -68,6 +83,14 @@ export function Locataire({ bien }: LocataireProps) {
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
   const montantAPL = parseFloat(formData.montantAPL || "0")
   const loyerNetLocataire = loyerMensuel - montantAPL
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p>Chargement...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

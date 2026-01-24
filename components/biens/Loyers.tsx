@@ -11,21 +11,9 @@ interface LoyersProps {
 
 export function Loyers({ bien }: LoyersProps) {
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
-  
-  // Récupérer les infos locataire depuis localStorage
-  const getLocataireInfo = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`locataire-${bien.id}`)
-      if (saved) {
-        return JSON.parse(saved)
-      }
-    }
-    return null
-  }
 
-  const locataireInfo = getLocataireInfo()
-  const montantAPL = parseFloat(locataireInfo?.montantAPL || "0")
-  const loyerNetLocataire = loyerMensuel - montantAPL
+  const [locataireInfo, setLocataireInfo] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   
   const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
   const anneeActuelle = new Date().getFullYear()
@@ -33,52 +21,50 @@ export function Loyers({ bien }: LoyersProps) {
   
   // États des paiements : { locataire: boolean, apl: boolean }
   const [paiements, setPaiements] = useState<Array<{ locataire: boolean; apl: boolean }>>(
-    Array.from({ length: 12 }, (_, i) => ({
-      locataire: i < moisActuel,
-      apl: montantAPL > 0 ? i < moisActuel : false
+    Array.from({ length: 12 }, () => ({
+      locataire: false,
+      apl: false,
     }))
   )
 
-  // Charger les paiements depuis localStorage au démarrage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`paiements-${bien.id}`)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          setPaiements(parsed)
-        } catch (error) {
-          console.error("Erreur lors du chargement des paiements:", error)
+    const fetchData = async () => {
+      try {
+        // Charger les infos locataire
+        const locataireRes = await fetch(`/api/biens/${bien.id}/locataire`)
+        if (locataireRes.ok) {
+          const locataireData = await locataireRes.json()
+          setLocataireInfo(locataireData)
         }
+
+        // Charger les loyers de l'année
+        const annee = new Date().getFullYear()
+        const loyersRes = await fetch(`/api/biens/${bien.id}/loyers?annee=${annee}`)
+        if (loyersRes.ok) {
+          const loyersData = await loyersRes.json()
+
+          const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
+            const loyerMois = loyersData.find((l: any) => l.mois === i)
+            return {
+              locataire: loyerMois?.payeLocataire || false,
+              apl: loyerMois?.payeAPL || false,
+            }
+          })
+
+          setPaiements(paiementsFromDB)
+        }
+      } catch (error) {
+        console.error("Erreur chargement données:", error)
+      } finally {
+        setLoading(false)
       }
     }
+
+    fetchData()
   }, [bien.id])
 
-  const togglePaiementLocataire = (index: number) => {
-    const newPaiements = [...paiements]
-    newPaiements[index] = {
-      ...newPaiements[index],
-      locataire: !newPaiements[index].locataire
-    }
-    setPaiements(newPaiements)
-    savePaiements(newPaiements)
-  }
-
-  const togglePaiementAPL = (index: number) => {
-    const newPaiements = [...paiements]
-    newPaiements[index] = {
-      ...newPaiements[index],
-      apl: !newPaiements[index].apl
-    }
-    setPaiements(newPaiements)
-    savePaiements(newPaiements)
-  }
-
-  const savePaiements = (nouveauxPaiements: Array<{ locataire: boolean; apl: boolean }>) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`paiements-${bien.id}`, JSON.stringify(nouveauxPaiements))
-    }
-  }
+  const montantAPL = parseFloat(locataireInfo?.montantAPL || "0")
+  const loyerNetLocataire = loyerMensuel - montantAPL
 
   // Calculs
   const moisLocatairePayes = paiements.filter(p => p.locataire).length
@@ -91,6 +77,60 @@ export function Loyers({ bien }: LoyersProps) {
   const caPrevuLocataire = loyerNetLocataire * 12
   const caPrevuAPL = montantAPL * 12
   const caPrevuTotal = loyerMensuel * 12
+
+  const togglePaiementLocataire = async (index: number) => {
+    const newPaiements = [...paiements]
+    newPaiements[index] = {
+      ...newPaiements[index],
+      locataire: !newPaiements[index].locataire,
+    }
+    setPaiements(newPaiements)
+
+    await savePaiement(index, newPaiements[index])
+  }
+
+  const togglePaiementAPL = async (index: number) => {
+    const newPaiements = [...paiements]
+    newPaiements[index] = {
+      ...newPaiements[index],
+      apl: !newPaiements[index].apl,
+    }
+    setPaiements(newPaiements)
+
+    await savePaiement(index, newPaiements[index])
+  }
+
+  const savePaiement = async (
+    mois: number,
+    paiement: { locataire: boolean; apl: boolean }
+  ) => {
+    try {
+      const annee = new Date().getFullYear()
+
+      await fetch(`/api/biens/${bien.id}/loyers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          annee,
+          mois,
+          montantLocataire: loyerNetLocataire,
+          montantAPL: montantAPL,
+          payeLocataire: paiement.locataire,
+          payeAPL: paiement.apl,
+        }),
+      })
+    } catch (error) {
+      console.error("Erreur sauvegarde paiement:", error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p>Chargement des données...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
