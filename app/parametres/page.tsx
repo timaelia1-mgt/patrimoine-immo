@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useTheme } from "@/lib/theme-provider"
+import { Moon, Sun } from "lucide-react"
 
 export default function ParametresPage() {
+  const { theme, toggleTheme } = useTheme()
   const [settings, setSettings] = useState({
     nom: "Utilisateur",
     email: "user@example.com",
@@ -26,11 +29,12 @@ export default function ParametresPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">Gérez les paramètres de votre compte</p>
-      </div>
+    <div className="p-8 dark:bg-slate-950">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white mb-2">Paramètres</h1>
+          <p className="text-slate-600 dark:text-slate-400 mb-8">Configurez votre application</p>
+        </div>
 
       <Card>
         <CardHeader>
@@ -63,7 +67,7 @@ export default function ParametresPage() {
               id="devise"
               value={settings.devise}
               onChange={(e) => setSettings({ ...settings, devise: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm"
             >
               <option value="EUR">Euro (€)</option>
               <option value="USD">Dollar ($)</option>
@@ -80,6 +84,57 @@ export default function ParametresPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Apparence</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {theme === "light" ? (
+                <Sun className="w-5 h-5 text-amber-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-blue-400" />
+              )}
+              <div>
+                <p className="font-medium">Thème</p>
+                <p className="text-sm text-muted-foreground">
+                  {theme === "light" ? "Mode clair" : "Mode sombre"}
+                </p>
+              </div>
+            </div>
+            
+            <button
+              onClick={toggleTheme}
+              className={`
+                relative inline-flex h-8 w-14 items-center rounded-full transition-colors
+                ${theme === "dark" 
+                  ? "bg-slate-700" 
+                  : "bg-slate-300"
+                }
+              `}
+            >
+              <span
+                className={`
+                  flex h-6 w-6 items-center justify-center transform rounded-full transition-transform
+                  ${theme === "dark" 
+                    ? "translate-x-7 bg-primary-500 border-2 border-slate-600" 
+                    : "translate-x-1 bg-white border-2 border-slate-200"
+                  }
+                  shadow-lg
+                `}
+              >
+                {theme === "dark" ? (
+                  <Moon className="w-4 h-4 text-white" />
+                ) : (
+                  <Sun className="w-4 h-4 text-amber-500" />
+                )}
+              </span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Gestion des loyers</CardTitle>
           <CardDescription>Configurez les paramètres de suivi des loyers</CardDescription>
         </CardHeader>
@@ -90,7 +145,7 @@ export default function ParametresPage() {
               id="jourPaiement"
               value={settings.jourPaiement}
               onChange={(e) => setSettings({ ...settings, jourPaiement: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm"
             >
               <option value="1">1er du mois</option>
               <option value="2">2 du mois</option>
@@ -167,7 +222,8 @@ export default function ParametresPage() {
             Application de gestion de patrimoine immobilier
           </p>
         </CardContent>
-      </Card>
+          </Card>
+      </div>
     </div>
   )
 }

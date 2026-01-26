@@ -77,10 +77,10 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="p-8 bg-gradient-to-r from-slate-50 to-slate-100">
+      <div className="p-8 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-slate-600">Vue d'ensemble de votre patrimoine immobilier</p>
+          <h1 className="text-4xl font-display font-bold text-slate-900 dark:text-white mb-2">Dashboard</h1>
+          <p className="text-slate-600 dark:text-slate-400">Vue d'ensemble de votre patrimoine immobilier</p>
         </div>
       </div>
 
@@ -89,14 +89,14 @@ export default function DashboardPage() {
           {/* KPIs avec icônes */}
           <div className="grid grid-cols-4 gap-6">
             {/* Cash-flow */}
-            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-green-50/30">
+            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800 dark:to-slate-700">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-transparent rounded-full -mr-16 -mt-16" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Cash-flow global
                   </CardTitle>
-                  <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg">
                     <TrendingUp className="w-5 h-5 text-green-600" />
                   </div>
                 </div>
@@ -115,20 +115,20 @@ export default function DashboardPage() {
                     maximumFractionDigits: 0,
                   }).format(cashFlowGlobal)}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">par mois</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">par mois</p>
               </CardContent>
             </Card>
 
             {/* Loyers */}
-            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-blue-50/30">
+            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-700">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Loyers mensuels
                   </CardTitle>
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-primary-600" />
+                  <div className="p-2 bg-blue-100 dark:bg-primary-500/30 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   </div>
                 </div>
               </CardHeader>
@@ -141,21 +141,21 @@ export default function DashboardPage() {
                     maximumFractionDigits: 0,
                   }).format(totalLoyers)}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   {biens.length} bien{biens.length > 1 ? "s" : ""}
                 </p>
               </CardContent>
             </Card>
 
             {/* Nombre de biens */}
-            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-purple-50/30">
+            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800 dark:to-slate-700">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full -mr-16 -mt-16" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Nombre de biens
                   </CardTitle>
-                  <div className="p-2 bg-purple-100 rounded-lg">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
                     <Home className="w-5 h-5 text-purple-600" />
                   </div>
                 </div>
@@ -164,21 +164,21 @@ export default function DashboardPage() {
                 <p className="text-4xl font-display font-bold text-purple-600">
                   {biens.length}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   {nbBiensCredit} à crédit
                 </p>
               </CardContent>
             </Card>
 
             {/* Alertes */}
-            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-orange-50/30">
+            <Card className="relative overflow-hidden border-0 shadow-soft hover:shadow-large transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800 dark:to-slate-700">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full -mr-16 -mt-16" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Alertes
                   </CardTitle>
-                  <div className="p-2 bg-orange-100 rounded-lg">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
                     <AlertCircle className="w-5 h-5 text-orange-600" />
                   </div>
                 </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                 <p className="text-4xl font-display font-bold text-orange-600">
                   {nbRetard}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   loyer{nbRetard > 1 ? "s" : ""} en retard
                 </p>
               </CardContent>
@@ -200,10 +200,10 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary-100 rounded-xl">
+                  <div className="p-3 bg-primary-100 dark:bg-primary-500/20 rounded-xl">
                     <Wallet className="w-6 h-6 text-primary-600" />
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Total investi
                   </CardTitle>
                 </div>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                     }).format(totalInvesti)
                   })()}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   Investissement initial cumulé
                 </p>
               </CardContent>
@@ -236,10 +236,10 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-100 rounded-xl">
+                  <div className="p-3 bg-green-100 dark:bg-green-500/20 rounded-xl">
                     <PiggyBank className="w-6 h-6 text-green-600" />
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Total remboursé
                   </CardTitle>
                 </div>
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                     }).format(totalRembourse)
                   })()}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   Capital remboursé sur tous les crédits
                 </p>
               </CardContent>
@@ -289,10 +289,10 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-orange-100 rounded-xl">
+                  <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl">
                     <CreditCard className="w-6 h-6 text-orange-600" />
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-600">
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Capital restant dû
                   </CardTitle>
                 </div>
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                     }).format(totalRestant)
                   })()}
                 </p>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                   Sur tous les crédits en cours
                 </p>
               </CardContent>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
 
           {/* Revenus et charges globaux */}
           <div className="grid grid-cols-2 gap-6 mb-6">
-            <Card className="border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white">
+            <Card className="border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white dark:bg-slate-800">
               <CardHeader>
                 <CardTitle>Revenus mensuels totaux</CardTitle>
               </CardHeader>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                     return (
                       <>
                         <div>
-                          <p className="text-sm text-slate-600 mb-2">Loyers mensuels</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Loyers mensuels</p>
                           <p className="text-3xl font-display font-bold text-primary-600">
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
@@ -359,8 +359,8 @@ export default function DashboardPage() {
                             }).format(totalLoyers)}
                           </p>
                         </div>
-                        <div className="pt-4 border-t">
-                          <p className="text-sm text-slate-600 mb-2">
+                        <div className="pt-4 border-t dark:border-slate-700">
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                             Revenus annuels prévisionnels
                           </p>
                           <p className="text-2xl font-display font-bold text-primary-500">
@@ -377,7 +377,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white">
+            <Card className="border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white dark:bg-slate-800">
               <CardHeader>
                 <CardTitle>Charges mensuelles totales</CardTitle>
               </CardHeader>
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                     return (
                       <>
                         <div>
-                          <p className="text-sm text-slate-600 mb-2">Total mensuel</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Total mensuel</p>
                           <p className="text-3xl font-display font-bold text-orange-600">
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
@@ -414,9 +414,9 @@ export default function DashboardPage() {
                             }).format(totalCharges)}
                           </p>
                         </div>
-                        <div className="pt-4 border-t space-y-2">
+                        <div className="pt-4 border-t dark:border-slate-700 space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Mensualités crédits</span>
+                            <span className="text-slate-600 dark:text-slate-400">Mensualités crédits</span>
                             <span className="font-medium">
                               {new Intl.NumberFormat("fr-FR", {
                                 style: "currency",
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-slate-600">Charges d'exploitation</span>
+                            <span className="text-slate-600 dark:text-slate-400">Charges d'exploitation</span>
                             <span className="font-medium">
                               {new Intl.NumberFormat("fr-FR", {
                                 style: "currency",
@@ -443,7 +443,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Répartition par financement */}
-          <Card className="mb-6 border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white">
+          <Card className="mb-6 border-0 shadow-medium hover:shadow-large transition-all duration-300 bg-white dark:bg-slate-800">
             <CardHeader>
               <CardTitle>Répartition par type de financement</CardTitle>
             </CardHeader>
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                   const total = biens.length
 
                   if (total === 0) {
-                    return <p className="text-slate-500">Aucun bien</p>
+                    return <p className="text-slate-500 dark:text-slate-400">Aucun bien</p>
                   }
 
                   return (
@@ -475,7 +475,7 @@ export default function DashboardPage() {
                               {((nbCredit / total) * 100).toFixed(0)}%
                             </span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-4">
+                          <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-4">
                             <div
                               className="bg-blue-500 h-4 rounded-full transition-all"
                               style={{ width: `${(nbCredit / total) * 100}%` }}
@@ -497,7 +497,7 @@ export default function DashboardPage() {
                               {((nbCash / total) * 100).toFixed(0)}%
                             </span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-4">
+                          <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-4">
                             <div
                               className="bg-green-500 h-4 rounded-full transition-all"
                               style={{ width: `${(nbCash / total) * 100}%` }}
