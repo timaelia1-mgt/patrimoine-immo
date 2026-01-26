@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
-import { Sidebar } from "@/components/layout/Sidebar"
 import { ThemeProvider } from "@/lib/theme-provider"
 
 const inter = Inter({
@@ -16,8 +15,8 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Patrimoine Immo",
-  description: "Gestion de votre patrimoine immobilier",
+  title: "Patrimo - Gestion de patrimoine immobilier",
+  description: "Gérez votre patrimoine immobilier en toute simplicité",
 }
 
 export default function RootLayout({
@@ -26,15 +25,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className="dark">
       <body className={`${inter.variable} ${jakarta.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <div className="flex h-screen">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
-              {children}
-            </main>
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>
