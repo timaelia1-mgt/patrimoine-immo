@@ -127,13 +127,13 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Loyers mensuels
                   </CardTitle>
-                  <div className="p-2 bg-blue-100 dark:bg-primary-500/30 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <div className="p-2 bg-blue-100 dark:bg-sky-500/40 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="relative z-10">
-                <p className="text-4xl font-display font-bold text-primary-600">
+                <p className="text-4xl font-display font-bold text-sky-600 dark:text-sky-400">
                   {new Intl.NumberFormat("fr-FR", {
                     style: "currency",
                     currency: "EUR",
@@ -197,11 +197,12 @@ export default function DashboardPage() {
           {/* Statistiques globales avec icônes */}
           <div className="grid grid-cols-3 gap-6">
             <Card className="relative overflow-hidden border-0 shadow-medium hover:shadow-large transition-all duration-300 hover:-translate-y-1 group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full -mr-16 -mt-16" />
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary-100 dark:bg-primary-500/20 rounded-xl">
-                    <Wallet className="w-6 h-6 text-primary-600" />
+                  <div className="p-3 bg-purple-100 dark:bg-purple-500/40 rounded-xl">
+                    <Wallet className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     Total investi
@@ -352,7 +353,7 @@ export default function DashboardPage() {
                       <>
                         <div>
                           <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Loyers mensuels</p>
-                          <p className="text-3xl font-display font-bold text-primary-600">
+                          <p className="text-3xl font-display font-bold text-sky-600 dark:text-sky-400">
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
                               currency: "EUR",
@@ -363,7 +364,7 @@ export default function DashboardPage() {
                           <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                             Revenus annuels prévisionnels
                           </p>
-                          <p className="text-2xl font-display font-bold text-primary-500">
+                          <p className="text-2xl font-display font-bold text-sky-600 dark:text-sky-400">
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
                               currency: "EUR",

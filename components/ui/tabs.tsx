@@ -33,7 +33,7 @@ export function TabsList({ className, children }: { className?: string; children
   return (
     <div
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500 gap-1",
+        "inline-flex h-10 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 p-1 text-slate-500 gap-1 border-b border-slate-200 dark:border-slate-700",
         className
       )}
     >
@@ -61,8 +61,8 @@ export function TabsTrigger({
         "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5",
         "text-sm font-medium transition-all",
         isActive 
-          ? "bg-white text-slate-950 shadow-sm" 
-          : "hover:bg-slate-200",
+          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border-b-2 border-sky-500" 
+          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
         className
       )}
       onClick={() => onValueChange(triggerValue)}
