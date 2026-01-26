@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { TrendingUp, Calculator, Home, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function LandingPage() {
+  const [isAnnual, setIsAnnual] = useState(false)
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
@@ -119,30 +121,59 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h3 className="text-4xl font-display font-bold mb-4">Tarifs</h3>
-            <p className="text-xl text-slate-300">Choisissez le plan qui vous convient</p>
+            <p className="text-xl text-slate-300 mb-8">Choisissez le plan qui vous convient</p>
+            
+            {/* Toggle Mensuel/Annuel */}
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <span className={`text-sm ${!isAnnual ? "text-white font-medium" : "text-slate-400"}`}>
+                Mensuel
+              </span>
+              <button
+                onClick={() => setIsAnnual(!isAnnual)}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  isAnnual ? "bg-sky-500" : "bg-slate-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    isAnnual ? "translate-x-7" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className={`text-sm ${isAnnual ? "text-white font-medium" : "text-slate-400"}`}>
+                Annuel
+              </span>
+              {isAnnual && (
+                <span className="text-sm text-green-400 font-medium">Économisez 17%</span>
+              )}
+            </div>
           </div>
+          
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Gratuit */}
+            {/* Plan Découverte */}
             <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
               <div className="mb-6">
-                <h4 className="text-2xl font-semibold mb-2">Gratuit</h4>
+                <h4 className="text-2xl font-semibold mb-2 text-green-400">Découverte</h4>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold">0€</span>
-                  <span className="text-slate-400">/mois</span>
                 </div>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Jusqu'à 3 biens
+                  <span className="text-green-400">✓</span>
+                  1 bien maximum
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Suivi des revenus
+                  <span className="text-green-400">✓</span>
+                  Dashboard basique
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Calculs de base
+                  <span className="text-green-400">✓</span>
+                  Suivi des loyers manuel
+                </li>
+                <li className="flex items-center gap-2 text-slate-300">
+                  <span className="text-green-400">✓</span>
+                  Cash-flow simple
                 </li>
               </ul>
               <Link href="/dashboard">
@@ -152,7 +183,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Pro */}
+            {/* Plan Investisseur */}
             <div className="bg-slate-800 rounded-xl p-8 border-2 border-sky-500 relative">
               <div className="absolute top-0 right-6 -translate-y-1/2">
                 <span className="bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -160,67 +191,101 @@ export default function LandingPage() {
                 </span>
               </div>
               <div className="mb-6">
-                <h4 className="text-2xl font-semibold mb-2">Pro</h4>
+                <h4 className="text-2xl font-semibold mb-2 text-sky-400">Investisseur</h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">29€</span>
-                  <span className="text-slate-400">/mois</span>
+                  <span className="text-4xl font-bold">
+                    {isAnnual ? "99€" : "9,90€"}
+                  </span>
+                  <span className="text-slate-400">
+                    {isAnnual ? "/an" : "/mois"}
+                  </span>
                 </div>
+                {isAnnual && (
+                  <p className="text-sm text-slate-400 mt-1">
+                    <span className="line-through">118,80€</span> par an
+                  </p>
+                )}
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-slate-300">
                   <span className="text-sky-400">✓</span>
-                  Biens illimités
+                  Jusqu'à 5 biens
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
                   <span className="text-sky-400">✓</span>
-                  Rapports avancés
+                  Dashboard complet
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
                   <span className="text-sky-400">✓</span>
-                  Support prioritaire
+                  Suivi des loyers
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
                   <span className="text-sky-400">✓</span>
-                  Export de données
+                  Autofinancement par bien
+                </li>
+                <li className="flex items-center gap-2 text-slate-300">
+                  <span className="text-sky-400">✓</span>
+                  Suivi locataire
+                </li>
+                <li className="flex items-center gap-2 text-slate-300">
+                  <span className="text-sky-400">✓</span>
+                  Alertes de retard
                 </li>
               </ul>
               <Link href="/dashboard">
                 <Button className="w-full bg-sky-500 hover:bg-sky-600 text-white">
-                  Essayer Pro
+                  Essayer Investisseur
                 </Button>
               </Link>
             </div>
 
-            {/* Premium */}
-            <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
+            {/* Plan Patrimoine */}
+            <div className="bg-slate-800 rounded-xl p-8 border border-purple-500">
               <div className="mb-6">
-                <h4 className="text-2xl font-semibold mb-2">Premium</h4>
+                <h4 className="text-2xl font-semibold mb-2 text-purple-400">Patrimoine</h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">79€</span>
-                  <span className="text-slate-400">/mois</span>
+                  <span className="text-4xl font-bold">
+                    {isAnnual ? "199€" : "19,90€"}
+                  </span>
+                  <span className="text-slate-400">
+                    {isAnnual ? "/an" : "/mois"}
+                  </span>
                 </div>
+                {isAnnual && (
+                  <p className="text-sm text-slate-400 mt-1">
+                    <span className="line-through">238,80€</span> par an
+                  </p>
+                )}
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Tout Pro inclus
+                  <span className="text-purple-400">✓</span>
+                  Jusqu'à 20 biens
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  API personnalisée
+                  <span className="text-purple-400">✓</span>
+                  Tout Investisseur inclus
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Gestionnaire dédié
+                  <span className="text-purple-400">✓</span>
+                  Historique long terme
                 </li>
                 <li className="flex items-center gap-2 text-slate-300">
-                  <span className="text-sky-400">✓</span>
-                  Formation personnalisée
+                  <span className="text-purple-400">✓</span>
+                  Comparaison des biens
+                </li>
+                <li className="flex items-center gap-2 text-slate-300">
+                  <span className="text-purple-400">✓</span>
+                  Exports CSV/PDF
+                </li>
+                <li className="flex items-center gap-2 text-slate-300">
+                  <span className="text-purple-400">✓</span>
+                  Support prioritaire
                 </li>
               </ul>
               <Link href="/dashboard">
-                <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
-                  Contacter
+                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                  Essayer Patrimoine
                 </Button>
               </Link>
             </div>
