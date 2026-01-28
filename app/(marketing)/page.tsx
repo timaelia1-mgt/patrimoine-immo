@@ -35,12 +35,12 @@ export default function LandingPage() {
               </Link>
             </nav>
             <div className="flex items-center gap-3">
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button variant="ghost" className="text-slate-300 hover:text-white">
                   Se connecter
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/signup">
                 <Button className="bg-sky-500 hover:bg-sky-600 text-white">
                   Commencer gratuitement
                 </Button>
@@ -62,7 +62,7 @@ export default function LandingPage() {
             <p className="text-xl text-slate-300 mb-8 leading-relaxed">
               Patrimo vous aide à suivre vos biens, calculer vos revenus et optimiser votre rentabilité
             </p>
-            <Link href="/dashboard">
+            <Link href="/signup">
               <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white text-lg px-8 py-6">
                 Commencer gratuitement
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -176,7 +176,7 @@ export default function LandingPage() {
                   Cash-flow simple
                 </li>
               </ul>
-              <Link href="/dashboard">
+              <Link href="/signup">
                 <Button className="w-full bg-slate-700 hover:bg-slate-600 text-white">
                   Commencer
                 </Button>
@@ -232,7 +232,7 @@ export default function LandingPage() {
                   Alertes de retard
                 </li>
               </ul>
-              <Link href="/dashboard">
+              <Link href="/signup">
                 <Button className="w-full bg-sky-500 hover:bg-sky-600 text-white">
                   Essayer Investisseur
                 </Button>
@@ -283,7 +283,7 @@ export default function LandingPage() {
                   Support prioritaire
                 </li>
               </ul>
-              <Link href="/dashboard">
+              <Link href="/signup">
                 <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                   Essayer Patrimoine
                 </Button>

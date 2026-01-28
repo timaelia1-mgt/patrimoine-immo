@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/lib/auth-context"
+import { createBien } from "@/lib/database"
 
 interface BienFormDialogProps {
   open?: boolean
@@ -13,6 +15,8 @@ interface BienFormDialogProps {
 }
 
 export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialogProps) {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     nom: "",
     adresse: "",
@@ -35,11 +39,48 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!user) {
+      alert("Vous devez être connecté pour ajouter un bien")
+      return
+    }
+
+    // Validation des champs obligatoires de base
+    if (!formData.nom.trim()) {
+      alert("Le nom du bien est obligatoire")
+      return
+    }
+    if (!formData.adresse.trim()) {
+      alert("L'adresse est obligatoire")
+      return
+    }
+    if (!formData.ville.trim()) {
+      alert("La ville est obligatoire")
+      return
+    }
+    if (!formData.codePostal.trim()) {
+      alert("Le code postal est obligatoire")
+      return
+    }
+    if (!formData.loyerMensuel || parseFloat(formData.loyerMensuel) <= 0) {
+      alert("Le loyer mensuel est obligatoire et doit être supérieur à 0")
+      return
+    }
+
+    // Validation des champs de crédit si typeFinancement === "CREDIT"
+    if (formData.typeFinancement === "CREDIT") {
+      if (!formData.mensualiteCredit || parseFloat(formData.mensualiteCredit) <= 0) {
+        alert("La mensualité est obligatoire pour un bien financé par crédit")
+        return
+      }
+    }
+
+    setLoading(true)
+
     const data: any = {
-      nom: formData.nom,
-      adresse: formData.adresse,
-      ville: formData.ville,
-      codePostal: formData.codePostal,
+      nom: formData.nom.trim(),
+      adresse: formData.adresse.trim(),
+      ville: formData.ville.trim(),
+      codePostal: formData.codePostal.trim(),
       loyerMensuel: parseFloat(formData.loyerMensuel),
       typeFinancement: formData.typeFinancement,
       taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
@@ -56,200 +97,256 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       data.montantCredit = formData.montantCredit ? parseFloat(formData.montantCredit) : (mensualite * 240)
       data.tauxCredit = formData.tauxCredit ? parseFloat(formData.tauxCredit) : 3.5
       data.dureeCredit = formData.dureeCredit ? parseInt(formData.dureeCredit) : 240
-      data.dateDebutCredit = formData.dateDebutCredit ? new Date(formData.dateDebutCredit) : null
+      data.dateDebutCredit = formData.dateDebutCredit ? formData.dateDebutCredit : null
     }
 
     try {
-      const response = await fetch("/api/biens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      await createBien(user.id, data)
+      
+      setFormData({
+        nom: "",
+        adresse: "",
+        ville: "",
+        codePostal: "",
+        loyerMensuel: "",
+        taxeFonciere: "",
+        chargesCopro: "",
+        assurance: "",
+        fraisGestion: "",
+        autresCharges: "",
+        typeFinancement: "CREDIT",
+        mensualiteCredit: "",
+        dateDebutCredit: "",
+        montantCredit: "",
+        tauxCredit: "",
+        dureeCredit: "",
       })
-
-      if (response.ok) {
-        setFormData({
-          nom: "",
-          adresse: "",
-          ville: "",
-          codePostal: "",
-          loyerMensuel: "",
-          taxeFonciere: "",
-          chargesCopro: "",
-          assurance: "",
-          fraisGestion: "",
-          autresCharges: "",
-          typeFinancement: "CREDIT",
-          mensualiteCredit: "",
-          dateDebutCredit: "",
-          montantCredit: "",
-          tauxCredit: "",
-          dureeCredit: "",
-        })
-        onOpenChange?.(false)
-        onSuccess?.()
-        window.location.reload()
-      } else {
-        alert("Erreur lors de l'ajout du bien")
-      }
+      onOpenChange?.(false)
+      onSuccess?.()
     } catch (error) {
       console.error("Erreur:", error)
       alert("Erreur lors de l'ajout du bien")
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Ajouter un bien immobilier</DialogTitle>
           <DialogDescription>
-            Remplissez les informations de base.
+            Remplissez les informations de base. Les champs marqués d'un * sont obligatoires.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="nom">Nom du bien *</Label>
-            <Input
-              id="nom"
-              value={formData.nom}
-              onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-              placeholder="Ex: Appartement Paris 15e"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="adresse">Adresse *</Label>
-              <Input
-                id="adresse"
-                value={formData.adresse}
-                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                placeholder="Ex: 12 rue de la Paix"
-                required
-              />
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-2 space-y-6 py-1">
+          {/* Section 1: Informations de base */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                Informations de base
+              </h3>
             </div>
 
             <div>
-              <Label htmlFor="codePostal">Code postal *</Label>
+              <Label htmlFor="nom" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                Nom du bien *
+              </Label>
               <Input
-                id="codePostal"
-                value={formData.codePostal}
-                onChange={(e) => setFormData({ ...formData, codePostal: e.target.value })}
-                placeholder="75015"
+                id="nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                placeholder="Ex: Appartement Paris 15e"
                 required
+                disabled={loading}
               />
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="ville">Ville *</Label>
-            <Input
-              id="ville"
-              value={formData.ville}
-              onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-              placeholder="Paris"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="loyerMensuel">Loyer mensuel (€) *</Label>
-            <Input
-              id="loyerMensuel"
-              type="number"
-              step="0.01"
-              value={formData.loyerMensuel}
-              onChange={(e) => setFormData({ ...formData, loyerMensuel: e.target.value })}
-              placeholder="900"
-              required
-            />
-          </div>
-
-          <div className="border-t pt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">Charges mensuelles (optionnel)</h3>
-              <p className="text-xs text-muted-foreground">Peut être complété plus tard</p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="taxeFonciere">Taxe foncière (€/mois)</Label>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <Label htmlFor="adresse" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                  Adresse *
+                </Label>
                 <Input
-                  id="taxeFonciere"
-                  type="number"
-                  step="0.01"
-                  value={formData.taxeFonciere || ""}
-                  onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
-                  placeholder="0"
+                  id="adresse"
+                  value={formData.adresse}
+                  onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                  placeholder="Ex: 12 rue de la Paix"
+                  required
+                  disabled={loading}
                 />
               </div>
-              <div>
-                <Label htmlFor="chargesCopro">Charges copro (€/mois)</Label>
-                <Input
-                  id="chargesCopro"
-                  type="number"
-                  step="0.01"
-                  value={formData.chargesCopro || ""}
-                  onChange={(e) => setFormData({ ...formData, chargesCopro: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="assurance">Assurance PNO (€/mois)</Label>
+                <Label htmlFor="codePostal" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                  Code postal *
+                </Label>
                 <Input
-                  id="assurance"
-                  type="number"
-                  step="0.01"
-                  value={formData.assurance || ""}
-                  onChange={(e) => setFormData({ ...formData, assurance: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="fraisGestion">Frais de gestion (€/mois)</Label>
-                <Input
-                  id="fraisGestion"
-                  type="number"
-                  step="0.01"
-                  value={formData.fraisGestion || ""}
-                  onChange={(e) => setFormData({ ...formData, fraisGestion: e.target.value })}
-                  placeholder="0"
+                  id="codePostal"
+                  value={formData.codePostal}
+                  onChange={(e) => setFormData({ ...formData, codePostal: e.target.value })}
+                  placeholder="75015"
+                  required
+                  disabled={loading}
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="autresCharges">Autres charges (€/mois)</Label>
+              <Label htmlFor="ville" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                Ville *
+              </Label>
               <Input
-                id="autresCharges"
+                id="ville"
+                value={formData.ville}
+                onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                placeholder="Ex: Paris"
+                required
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Loyers et charges */}
+          <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-6">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                Loyers et charges
+              </h3>
+            </div>
+
+            <div>
+              <Label htmlFor="loyerMensuel" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                Loyer mensuel (€) *
+              </Label>
+              <Input
+                id="loyerMensuel"
                 type="number"
                 step="0.01"
-                value={formData.autresCharges || ""}
-                onChange={(e) => setFormData({ ...formData, autresCharges: e.target.value })}
-                placeholder="0"
+                min="0"
+                value={formData.loyerMensuel}
+                onChange={(e) => setFormData({ ...formData, loyerMensuel: e.target.value })}
+                placeholder="Ex: 900"
+                required
+                disabled={loading}
               />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Charges mensuelles (optionnel)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Peut être complété plus tard</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="taxeFonciere" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                    Taxe foncière (€/mois)
+                  </Label>
+                  <Input
+                    id="taxeFonciere"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.taxeFonciere || ""}
+                    onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
+                    placeholder="Ex: 150"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="chargesCopro" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                    Charges copro (€/mois)
+                  </Label>
+                  <Input
+                    id="chargesCopro"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.chargesCopro || ""}
+                    onChange={(e) => setFormData({ ...formData, chargesCopro: e.target.value })}
+                    placeholder="Ex: 200"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="assurance" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                    Assurance PNO (€/mois)
+                  </Label>
+                  <Input
+                    id="assurance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.assurance || ""}
+                    onChange={(e) => setFormData({ ...formData, assurance: e.target.value })}
+                    placeholder="Ex: 30"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fraisGestion" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                    Frais de gestion (€/mois)
+                  </Label>
+                  <Input
+                    id="fraisGestion"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.fraisGestion || ""}
+                    onChange={(e) => setFormData({ ...formData, fraisGestion: e.target.value })}
+                    placeholder="Ex: 80"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label htmlFor="autresCharges" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                  Autres charges (€/mois)
+                </Label>
+                <Input
+                  id="autresCharges"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.autresCharges || ""}
+                  onChange={(e) => setFormData({ ...formData, autresCharges: e.target.value })}
+                  placeholder="Ex: 50"
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="border-t pt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">Financement</h3>
-              <p className="text-xs text-muted-foreground">Peut être complété plus tard</p>
+          {/* Section 3: Financement */}
+          <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-6">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Financement
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Peut être complété plus tard</p>
+              </div>
             </div>
             
             <div>
-              <Label htmlFor="typeFinancement">Type de financement *</Label>
+              <Label htmlFor="typeFinancement" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                Type de financement
+              </Label>
               <select
                 id="typeFinancement"
                 value={formData.typeFinancement}
                 onChange={(e) => setFormData({ ...formData, typeFinancement: e.target.value })}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-950"
-                required
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-slate-300 disabled:opacity-50"
+                disabled={loading}
               >
                 <option value="CREDIT">Crédit</option>
                 <option value="CASH">Cash</option>
@@ -257,82 +354,107 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
             </div>
 
             {formData.typeFinancement === "CREDIT" && (
-              <>
+              <div className="space-y-4 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="dateDebutCredit">Date de début du crédit</Label>
+                    <Label htmlFor="dateDebutCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                      Date de début du crédit
+                    </Label>
                     <Input
                       id="dateDebutCredit"
                       type="date"
                       value={formData.dateDebutCredit}
                       onChange={(e) => setFormData({ ...formData, dateDebutCredit: e.target.value })}
+                      disabled={loading}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="dureeCredit">Durée (mois)</Label>
+                    <Label htmlFor="dureeCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                      Durée (mois)
+                    </Label>
                     <Input
                       id="dureeCredit"
                       type="number"
+                      min="1"
                       value={formData.dureeCredit}
                       onChange={(e) => setFormData({ ...formData, dureeCredit: e.target.value })}
-                      placeholder="240"
+                      placeholder="Ex: 240"
+                      disabled={loading}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="montantCredit">Montant emprunté (€)</Label>
+                    <Label htmlFor="montantCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                      Montant emprunté (€)
+                    </Label>
                     <Input
                       id="montantCredit"
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.montantCredit}
                       onChange={(e) => setFormData({ ...formData, montantCredit: e.target.value })}
-                      placeholder="200000"
+                      placeholder="Ex: 200000"
+                      disabled={loading}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="tauxCredit">Taux d'intérêt (%)</Label>
+                    <Label htmlFor="tauxCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                      Taux d'intérêt (%)
+                    </Label>
                     <Input
                       id="tauxCredit"
                       type="number"
                       step="0.01"
+                      min="0"
+                      max="100"
                       value={formData.tauxCredit}
                       onChange={(e) => setFormData({ ...formData, tauxCredit: e.target.value })}
-                      placeholder="3.5"
+                      placeholder="Ex: 3.5"
+                      disabled={loading}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="mensualiteCredit">Mensualité (€) *</Label>
+                  <Label htmlFor="mensualiteCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                    Mensualité (€) {formData.typeFinancement === "CREDIT" && "*"}
+                  </Label>
                   <Input
                     id="mensualiteCredit"
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.mensualiteCredit}
                     onChange={(e) => setFormData({ ...formData, mensualiteCredit: e.target.value })}
-                    placeholder="1000"
-                    required
+                    placeholder="Ex: 1000"
+                    disabled={loading}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Les détails du crédit pourront être enrichis plus tard si vous ne les avez pas
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                    {formData.typeFinancement === "CREDIT" 
+                      ? "Obligatoire pour un bien financé par crédit"
+                      : "Les détails du crédit pourront être enrichis plus tard si vous ne les avez pas"}
                   </p>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          {/* Boutons d'action */}
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange?.(false)}
+              disabled={loading}
             >
               Annuler
             </Button>
-            <Button type="submit">Ajouter le bien</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Ajout en cours..." : "Ajouter le bien"}
+            </Button>
           </div>
         </form>
       </DialogContent>

@@ -19,12 +19,16 @@ import { Historique } from "@/components/biens/Historique"
 import { Rentabilite } from "@/components/biens/Rentabilite"
 import { Locataire } from "@/components/biens/Locataire"
 import { FinancementForm, InvestissementForm, HistoriqueForm, ChargesForm, RentabiliteForm, LocataireForm, enrichirThemeSimple } from "@/components/biens/EnrichissementForms"
+import { getBien, updateBien, deleteBien } from "@/lib/database"
+import { useAuth } from "@/lib/auth-context"
 
 export default function BienDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const [bien, setBien] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [fonctionnalitesOpen, setFonctionnalitesOpen] = useState(false)
   const [financementFormOpen, setFinancementFormOpen] = useState(false)
   const [investissementFormOpen, setInvestissementFormOpen] = useState(false)
@@ -34,16 +38,24 @@ export default function BienDetailPage() {
   const [locataireFormOpen, setLocataireFormOpen] = useState(false)
 
   useEffect(() => {
-    fetchBien()
+    if (params.id) {
+      fetchBien()
+    }
   }, [params.id])
 
   const fetchBien = async () => {
     try {
-      const response = await fetch(`/api/biens/${params.id}`)
-      const data = await response.json()
-      setBien(data)
-    } catch (error) {
+      setLoading(true)
+      setError(null)
+      const bienData = await getBien(params.id as string)
+      if (!bienData) {
+        setError("Bien introuvable")
+      } else {
+        setBien(bienData)
+      }
+    } catch (error: any) {
       console.error("Erreur:", error)
+      setError(error.message || "Une erreur est survenue")
     } finally {
       setLoading(false)
     }
@@ -85,23 +97,12 @@ export default function BienDetailPage() {
     if (!champ) return
 
     try {
-      const response = await fetch(`/api/biens/${bien.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [champ]: false })
-      })
-
-      if (response.ok) {
-        setFonctionnalitesOpen(false)
-        window.location.reload()
-      } else {
-        const errorData = await response.json()
-        console.error("Erreur API:", errorData)
-        alert("Erreur lors du désenrichissement")
-      }
-    } catch (error) {
+      await updateBien(bien.id, { [champ]: false })
+      setFonctionnalitesOpen(false)
+      fetchBien() // Recharger les données
+    } catch (error: any) {
       console.error("Erreur:", error)
-      alert("Erreur lors du désenrichissement")
+      alert(error.message || "Erreur lors du désenrichissement")
     }
   }
 
@@ -109,30 +110,38 @@ export default function BienDetailPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce bien ?")) return
 
     try {
-      const response = await fetch(`/api/biens/${params.id}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        router.push("/dashboard")
-      }
-    } catch (error) {
+      await deleteBien(bien.id)
+      router.push("/dashboard")
+    } catch (error: any) {
       console.error("Erreur:", error)
+      alert(error.message || "Erreur lors de la suppression")
     }
   }
 
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">Chargement...</p>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (!bien) {
+  if (error || !bien) {
     return (
       <div className="p-6">
-        <p className="text-red-600">Bien introuvable</p>
+        <div className="text-center py-12">
+          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
+            {error || "Bien introuvable"}
+          </p>
+          <Button onClick={() => router.push("/dashboard")} variant="outline">
+            Retour au dashboard
+          </Button>
+        </div>
       </div>
     )
   }

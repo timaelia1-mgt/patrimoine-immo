@@ -20,9 +20,13 @@ export function Financement({ bien }: FinancementProps) {
     dureeCredit: bien.dureeCredit?.toString() || "0",
   })
 
+  // Vérifier si le bien est payé comptant
+  const isComptant = bien.typeFinancement === "CASH" || bien.typeFinancement === "comptant" || bien.typeFinancement?.toLowerCase() === "cash"
+  const isCredit = bien.typeFinancement === "CREDIT" || bien.typeFinancement === "credit" || bien.typeFinancement?.toLowerCase() === "credit"
+
   // Calcul de la progression du crédit
   const calculerProgressionCredit = () => {
-    if (bien.typeFinancement !== "CREDIT" || !bien.dateDebutCredit || !bien.dureeCredit) {
+    if (!isCredit || !bien.dateDebutCredit || !bien.dureeCredit) {
       return null
     }
 
@@ -69,16 +73,16 @@ export function Financement({ bien }: FinancementProps) {
     }
   }
 
-  if (bien.typeFinancement === "CASH") {
+  if (isComptant) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Financement</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-lg font-medium">Ce bien a été payé comptant.</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Aucun crédit en cours.
+          <p className="text-lg font-medium text-slate-900 dark:text-white">Bien payé comptant</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+            Aucun financement bancaire.
           </p>
         </CardContent>
       </Card>
@@ -153,7 +157,7 @@ export function Financement({ bien }: FinancementProps) {
         </CardContent>
       </Card>
 
-      {bien.typeFinancement === "CREDIT" && progressionCredit && (
+      {isCredit && progressionCredit && (
         <Card>
           <CardHeader>
             <CardTitle>Progression du remboursement</CardTitle>
@@ -211,7 +215,7 @@ export function Financement({ bien }: FinancementProps) {
         </Card>
       )}
 
-      {bien.typeFinancement === "CREDIT" && !progressionCredit && (
+      {isCredit && !progressionCredit && (
         <Card>
           <CardHeader>
             <CardTitle>Progression du remboursement</CardTitle>

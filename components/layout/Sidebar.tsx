@@ -2,23 +2,35 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Settings, Building2, Plus, ChevronDown, CreditCard } from "lucide-react"
+import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { getBiens } from "@/lib/database"
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { signOut, user } = useAuth()
   const [biens, setBiens] = useState<any[]>([])
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
 
+  const handleSignOut = async () => {
+    await signOut()
+    router.push("/login")
+  }
+
   useEffect(() => {
     const fetchBiens = async () => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
       try {
-        const response = await fetch("/api/biens")
-        if (response.ok) {
-          const data = await response.json()
-          setBiens(data)
-        }
+        const data = await getBiens(user.id)
+        setBiens(data)
       } catch (error) {
         console.error("Erreur:", error)
       } finally {
@@ -27,7 +39,7 @@ export function Sidebar() {
     }
 
     fetchBiens()
-  }, [])
+  }, [user])
 
   const isActive = (path: string) => pathname === path
 
@@ -145,10 +157,7 @@ export function Sidebar() {
       {/* Bouton Ajouter en bas */}
       <div className="p-4 border-t border-slate-700/50">
         <Link
-          href="/dashboard"
-          onClick={() => {
-            // Le dialog d'ajout s'ouvre via le Dashboard
-          }}
+          href="/dashboard?add=true"
           className="
             w-full flex items-center justify-center gap-2 px-4 py-3 
             bg-gradient-to-r from-primary-600 to-primary-500 
@@ -167,15 +176,24 @@ export function Sidebar() {
 
         {/* User info */}
         <div className="mt-4 pt-4 border-t border-slate-700/50">
-          <div className="flex items-center gap-3 px-2">
+          <div className="flex items-center gap-3 px-2 mb-3">
             <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-600 rounded-full flex items-center justify-center text-sm font-bold">
-              U
+              {user?.email?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Utilisateur</p>
-              <p className="text-xs text-slate-400 truncate">temp@example.com</p>
+              <p className="text-sm font-medium text-white truncate">
+                {user?.email?.split("@")[0] || "Utilisateur"}
+              </p>
+              <p className="text-xs text-slate-400 truncate">{user?.email || "temp@example.com"}</p>
             </div>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-2 text-slate-300 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Déconnexion</span>
+          </button>
         </div>
       </div>
     </aside>

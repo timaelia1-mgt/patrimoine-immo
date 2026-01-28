@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -13,32 +14,90 @@ import {
   PiggyBank,
   CreditCard,
 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { getBiens } from "@/lib/database"
+import { BienFormDialog } from "@/components/biens/BienFormDialog"
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [stats, setStats] = useState<any>(null)
   const [biens, setBiens] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user) {
+      fetchData()
+    }
+  }, [user])
+
+  // Vérifier si on doit ouvrir le dialog depuis l'URL
+  useEffect(() => {
+    try {
+      const addParam = searchParams?.get("add")
+      if (addParam === "true") {
+        setDialogOpen(true)
+        // Nettoyer l'URL après un court délai pour éviter les problèmes de navigation
+        setTimeout(() => {
+          const url = new URL(window.location.href)
+          url.searchParams.delete("add")
+          window.history.replaceState({}, "", url.pathname + url.search)
+        }, 100)
+      }
+    } catch (error) {
+      // Fallback si useSearchParams ne fonctionne pas
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search)
+        if (params.get("add") === "true") {
+          setDialogOpen(true)
+          setTimeout(() => {
+            const url = new URL(window.location.href)
+            url.searchParams.delete("add")
+            window.history.replaceState({}, "", url.pathname + url.search)
+          }, 100)
+        }
+      }
+    }
+  }, [searchParams])
 
   const fetchData = async () => {
+    if (!user) return
+
     try {
-      const [statsRes, biensRes] = await Promise.all([
-        fetch("/api/dashboard/stats"),
-        fetch("/api/biens"),
-      ])
+      setLoading(true)
+      setError(null)
 
-      const statsData = await statsRes.json()
-      const biensData = await biensRes.json()
-
-      setStats(statsData)
+      // Récupérer les biens depuis Supabase
+      const biensData = await getBiens(user.id)
       setBiens(biensData)
-    } catch (error) {
+
+      // Calculer les stats localement
+      const statsData = calculateStats(biensData)
+      setStats(statsData)
+    } catch (error: any) {
       console.error("Erreur:", error)
+      setError(error.message || "Une erreur est survenue")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const calculateStats = (biensData: any[]) => {
+    const totalLoyers = biensData.reduce((sum, bien) => sum + (bien.loyerMensuel || 0), 0)
+    const totalCharges = biensData.reduce((sum, bien) => {
+      const charges = (bien.taxeFonciere || 0) + (bien.chargesCopro || 0) + (bien.assurance || 0) + (bien.fraisGestion || 0) + (bien.autresCharges || 0)
+      const mensualite = bien.mensualiteCredit || 0
+      return sum + charges + mensualite
+    }, 0)
+    const totalCashFlow = totalLoyers - totalCharges
+
+    return {
+      totalLoyers,
+      totalCharges,
+      totalCashFlow,
+      nombreBiens: biensData.length,
     }
   }
 
@@ -46,7 +105,22 @@ export default function DashboardPage() {
     return (
       <div className="p-6">
         <div className="flex justify-center items-center h-64">
-          <p className="text-muted-foreground">Chargement...</p>
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
+            {error}
+          </p>
         </div>
       </div>
     )
@@ -54,26 +128,31 @@ export default function DashboardPage() {
 
   if (!stats || biens.length === 0) {
     return (
-      <div className="p-6">
-        <div className="text-center max-w-md mx-auto py-12">
-          <h2 className="text-2xl font-bold mb-4">Bienvenue sur Patrimoine Immo !</h2>
-          <p className="text-muted-foreground mb-6">
-            Commencez par ajouter votre premier bien immobilier pour suivre vos investissements.
-          </p>
-          <Link href="/dashboard">
-            <Button>+ Ajouter mon premier bien</Button>
-          </Link>
+      <>
+        <div className="p-6">
+          <div className="text-center max-w-md mx-auto py-12">
+            <h2 className="text-2xl font-bold mb-4">Bienvenue sur Patrimoine Immo !</h2>
+            <p className="text-muted-foreground mb-6">
+              Commencez par ajouter votre premier bien immobilier pour suivre vos investissements.
+            </p>
+            <Button onClick={() => setDialogOpen(true)}>+ Ajouter mon premier bien</Button>
+          </div>
         </div>
-      </div>
+        <BienFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={() => {
+            fetchData()
+          }}
+        />
+      </>
     )
   }
 
-  const cashFlowGlobal = stats.cashFlowGlobal
-  const totalLoyers = biens.reduce((sum, bien) => {
-    return sum + parseFloat(bien.loyerMensuel?.toString() || "0")
-  }, 0)
+  const cashFlowGlobal = stats.totalCashFlow
+  const totalLoyers = stats.totalLoyers
   const nbBiensCredit = biens.filter((b) => b.typeFinancement === "CREDIT").length
-  const nbRetard = stats.loyersEnRetard
+  const nbRetard = 0 // TODO: Calculer les retards depuis les loyers
 
   return (
     <>
@@ -514,6 +593,15 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog d'ajout de bien */}
+      <BienFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={() => {
+          fetchData()
+        }}
+      />
     </>
   )
 }

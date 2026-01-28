@@ -6,25 +6,46 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PLANS, type PlanType } from "@/lib/subscription-plans"
 import { Check, AlertCircle } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { getUserProfile, getBiens } from "@/lib/database"
 
 export default function AbonnementPage() {
+  const { user } = useAuth()
   const [currentPlan, setCurrentPlan] = useState<PlanType>("decouverte")
   const [biensCount, setBiensCount] = useState(0)
   const [isAnnual, setIsAnnual] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Récupérer le nombre de biens depuis l'API
-    fetch("/api/biens")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setBiensCount(data.length)
-        }
-      })
-      .catch((error) => {
-        console.error("Erreur:", error)
-      })
-  }, [])
+    if (user) {
+      fetchData()
+    }
+  }, [user])
+
+  const fetchData = async () => {
+    if (!user) return
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Récupérer le profil utilisateur
+      const profile = await getUserProfile(user.id)
+      if (profile) {
+        setCurrentPlan(profile.plan)
+      }
+
+      // Récupérer le nombre de biens
+      const biens = await getBiens(user.id)
+      setBiensCount(biens.length)
+    } catch (error: any) {
+      console.error("Erreur:", error)
+      setError(error.message || "Une erreur est survenue")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const plan = PLANS[currentPlan]
   const usagePercentage = (biensCount / plan.maxBiens) * 100
@@ -68,6 +89,31 @@ export default function AbonnementPage() {
 
   const handleUpgrade = (planId: PlanType) => {
     alert("Disponible après authentification (Phase 5)")
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Chargement...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
+            {error}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
