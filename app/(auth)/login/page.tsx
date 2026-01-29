@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,9 +11,9 @@ import { createClient } from "@/lib/supabase/client"
 import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
+  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,17 +23,19 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: {
+          shouldCreateUser: false,
+        }
       })
 
       if (error) throw error
 
-      // Redirection complète pour forcer le rechargement de la session
-      window.location.href = "/dashboard"
+      // Rediriger vers la page de vérification
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
     } catch (error: any) {
-      setError(error.message || "Une erreur est survenue")
+      setError(error.message || 'Une erreur est survenue')
       setLoading(false)
     }
   }
@@ -65,19 +68,9 @@ export default function LoginPage() {
               required
               disabled={loading}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Un code de vérification vous sera envoyé par email
+            </p>
           </div>
 
           <Button
@@ -85,7 +78,7 @@ export default function LoginPage() {
             className="w-full bg-sky-500 hover:bg-sky-600 text-white"
             disabled={loading}
           >
-            {loading ? "Connexion..." : "Se connecter"}
+            {loading ? "Envoi en cours..." : "Recevoir le code"}
           </Button>
         </form>
 

@@ -14,8 +14,6 @@ export default function SignupPage() {
   const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,31 +22,20 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
-    if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères")
-      setLoading(false)
-      return
-    }
-
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: {
+          shouldCreateUser: true,
+        }
       })
 
       if (error) throw error
 
-      router.push("/dashboard")
-      router.refresh()
+      // Rediriger vers la page de vérification
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
     } catch (error: any) {
-      setError(error.message || "Une erreur est survenue")
-    } finally {
+      setError(error.message || 'Une erreur est survenue')
       setLoading(false)
     }
   }
@@ -81,37 +68,9 @@ export default function SignupPage() {
               required
               disabled={loading}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              minLength={6}
-            />
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Minimum 6 caractères
+              Un code de vérification vous sera envoyé par email
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={loading}
-              minLength={6}
-            />
           </div>
 
           <Button
@@ -119,7 +78,7 @@ export default function SignupPage() {
             className="w-full bg-sky-500 hover:bg-sky-600 text-white"
             disabled={loading}
           >
-            {loading ? "Inscription..." : "Créer mon compte"}
+            {loading ? "Envoi en cours..." : "Recevoir le code"}
           </Button>
         </form>
 
