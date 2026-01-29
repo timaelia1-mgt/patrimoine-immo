@@ -1,4 +1,4 @@
-import { supabase } from "./supabase"
+import { createClient } from "./supabase/client"
 import type { PlanType } from "./subscription-plans"
 
 // Types
@@ -54,6 +54,7 @@ export interface UserProfile {
 
 // Fonctions pour les biens
 export async function getBiens(userId: string): Promise<Bien[]> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("biens")
     .select("*")
@@ -69,6 +70,7 @@ export async function getBiens(userId: string): Promise<Bien[]> {
 }
 
 export async function getBien(bienId: string): Promise<Bien | null> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("biens")
     .select("*")
@@ -109,6 +111,7 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     charges_mensuelles: bien.chargesMensuelles ? parseFloat(bien.chargesMensuelles.toString()) : 0,
   }
 
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("biens")
     .insert(bienData)
@@ -170,6 +173,7 @@ export async function updateBien(bienId: string, updates: Partial<Bien>): Promis
     updatesSnakeCase[snakeKey] = value
   }
 
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("biens")
     .update(updatesSnakeCase)
@@ -186,6 +190,7 @@ export async function updateBien(bienId: string, updates: Partial<Bien>): Promis
 }
 
 export async function deleteBien(bienId: string): Promise<void> {
+  const supabase = createClient()
   const { error } = await supabase
     .from("biens")
     .delete()
@@ -199,6 +204,7 @@ export async function deleteBien(bienId: string): Promise<void> {
 
 // Fonctions pour le profil utilisateur
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -214,6 +220,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 }
 
 export async function createUserProfile(userId: string, email: string, name?: string): Promise<UserProfile> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("profiles")
     .insert({
@@ -251,6 +258,7 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
     }
   }
 
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("profiles")
     .update(updatesSnakeCase)
