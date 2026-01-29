@@ -1,10 +1,4 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import {
   TrendingUp,
   Home,
@@ -14,153 +8,53 @@ import {
   PiggyBank,
   CreditCard,
 } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
+import { createClient } from "@/lib/supabase/server"
 import { getBiens } from "@/lib/database"
-import { BienFormDialog } from "@/components/biens/BienFormDialog"
+import { DashboardClient } from "@/components/dashboard/DashboardClient"
 
-export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth()
-  const searchParams = useSearchParams()
-  const [stats, setStats] = useState<any>(null)
-  const [biens, setBiens] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+function calculateStats(biensData: any[]) {
+  const totalLoyers = biensData.reduce((sum, bien) => sum + (bien.loyerMensuel || 0), 0)
+  const totalCharges = biensData.reduce((sum, bien) => {
+    const charges = (bien.taxeFonciere || 0) + (bien.chargesCopro || 0) + (bien.assurance || 0) + (bien.fraisGestion || 0) + (bien.autresCharges || 0)
+    const mensualite = bien.mensualiteCredit || 0
+    return sum + charges + mensualite
+  }, 0)
+  const totalCashFlow = totalLoyers - totalCharges
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchData()
-      } else {
-        setLoading(false)
-      }
-    }
-  }, [user, authLoading])
+  return {
+    totalLoyers,
+    totalCharges,
+    totalCashFlow,
+    nombreBiens: biensData.length,
+  }
+}
 
-  // Vérifier si on doit ouvrir le dialog depuis l'URL
-  useEffect(() => {
-    try {
-      const addParam = searchParams?.get("add")
-      if (addParam === "true") {
-        setDialogOpen(true)
-        // Nettoyer l'URL après un court délai pour éviter les problèmes de navigation
-        setTimeout(() => {
-          const url = new URL(window.location.href)
-          url.searchParams.delete("add")
-          window.history.replaceState({}, "", url.pathname + url.search)
-        }, 100)
-      }
-    } catch (error) {
-      // Fallback si useSearchParams ne fonctionne pas
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search)
-        if (params.get("add") === "true") {
-          setDialogOpen(true)
-          setTimeout(() => {
-            const url = new URL(window.location.href)
-            url.searchParams.delete("add")
-            window.history.replaceState({}, "", url.pathname + url.search)
-          }, 100)
-        }
-      }
-    }
-  }, [searchParams])
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const fetchData = async () => {
-    if (!user) return
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Récupérer les biens depuis Supabase
-      const biensData = await getBiens(user.id)
-      setBiens(biensData)
-
-      // Calculer les stats localement
-      const statsData = calculateStats(biensData)
-      setStats(statsData)
-    } catch (error: any) {
-      console.error("Erreur:", error)
-      setError(error.message || "Une erreur est survenue")
-    } finally {
-      setLoading(false)
-    }
+  // Si pas d'utilisateur, le middleware redirigera
+  if (!user) {
+    return null
   }
 
-  const calculateStats = (biensData: any[]) => {
-    const totalLoyers = biensData.reduce((sum, bien) => sum + (bien.loyerMensuel || 0), 0)
-    const totalCharges = biensData.reduce((sum, bien) => {
-      const charges = (bien.taxeFonciere || 0) + (bien.chargesCopro || 0) + (bien.assurance || 0) + (bien.fraisGestion || 0) + (bien.autresCharges || 0)
-      const mensualite = bien.mensualiteCredit || 0
-      return sum + charges + mensualite
-    }, 0)
-    const totalCashFlow = totalLoyers - totalCharges
+  // Récupérer les biens directement
+  const biens = await getBiens(user.id)
+  const stats = calculateStats(biens)
 
-    return {
-      totalLoyers,
-      totalCharges,
-      totalCashFlow,
-      nombreBiens: biensData.length,
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Chargement...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!authLoading && !user) {
-    return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-slate-600 dark:text-slate-400">
-            Non connecté. Redirection...
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
-            {error}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!stats || biens.length === 0) {
+  // Si aucun bien, afficher le message d'accueil
+  if (biens.length === 0) {
     return (
       <>
         <div className="p-6">
           <div className="text-center max-w-md mx-auto py-12">
             <h2 className="text-2xl font-bold mb-4">Bienvenue sur Patrimoine Immo !</h2>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               Commencez par ajouter votre premier bien immobilier pour suivre vos investissements.
             </p>
-            <Button onClick={() => setDialogOpen(true)}>+ Ajouter mon premier bien</Button>
           </div>
         </div>
-        <BienFormDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          onSuccess={() => {
-            fetchData()
-          }}
-        />
+        <DashboardClient biens={biens} stats={stats} />
       </>
     )
   }
@@ -443,32 +337,26 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(() => {
-                    return (
-                      <>
-                        <div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Loyers mensuels</p>
-                          <p className="text-3xl font-display font-bold text-sky-600 dark:text-sky-400">
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: "EUR",
-                            }).format(totalLoyers)}
-                          </p>
-                        </div>
-                        <div className="pt-4 border-t dark:border-slate-700">
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                            Revenus annuels prévisionnels
-                          </p>
-                          <p className="text-2xl font-display font-bold text-sky-600 dark:text-sky-400">
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: "EUR",
-                            }).format(totalLoyers * 12)}
-                          </p>
-                        </div>
-                      </>
-                    )
-                  })()}
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Loyers mensuels</p>
+                    <p className="text-3xl font-display font-bold text-sky-600 dark:text-sky-400">
+                      {new Intl.NumberFormat("fr-FR", {
+                        style: "currency",
+                        currency: "EUR",
+                      }).format(totalLoyers)}
+                    </p>
+                  </div>
+                  <div className="pt-4 border-t dark:border-slate-700">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                      Revenus annuels prévisionnels
+                    </p>
+                    <p className="text-2xl font-display font-bold text-sky-600 dark:text-sky-400">
+                      {new Intl.NumberFormat("fr-FR", {
+                        style: "currency",
+                        currency: "EUR",
+                      }).format(totalLoyers * 12)}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -610,14 +498,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Dialog d'ajout de bien */}
-      <BienFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={() => {
-          fetchData()
-        }}
-      />
+      {/* Composant client pour gérer le dialog */}
+      <DashboardClient biens={biens} stats={stats} />
     </>
   )
 }
