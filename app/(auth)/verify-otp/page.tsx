@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { AlertCircle } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default function VerifyOtpPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
