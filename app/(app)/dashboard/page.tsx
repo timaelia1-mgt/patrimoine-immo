@@ -19,7 +19,7 @@ import { getBiens } from "@/lib/database"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const [stats, setStats] = useState<any>(null)
   const [biens, setBiens] = useState<any[]>([])
@@ -28,10 +28,14 @@ export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      fetchData()
+    if (!authLoading) {
+      if (user) {
+        fetchData()
+      } else {
+        setLoading(false)
+      }
     }
-  }, [user])
+  }, [user, authLoading])
 
   // Vérifier si on doit ouvrir le dialog depuis l'URL
   useEffect(() => {
@@ -109,6 +113,18 @@ export default function DashboardPage() {
             <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-muted-foreground">Chargement...</p>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!authLoading && !user) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-slate-600 dark:text-slate-400">
+            Non connecté. Redirection...
+          </p>
         </div>
       </div>
     )
