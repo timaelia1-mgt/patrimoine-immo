@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +10,6 @@ import { createClient } from "@/lib/supabase/client"
 import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -31,11 +29,10 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      router.push("/dashboard")
-      router.refresh()
+      // Redirection complète pour forcer le rechargement de la session
+      window.location.href = "/dashboard"
     } catch (error: any) {
       setError(error.message || "Une erreur est survenue")
-    } finally {
       setLoading(false)
     }
   }
