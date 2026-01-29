@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   TrendingUp,
@@ -11,6 +12,9 @@ import {
 import { createClient } from "@/lib/supabase/server"
 import { getBiens } from "@/lib/database"
 import { DashboardClient } from "@/components/dashboard/DashboardClient"
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 function calculateStats(biensData: any[]) {
   const totalLoyers = biensData.reduce((sum, bien) => sum + (bien.loyerMensuel || 0), 0)
@@ -30,20 +34,20 @@ function calculateStats(biensData: any[]) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      redirect('/login')
+    }
 
-  // Si pas d'utilisateur, le middleware redirigera
-  if (!user) {
-    return null
-  }
+    // Récupérer les biens directement
+    const biens = await getBiens(user.id)
+    const stats = calculateStats(biens)
 
-  // Récupérer les biens directement
-  const biens = await getBiens(user.id)
-  const stats = calculateStats(biens)
-
-  // Si aucun bien, afficher le message d'accueil
-  if (biens.length === 0) {
+    // Si aucun bien, afficher le message d'accueil
+    if (biens.length === 0) {
     return (
       <>
         <div className="p-6">
@@ -501,5 +505,9 @@ export default async function DashboardPage() {
       {/* Composant client pour gérer le dialog */}
       <DashboardClient biens={biens} stats={stats} />
     </>
-  )
+    )
+  } catch (error) {
+    console.error('Dashboard error:', error)
+    redirect('/login')
+  }
 }
