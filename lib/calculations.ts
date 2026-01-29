@@ -1,8 +1,7 @@
-import { Decimal } from "@prisma/client/runtime/library"
-
 // Helper pour convertir Decimal en number
 function toNumber(value: any): number {
   if (typeof value === 'string') return parseFloat(value)
+  if (typeof value === 'number') return value
   if (value?.toNumber) return value.toNumber()
   return parseFloat(value?.toString() || '0')
 }
