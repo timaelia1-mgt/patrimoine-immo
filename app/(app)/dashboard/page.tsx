@@ -72,18 +72,18 @@ export default async function DashboardPage() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
           
-          <div className="relative px-8 py-12">
+          <div className="relative px-8 py-6">
             <div className="max-w-7xl mx-auto">
-              <div className="flex items-center gap-3 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <Sparkles className="w-6 h-6 text-amber-400" />
-                <span className="text-amber-400/80 text-sm font-medium tracking-wider uppercase">
+              <div className="flex items-center gap-3 mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <span className="text-amber-400/80 text-xs font-medium tracking-wider uppercase">
                   Votre Patrimoine
                 </span>
               </div>
-              <h1 className="text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <h1 className="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 Tableau de Bord
               </h1>
-              <p className="text-slate-400 text-lg max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+              <p className="text-slate-400 text-base max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                 Vue d'ensemble de vos {stats.nombreBiens} {stats.nombreBiens > 1 ? 'biens immobiliers' : 'bien immobilier'}
               </p>
             </div>
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* KPIs Premium */}
-        <div className="px-8 pb-8">
+        <div className="px-8 pb-6">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {/* Cash Flow */}
