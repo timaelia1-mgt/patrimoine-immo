@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
 import { getBiens } from "@/lib/database"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { signOut, user } = useAuth()
   const [biens, setBiens] = useState<any[]>([])
   const [biensExpanded, setBiensExpanded] = useState(true)
@@ -18,7 +16,8 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push("/login")
+    // Redirection complète pour forcer le rechargement de la session
+    window.location.href = '/login'
   }
 
   useEffect(() => {
