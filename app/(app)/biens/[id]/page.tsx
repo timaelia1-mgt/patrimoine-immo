@@ -501,42 +501,60 @@ export default function BienDetailPage() {
         open={financementFormOpen} 
         onOpenChange={setFinancementFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setFinancementFormOpen(false)
+          fetchBien()
+        }}
       />
 
       <InvestissementForm 
         open={investissementFormOpen} 
         onOpenChange={setInvestissementFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setInvestissementFormOpen(false)
+          fetchBien()
+        }}
       />
 
       <HistoriqueForm 
         open={historiqueFormOpen} 
         onOpenChange={setHistoriqueFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setHistoriqueFormOpen(false)
+          fetchBien()
+        }}
       />
 
       <ChargesForm 
         open={chargesFormOpen} 
         onOpenChange={setChargesFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setChargesFormOpen(false)
+          fetchBien()
+        }}
       />
 
       <RentabiliteForm 
         open={rentabiliteFormOpen} 
         onOpenChange={setRentabiliteFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setRentabiliteFormOpen(false)
+          fetchBien()
+        }}
       />
 
       <LocataireForm 
         open={locataireFormOpen} 
         onOpenChange={setLocataireFormOpen}
         bienId={bien.id}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setLocataireFormOpen(false)
+          fetchBien()
+        }}
       />
 
     </div>
