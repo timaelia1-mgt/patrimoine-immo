@@ -80,8 +80,7 @@ export default async function DashboardPage() {
                   Votre Patrimoine
                 </span>
               </div>
-              <h1 className="text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100" 
-                  style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 Tableau de Bord
               </h1>
               <p className="text-slate-400 text-lg max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
@@ -119,7 +118,7 @@ export default async function DashboardPage() {
                   <CardContent>
                     <p className={`text-4xl font-bold ${
                       stats.totalCashFlow > 0 ? 'text-emerald-400' : 'text-red-400'
-                    }`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                    }`}>
                       {new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: 'EUR',
@@ -146,7 +145,7 @@ export default async function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-4xl font-bold text-blue-400" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <p className="text-4xl font-bold text-blue-400">
                       {new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: 'EUR',
@@ -173,7 +172,7 @@ export default async function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-4xl font-bold text-orange-400" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <p className="text-4xl font-bold text-orange-400">
                       {new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: 'EUR',
@@ -200,7 +199,7 @@ export default async function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-4xl font-bold text-purple-400" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <p className="text-4xl font-bold text-purple-400">
                       {stats.nombreBiens}
                     </p>
                     <p className="text-xs text-slate-500 mt-2">{stats.nombreBiens > 1 ? 'Biens' : 'Bien'}</p>
@@ -214,7 +213,7 @@ export default async function DashboardPage() {
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h2 className="text-3xl font-bold text-white mb-2">
                       Mes Biens
                     </h2>
                     <p className="text-slate-400">
@@ -247,7 +246,7 @@ export default async function DashboardPage() {
                           <CardHeader className="relative">
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <CardTitle className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <CardTitle className="text-xl font-bold text-white mb-2">
                                   {bien.nom}
                                 </CardTitle>
                                 <div className="flex items-center gap-2 text-slate-400 text-sm">
@@ -317,7 +316,7 @@ export default async function DashboardPage() {
                 <div className="w-24 h-24 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Home className="w-12 h-12 text-amber-400" />
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <h2 className="text-3xl font-bold text-white mb-4">
                   Bienvenue sur Patrimoine Immo
                 </h2>
                 <p className="text-slate-400 mb-8 leading-relaxed">

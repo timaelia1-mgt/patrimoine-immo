@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Inter, Plus_Jakarta_Sans, Playfair_Display } from "next/font/google"
+import { Inter, Plus_Jakarta_Sans, DM_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/lib/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
@@ -15,10 +15,11 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 })
 
-const playfair = Playfair_Display({ 
+const dmSans = DM_Sans({ 
   subsets: ['latin'],
   variable: '--font-display',
-  display: 'swap'
+  display: 'swap',
+  weight: ['400', '500', '700']
 })
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="dark">
-      <body className={`${inter.variable} ${jakarta.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} font-sans antialiased`}>
         <ThemeProvider>
           <AuthProvider>
             {children}
