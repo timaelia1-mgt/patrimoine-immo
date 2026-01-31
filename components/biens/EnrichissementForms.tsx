@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { updateBien } from "@/lib/database"
 
 interface FormDialogProps {
   open: boolean
@@ -73,25 +74,19 @@ export function FinancementForm({ open, onOpenChange, bienId, onSuccess }: FormD
     e.preventDefault()
 
     try {
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementFinancement: true,
-          dateDebutCredit: formData.dateDebutCredit ? new Date(formData.dateDebutCredit) : null,
-          montantCredit: formData.montantCredit ? parseFloat(formData.montantCredit) : null,
-          tauxCredit: formData.tauxCredit ? parseFloat(formData.tauxCredit) : null,
-          dureeCredit: formData.dureeCredit ? parseInt(formData.dureeCredit) : null,
-          mensualiteCredit: mensualiteCalculee ? mensualiteCalculee : (formData.mensualiteCredit ? parseFloat(formData.mensualiteCredit) : null),
-          capitalRestantDu: capitalRestant,
-        }),
+      await updateBien(bienId, {
+        enrichissementFinancement: true,
+        dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
+        montantCredit: formData.montantCredit ? parseFloat(formData.montantCredit) : null,
+        tauxCredit: formData.tauxCredit ? parseFloat(formData.tauxCredit) : null,
+        dureeCredit: formData.dureeCredit ? parseInt(formData.dureeCredit) : null,
+        mensualiteCredit: mensualiteCalculee ? mensualiteCalculee : (formData.mensualiteCredit ? parseFloat(formData.mensualiteCredit) : null),
+        capitalRestantDu: capitalRestant || null,
       })
-
-      if (response.ok) {
-        onSuccess()
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
+      console.error("Erreur lors de la mise à jour du financement:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -290,23 +285,17 @@ export function InvestissementForm({ open, onOpenChange, bienId, onSuccess }: Fo
     e.preventDefault()
 
     try {
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementInvestissement: true,
-          prixAchat: formData.prixAchat ? parseFloat(formData.prixAchat) : null,
-          fraisNotaire: formData.fraisNotaire ? parseFloat(formData.fraisNotaire) : null,
-          travauxInitiaux: formData.travauxInitiaux ? parseFloat(formData.travauxInitiaux) : null,
-          autresFrais: formData.autresFrais ? parseFloat(formData.autresFrais) : null,
-        }),
+      await updateBien(bienId, {
+        enrichissementInvestissement: true,
+        prixAchat: formData.prixAchat ? parseFloat(formData.prixAchat) : null,
+        fraisNotaire: formData.fraisNotaire ? parseFloat(formData.fraisNotaire) : null,
+        travauxInitiaux: formData.travauxInitiaux ? parseFloat(formData.travauxInitiaux) : null,
+        autresFrais: formData.autresFrais ? parseFloat(formData.autresFrais) : null,
       })
-
-      if (response.ok) {
-        onSuccess()
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
+      console.error("Erreur lors de la mise à jour de l'investissement:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -464,21 +453,15 @@ export function HistoriqueForm({ open, onOpenChange, bienId, onSuccess }: FormDi
     e.preventDefault()
 
     try {
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementHistorique: true,
-          dateAcquisition: formData.dateAcquisition ? new Date(formData.dateAcquisition) : null,
-          dateMiseEnLocation: formData.dateMiseEnLocation ? new Date(formData.dateMiseEnLocation) : null,
-        }),
+      await updateBien(bienId, {
+        enrichissementHistorique: true,
+        dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
+        dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
       })
-
-      if (response.ok) {
-        onSuccess()
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
+      console.error("Erreur lors de la mise à jour de l'historique:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -594,25 +577,19 @@ export function ChargesForm({ open, onOpenChange, bienId, onSuccess }: FormDialo
     e.preventDefault()
 
     try {
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementCharges: true,
-          taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
-          chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) : 0,
-          assurance: formData.assurance ? parseFloat(formData.assurance) : 0,
-          fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) : 0,
-          autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) : 0,
-          chargesMensuelles: totalCharges,
-        }),
+      await updateBien(bienId, {
+        enrichissementCharges: true,
+        taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
+        chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) : 0,
+        assurance: formData.assurance ? parseFloat(formData.assurance) : 0,
+        fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) : 0,
+        autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) : 0,
+        chargesMensuelles: totalCharges,
       })
-
-      if (response.ok) {
-        onSuccess()
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
+      console.error("Erreur lors de la mise à jour des charges:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -751,26 +728,15 @@ export function RentabiliteForm({ open, onOpenChange, bienId, onSuccess }: FormD
         ? parseFloat(formData.chargesAnterieuresOverride) 
         : null
 
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementRentabilite: true,
-          revenusAnterieursOverride: revenus,
-          chargesAnterieuresOverride: charges,
-        }),
+      await updateBien(bienId, {
+        enrichissementRentabilite: true,
+        revenusAnterieursOverride: revenus,
+        chargesAnterieuresOverride: charges,
       })
-
-      if (response.ok) {
-        onSuccess()
-      } else {
-        const errorData = await response.json()
-        console.error("Erreur API:", errorData)
-        alert("Erreur lors de l'enrichissement")
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de l'enrichissement")
+      console.error("Erreur lors de la mise à jour de la rentabilité:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -865,20 +831,14 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
     try {
       // Pour l'instant on active juste l'onglet
       // La table Locataire sera créée plus tard dans le schema Prisma
-      const response = await fetch(`/api/biens/${bienId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichissementLocataire: true,
-          // Les données locataire seront stockées plus tard
-        }),
+      await updateBien(bienId, {
+        enrichissementLocataire: true,
+        // Les données locataire seront stockées plus tard
       })
-
-      if (response.ok) {
-        onSuccess()
-      }
+      onSuccess()
     } catch (error) {
-      console.error("Erreur:", error)
+      console.error("Erreur lors de la mise à jour du locataire:", error)
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
     }
   }
 
@@ -1022,16 +982,10 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
 // Pour les autres thèmes, on active juste le booléen sans formulaire pour l'instant
 export async function enrichirThemeSimple(bienId: string, champ: string) {
   try {
-    const response = await fetch(`/api/biens/${bienId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [champ]: true })
-    })
-
-    if (response.ok) {
-      window.location.reload()
-    }
+    await updateBien(bienId, { [champ]: true })
+    window.location.reload()
   } catch (error) {
-    console.error("Erreur:", error)
+    console.error("Erreur lors de l'enrichissement:", error)
+    alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
   }
 }
