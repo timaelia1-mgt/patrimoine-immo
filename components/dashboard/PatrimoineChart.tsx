@@ -188,14 +188,49 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
                   tickFormatter={(value, index) => {
-                    if (index % 4 === 0 || index === data.length - 1) return value
+                    // Extraire l'année de la date (format: "avr. 2026" ou "janv. 2024")
+                    const yearMatch = value?.match(/\d{4}/)
+                    if (!yearMatch) return ''
+                    
+                    const year = yearMatch[0]
+                    const currentYear = new Date().getFullYear()
+                    const yearNum = parseInt(year)
+                    
+                    // Calculer le nombre total de points de données
+                    const totalPoints = data.length
+                    
+                    // Afficher environ 8-10 labels sur toute la période
+                    const interval = Math.max(1, Math.floor(totalPoints / 8))
+                    
+                    // Afficher si c'est un multiple de l'intervalle, ou le premier/dernier
+                    if (index % interval === 0 || index === 0 || index === totalPoints - 1) {
+                      // Toujours afficher l'année complète pour plus de clarté
+                      return year
+                    }
                     return ''
                   }}
                 />
                 <YAxis 
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`}
+                  tickFormatter={(value) => {
+                    // Formatage amélioré avec espace et meilleure lisibilité
+                    if (value >= 1000000) {
+                      // Pour les millions : "1,5 M€"
+                      return `${(value / 1000000).toFixed(1).replace('.', ',')} M€`
+                    } else if (value >= 1000) {
+                      // Pour les milliers : "160 k€" avec espace
+                      return `${(value / 1000).toFixed(0)} k€`
+                    } else {
+                      // Pour les petites valeurs : format complet
+                      return new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: 'EUR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                      }).format(value)
+                    }
+                  }}
                 />
                 <Tooltip 
                   contentStyle={{ 
