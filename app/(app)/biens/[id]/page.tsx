@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -37,29 +37,45 @@ export default function BienDetailPage() {
   const [rentabiliteFormOpen, setRentabiliteFormOpen] = useState(false)
   const [locataireFormOpen, setLocataireFormOpen] = useState(false)
 
-  useEffect(() => {
-    if (params.id) {
-      fetchBien()
+  const fetchBien = useCallback(async () => {
+    if (!params.id) {
+      setLoading(false)
+      setError("ID du bien manquant")
+      return
     }
-  }, [params.id])
 
-  const fetchBien = async () => {
     try {
       setLoading(true)
       setError(null)
+      console.log("[BienDetailPage] Début récupération du bien:", params.id)
+      
       const bienData = await getBien(params.id as string)
+      
+      console.log("[BienDetailPage] Réponse getBien:", bienData ? "OK" : "NULL")
+      
       if (!bienData) {
+        console.warn("[BienDetailPage] Bien non trouvé pour ID:", params.id)
         setError("Bien introuvable")
+        setBien(null)
       } else {
+        console.log("[BienDetailPage] Bien chargé avec succès:", bienData.nom)
         setBien(bienData)
       }
     } catch (error: any) {
-      console.error("Erreur:", error)
-      setError(error.message || "Une erreur est survenue")
+      console.error("[BienDetailPage] Erreur complète:", error)
+      console.error("[BienDetailPage] Message d'erreur:", error?.message)
+      console.error("[BienDetailPage] Code d'erreur:", error?.code)
+      setError(error?.message || error?.code || "Une erreur est survenue lors du chargement")
+      setBien(null)
     } finally {
+      console.log("[BienDetailPage] Fin du chargement, setLoading(false)")
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    fetchBien()
+  }, [fetchBien])
 
   const handleEnrichir = (themeId: string) => {
     setFonctionnalitesOpen(false)  // Fermer le dialog principal
