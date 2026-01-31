@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
+import { getLocataire, upsertLocataire } from "@/lib/database"
+import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
 interface LocataireProps {
@@ -13,6 +15,7 @@ interface LocataireProps {
 }
 
 export function Locataire({ bien }: LocataireProps) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     nom: "",
@@ -28,20 +31,17 @@ export function Locataire({ bien }: LocataireProps) {
   useEffect(() => {
     const fetchLocataire = async () => {
       try {
-        const response = await fetch(`/api/biens/${bien.id}/locataire`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data) {
-            setFormData({
-              nom: data.nom || "",
-              prenom: data.prenom || "",
-              email: data.email || "",
-              telephone: data.telephone || "",
-              dateEntree: data.dateEntree ? new Date(data.dateEntree).toISOString().split("T")[0] : "",
-              montantAPL: data.montantAPL?.toString() || "0",
-              modePaiement: data.modePaiement || "virement",
-            })
-          }
+        const data = await getLocataire(bien.id)
+        if (data) {
+          setFormData({
+            nom: data.nom || "",
+            prenom: data.prenom || "",
+            email: data.email || "",
+            telephone: data.telephone || "",
+            dateEntree: data.dateEntree ? new Date(data.dateEntree).toISOString().split("T")[0] : "",
+            montantAPL: data.montantAPL?.toString() || "0",
+            modePaiement: data.modePaiement || "virement",
+          })
         }
       } catch (error) {
         console.error("Erreur chargement locataire:", error)
@@ -60,19 +60,19 @@ export function Locataire({ bien }: LocataireProps) {
         return
       }
 
-      const response = await fetch(`/api/biens/${bien.id}/locataire`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      await upsertLocataire(bien.id, {
+        nom: formData.nom,
+        prenom: formData.prenom,
+        email: formData.email || null,
+        telephone: formData.telephone || null,
+        dateEntree: formData.dateEntree || null,
+        montantAPL: parseFloat(formData.montantAPL || "0"),
+        modePaiement: formData.modePaiement,
       })
 
-      if (response.ok) {
-        setEditing(false)
-        alert("✓ Informations locataire sauvegardées")
-        window.location.reload()
-      } else {
-        alert("Erreur lors de la sauvegarde")
-      }
+      setEditing(false)
+      alert("✓ Informations locataire sauvegardées")
+      router.refresh()
     } catch (error) {
       console.error("Erreur:", error)
       alert("Erreur lors de la sauvegarde")

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
+import { getLocataire, getLoyers, upsertLoyer } from "@/lib/database"
 import { useState, useEffect } from "react"
 
 interface LoyersProps {
@@ -31,28 +32,24 @@ export function Loyers({ bien }: LoyersProps) {
     const fetchData = async () => {
       try {
         // Charger les infos locataire
-        const locataireRes = await fetch(`/api/biens/${bien.id}/locataire`)
-        if (locataireRes.ok) {
-          const locataireData = await locataireRes.json()
+        const locataireData = await getLocataire(bien.id)
+        if (locataireData) {
           setLocataireInfo(locataireData)
         }
 
         // Charger les loyers de l'année
         const annee = new Date().getFullYear()
-        const loyersRes = await fetch(`/api/biens/${bien.id}/loyers?annee=${annee}`)
-        if (loyersRes.ok) {
-          const loyersData = await loyersRes.json()
+        const loyersData = await getLoyers(bien.id, annee)
 
-          const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
-            const loyerMois = loyersData.find((l: any) => l.mois === i)
-            return {
-              locataire: loyerMois?.payeLocataire || false,
-              apl: loyerMois?.payeAPL || false,
-            }
-          })
+        const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
+          const loyerMois = loyersData.find((l) => l.mois === i)
+          return {
+            locataire: loyerMois?.payeLocataire || false,
+            apl: loyerMois?.payeAPL || false,
+          }
+        })
 
-          setPaiements(paiementsFromDB)
-        }
+        setPaiements(paiementsFromDB)
       } catch (error) {
         console.error("Erreur chargement données:", error)
       } finally {
@@ -107,17 +104,11 @@ export function Loyers({ bien }: LoyersProps) {
     try {
       const annee = new Date().getFullYear()
 
-      await fetch(`/api/biens/${bien.id}/loyers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          annee,
-          mois,
-          montantLocataire: loyerNetLocataire,
-          montantAPL: montantAPL,
-          payeLocataire: paiement.locataire,
-          payeAPL: paiement.apl,
-        }),
+      await upsertLoyer(bien.id, annee, mois, {
+        montantLocataire: loyerNetLocataire,
+        montantAPL: montantAPL,
+        payeLocataire: paiement.locataire,
+        payeAPL: paiement.apl,
       })
     } catch (error) {
       console.error("Erreur sauvegarde paiement:", error)

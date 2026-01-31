@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { updateBien } from "@/lib/database"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 interface HistoriqueProps {
@@ -11,6 +13,7 @@ interface HistoriqueProps {
 }
 
 export function Historique({ bien }: HistoriqueProps) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     dateAcquisition: bien.dateAcquisition ? new Date(bien.dateAcquisition).toISOString().split('T')[0] : "",
@@ -19,21 +22,16 @@ export function Historique({ bien }: HistoriqueProps) {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/biens/${bien.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dateAcquisition: formData.dateAcquisition ? new Date(formData.dateAcquisition) : null,
-          dateMiseEnLocation: formData.dateMiseEnLocation ? new Date(formData.dateMiseEnLocation) : null,
-        }),
+      await updateBien(bien.id, {
+        dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
+        dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
       })
 
-      if (response.ok) {
-        setEditing(false)
-        window.location.reload()
-      }
+      setEditing(false)
+      router.refresh()
     } catch (error) {
       console.error("Erreur:", error)
+      alert("Erreur lors de la sauvegarde")
     }
   }
 

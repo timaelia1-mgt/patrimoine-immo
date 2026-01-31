@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
+import { updateBien } from "@/lib/database"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 interface FinancementProps {
@@ -12,6 +14,7 @@ interface FinancementProps {
 }
 
 export function Financement({ bien }: FinancementProps) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     mensualiteCredit: bien.mensualiteCredit?.toString() || "0",
@@ -53,23 +56,18 @@ export function Financement({ bien }: FinancementProps) {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/biens/${bien.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mensualiteCredit: parseFloat(formData.mensualiteCredit),
-          montantCredit: parseFloat(formData.montantCredit),
-          tauxCredit: parseFloat(formData.tauxCredit),
-          dureeCredit: parseInt(formData.dureeCredit),
-        }),
+      await updateBien(bien.id, {
+        mensualiteCredit: parseFloat(formData.mensualiteCredit),
+        montantCredit: parseFloat(formData.montantCredit),
+        tauxCredit: parseFloat(formData.tauxCredit),
+        dureeCredit: parseInt(formData.dureeCredit),
       })
 
-      if (response.ok) {
-        setEditing(false)
-        window.location.reload()
-      }
+      setEditing(false)
+      router.refresh()
     } catch (error) {
       console.error("Erreur:", error)
+      alert("Erreur lors de la sauvegarde")
     }
   }
 

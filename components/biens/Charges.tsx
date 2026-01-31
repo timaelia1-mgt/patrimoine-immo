@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
+import { updateBien } from "@/lib/database"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 interface ChargesProps {
@@ -12,6 +14,7 @@ interface ChargesProps {
 }
 
 export function Charges({ bien }: ChargesProps) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     taxeFonciere: bien.taxeFonciere?.toString() || "0",
@@ -23,24 +26,19 @@ export function Charges({ bien }: ChargesProps) {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/biens/${bien.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taxeFonciere: parseFloat(formData.taxeFonciere),
-          chargesCopro: parseFloat(formData.chargesCopro),
-          assurance: parseFloat(formData.assurance),
-          fraisGestion: parseFloat(formData.fraisGestion),
-          autresCharges: parseFloat(formData.autresCharges),
-        }),
+      await updateBien(bien.id, {
+        taxeFonciere: parseFloat(formData.taxeFonciere),
+        chargesCopro: parseFloat(formData.chargesCopro),
+        assurance: parseFloat(formData.assurance),
+        fraisGestion: parseFloat(formData.fraisGestion),
+        autresCharges: parseFloat(formData.autresCharges),
       })
 
-      if (response.ok) {
-        setEditing(false)
-        window.location.reload()
-      }
+      setEditing(false)
+      router.refresh()
     } catch (error) {
       console.error("Erreur:", error)
+      alert("Erreur lors de la sauvegarde")
     }
   }
 

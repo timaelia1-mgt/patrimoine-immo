@@ -45,8 +45,8 @@ export function DashboardClient({ biens, stats }: DashboardClientProps) {
 
   const handleSuccess = () => {
     setDialogOpen(false)
-    // Rechargement complet pour éviter les boucles
-    window.location.reload()
+    // Refresh des données sans recharger toute la page
+    router.refresh()
   }
 
   return (

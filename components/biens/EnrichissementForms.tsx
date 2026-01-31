@@ -980,12 +980,14 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
 }
 
 // Pour les autres thèmes, on active juste le booléen sans formulaire pour l'instant
+// NOTE: Cette fonction ne recharge plus la page. Le composant parent doit gérer le refresh.
 export async function enrichirThemeSimple(bienId: string, champ: string) {
   try {
     await updateBien(bienId, { [champ]: true })
-    window.location.reload()
+    // Le parent doit appeler router.refresh() ou fetchBien() après cette fonction
   } catch (error) {
     console.error("Erreur lors de l'enrichissement:", error)
     alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    throw error
   }
 }

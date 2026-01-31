@@ -343,3 +343,203 @@ function convertProfileFromSupabase(data: any): UserProfile {
     updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
   }
 }
+
+// =====================================================
+// LOCATAIRE
+// =====================================================
+
+export interface Locataire {
+  id: string
+  bienId: string
+  nom: string
+  prenom: string
+  email?: string | null
+  telephone?: string | null
+  dateEntree?: string | null
+  montantAPL: number
+  modePaiement: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getLocataire(bienId: string, supabaseClient?: any): Promise<Locataire | null> {
+  const supabase = supabaseClient || createClient()
+  
+  const { data, error } = await supabase
+    .from('locataires')
+    .select('*')
+    .eq('bien_id', bienId)
+    .maybeSingle()
+  
+  if (error && error.code !== 'PGRST116') {
+    console.error('Erreur getLocataire:', error)
+    return null
+  }
+  
+  if (!data) return null
+  
+  return {
+    id: data.id,
+    bienId: data.bien_id || data.bienId,
+    nom: data.nom || "",
+    prenom: data.prenom || "",
+    email: data.email || null,
+    telephone: data.telephone || null,
+    dateEntree: data.date_entree || data.dateEntree || null,
+    montantAPL: parseFloat(data.montant_apl?.toString() || data.montantAPL?.toString() || "0"),
+    modePaiement: data.mode_paiement || data.modePaiement || "virement",
+    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+  }
+}
+
+export async function upsertLocataire(bienId: string, locataireData: Partial<Locataire>, supabaseClient?: any): Promise<Locataire> {
+  const supabase = supabaseClient || createClient()
+  
+  const dataToUpsert: any = {
+    bien_id: bienId,
+    nom: locataireData.nom || "",
+    prenom: locataireData.prenom || "",
+    email: locataireData.email || null,
+    telephone: locataireData.telephone || null,
+    date_entree: locataireData.dateEntree ? new Date(locataireData.dateEntree).toISOString() : null,
+    montant_apl: locataireData.montantAPL ? parseFloat(locataireData.montantAPL.toString()) : 0,
+    mode_paiement: locataireData.modePaiement || "virement",
+  }
+  
+  const { data, error } = await supabase
+    .from('locataires')
+    .upsert(dataToUpsert, {
+      onConflict: 'bien_id'
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Erreur upsertLocataire:', error)
+    throw error
+  }
+  
+  return {
+    id: data.id,
+    bienId: data.bien_id || data.bienId,
+    nom: data.nom || "",
+    prenom: data.prenom || "",
+    email: data.email || null,
+    telephone: data.telephone || null,
+    dateEntree: data.date_entree || data.dateEntree || null,
+    montantAPL: parseFloat(data.montant_apl?.toString() || data.montantAPL?.toString() || "0"),
+    modePaiement: data.mode_paiement || data.modePaiement || "virement",
+    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+  }
+}
+
+// =====================================================
+// LOYERS
+// =====================================================
+
+export interface Loyer {
+  id: string
+  bienId: string
+  annee: number
+  mois: number // 0-11
+  montantLocataire: number
+  montantAPL: number
+  payeLocataire: boolean
+  payeAPL: boolean
+  datePaiementLocataire?: string | null
+  datePaiementAPL?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getLoyers(bienId: string, annee: number, supabaseClient?: any): Promise<Loyer[]> {
+  const supabase = supabaseClient || createClient()
+  
+  const { data, error } = await supabase
+    .from('loyers')
+    .select('*')
+    .eq('bien_id', bienId)
+    .eq('annee', annee)
+    .order('mois', { ascending: true })
+  
+  if (error) {
+    console.error('Erreur getLoyers:', error)
+    return []
+  }
+  
+  if (!data) return []
+  
+  return data.map((l: any) => ({
+    id: l.id,
+    bienId: l.bien_id || l.bienId,
+    annee: l.annee,
+    mois: l.mois,
+    montantLocataire: parseFloat(l.montant_locataire?.toString() || l.montantLocataire?.toString() || "0"),
+    montantAPL: parseFloat(l.montant_apl?.toString() || l.montantAPL?.toString() || "0"),
+    payeLocataire: l.paye_locataire || l.payeLocataire || false,
+    payeAPL: l.paye_apl || l.payeAPL || false,
+    datePaiementLocataire: l.date_paiement_locataire || l.datePaiementLocataire || null,
+    datePaiementAPL: l.date_paiement_apl || l.datePaiementAPL || null,
+    createdAt: l.created_at || l.createdAt || new Date().toISOString(),
+    updatedAt: l.updated_at || l.updatedAt || new Date().toISOString(),
+  }))
+}
+
+export async function upsertLoyer(
+  bienId: string, 
+  annee: number, 
+  mois: number, 
+  paiement: { 
+    montantLocataire: number
+    montantAPL: number
+    payeLocataire: boolean
+    payeAPL: boolean
+  },
+  supabaseClient?: any
+): Promise<Loyer> {
+  const supabase = supabaseClient || createClient()
+  
+  const now = new Date().toISOString()
+  
+  const dataToUpsert: any = {
+    bien_id: bienId,
+    annee,
+    mois,
+    montant_locataire: paiement.montantLocataire,
+    montant_apl: paiement.montantAPL,
+    paye_locataire: paiement.payeLocataire,
+    paye_apl: paiement.payeAPL,
+    date_paiement_locataire: paiement.payeLocataire ? now : null,
+    date_paiement_apl: paiement.payeAPL ? now : null,
+  }
+  
+  const { data, error } = await supabase
+    .from('loyers')
+    .upsert(dataToUpsert, {
+      onConflict: 'bien_id,annee,mois'
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Erreur upsertLoyer:', error)
+    throw error
+  }
+  
+  return {
+    id: data.id,
+    bienId: data.bien_id || data.bienId,
+    annee: data.annee,
+    mois: data.mois,
+    montantLocataire: parseFloat(data.montant_locataire?.toString() || data.montantLocataire?.toString() || "0"),
+    montantAPL: parseFloat(data.montant_apl?.toString() || data.montantAPL?.toString() || "0"),
+    payeLocataire: data.paye_locataire || data.payeLocataire || false,
+    payeAPL: data.paye_apl || data.payeAPL || false,
+    datePaiementLocataire: data.date_paiement_locataire || data.datePaiementLocataire || null,
+    datePaiementAPL: data.date_paiement_apl || data.datePaiementAPL || null,
+    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+  }
+}
