@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PatrimoineChart } from '@/components/dashboard/PatrimoineChart'
 
 // Désactiver le cache
 export const dynamic = 'force-dynamic'
@@ -49,55 +49,6 @@ function calculateStats(biens: any[]) {
     totalCashFlow,
     nombreBiens: biens.length
   }
-}
-
-// Fonction pour calculer l'évolution du patrimoine net
-function calculatePatrimoineEvolution(biens: any[]) {
-  const now = new Date()
-  const startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1) // Commence il y a 2 ans
-  const endDate = new Date(now.getFullYear() + 20, now.getMonth(), 1) // Projette sur 20 ans
-  
-  const dataPoints = []
-  let currentDate = new Date(startDate)
-  
-  while (currentDate <= endDate) {
-    let patrimoineTotal = 0
-    
-    biens.forEach(bien => {
-      if (bien.typeFinancement === 'CASH') {
-        // Bien comptant = valeur constante (on utilise loyer * 12 * 15 comme estimation de valeur)
-        patrimoineTotal += (bien.loyerMensuel || 0) * 12 * 15
-      } else if (bien.typeFinancement === 'CREDIT') {
-        // Bien à crédit : calculer le capital remboursé
-        const dateDebutCredit = bien.dateDebutCredit ? new Date(bien.dateDebutCredit) : new Date(bien.createdAt)
-        const dureeMois = bien.dureeCredit || 240
-        const montantTotal = bien.montantCredit || ((bien.loyerMensuel || 0) * 12 * 15)
-        const mensualiteCapital = montantTotal / dureeMois
-        
-        // Calculer les mois écoulés depuis le début du crédit
-        const moisEcoules = Math.max(0, 
-          (currentDate.getFullYear() - dateDebutCredit.getFullYear()) * 12 + 
-          (currentDate.getMonth() - dateDebutCredit.getMonth())
-        )
-        
-        // Capital remboursé (plafonné à la durée totale)
-        const capitalRembourse = Math.min(mensualiteCapital * moisEcoules, montantTotal)
-        patrimoineTotal += capitalRembourse
-      }
-    })
-    
-    dataPoints.push({
-      date: currentDate.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-      patrimoine: Math.round(patrimoineTotal),
-      isPast: currentDate <= now,
-      isNow: currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear()
-    })
-    
-    // Passer au mois suivant (tous les 3 mois pour réduire les points)
-    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, 1)
-  }
-  
-  return dataPoints
 }
 
 export default async function DashboardPage() {
@@ -357,126 +308,8 @@ export default async function DashboardPage() {
 
             {/* Graphique d'évolution du patrimoine */}
             {biens.length > 0 && (
-              <div className="mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
-                <div className="mb-8">
-                  <h2 className="text-3xl font-bold text-white mb-2">
-                    Évolution du Patrimoine Net
-                  </h2>
-                  <p className="text-slate-400">
-                    Votre richesse réelle qui grandit mois après mois avec les remboursements de crédit
-                  </p>
-                </div>
-                
-                <Card className="border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-xl font-bold text-white mb-2">
-                          Patrimoine Actuel
-                        </CardTitle>
-                        <p className="text-4xl font-bold text-emerald-400">
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: 'EUR',
-                            minimumFractionDigits: 0
-                          }).format(calculatePatrimoineEvolution(biens).find(d => d.isNow)?.patrimoine || 0)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-400 mb-1">Projection 20 ans</p>
-                        <p className="text-2xl font-bold text-amber-400">
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: 'EUR',
-                            minimumFractionDigits: 0
-                          }).format(calculatePatrimoineEvolution(biens)[calculatePatrimoineEvolution(biens).length - 1]?.patrimoine || 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-6">
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={calculatePatrimoineEvolution(biens)}>
-                          <defs>
-                            <linearGradient id="colorPatrimoine" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
-                          <XAxis 
-                            dataKey="date" 
-                            stroke="#94a3b8"
-                            tick={{ fill: '#94a3b8', fontSize: 12 }}
-                            tickFormatter={(value, index) => {
-                              // Afficher seulement certains labels pour éviter le chevauchement
-                              const data = calculatePatrimoineEvolution(biens)
-                              if (index % 4 === 0 || index === data.length - 1) return value
-                              return ''
-                            }}
-                          />
-                          <YAxis 
-                            stroke="#94a3b8"
-                            tick={{ fill: '#94a3b8', fontSize: 12 }}
-                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1e293b', 
-                              border: '1px solid #334155',
-                              borderRadius: '12px',
-                              padding: '12px'
-                            }}
-                            labelStyle={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '8px' }}
-                            itemStyle={{ color: '#10b981' }}
-                            formatter={(value: any) => [
-                              new Intl.NumberFormat('fr-FR', {
-                                style: 'currency',
-                                currency: 'EUR',
-                                minimumFractionDigits: 0
-                              }).format(value),
-                              'Patrimoine Net'
-                            ]}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="patrimoine" 
-                            stroke="#10b981" 
-                            strokeWidth={3}
-                            fill="url(#colorPatrimoine)"
-                            dot={(props: any) => {
-                              const { cx, cy, payload } = props
-                              if (payload.isNow) {
-                                return (
-                                  <g>
-                                    <circle cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />
-                                    <circle cx={cx} cy={cy} r={10} fill="#10b981" opacity={0.2} />
-                                  </g>
-                                )
-                              }
-                              return null
-                            }}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
-                        <span className="text-slate-400">Patrimoine accumulé</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                        <span className="text-slate-400">Aujourd'hui</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
-                        <span className="text-slate-400">Projection</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="mt-12">
+                <PatrimoineChart biens={biens} />
               </div>
             )}
 
