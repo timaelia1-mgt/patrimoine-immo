@@ -29,12 +29,37 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     fraisGestion: "",
     autresCharges: "",
     typeFinancement: "CREDIT",
-    mensualiteCredit: "",
     dateDebutCredit: "",
     montantCredit: "",
     tauxCredit: "",
     dureeCredit: "",
   })
+
+  // Fonction de calcul de mensualité (amortissement français)
+  const calculateMensualite = (montant: number, tauxAnnuel: number, dureeMois: number): number => {
+    if (!montant || !tauxAnnuel || !dureeMois || montant <= 0 || dureeMois <= 0) return 0
+    
+    const tauxMensuel = tauxAnnuel / 100 / 12
+    
+    if (tauxMensuel === 0) {
+      return montant / dureeMois
+    }
+    
+    const mensualite = (montant * tauxMensuel) / (1 - Math.pow(1 + tauxMensuel, -dureeMois))
+    return Math.round(mensualite * 100) / 100
+  }
+
+  // Calculer la mensualité automatiquement
+  const mensualiteCalculee = formData.typeFinancement === "CREDIT" && 
+    formData.montantCredit && 
+    formData.tauxCredit && 
+    formData.dureeCredit
+    ? calculateMensualite(
+        parseFloat(formData.montantCredit),
+        parseFloat(formData.tauxCredit),
+        parseInt(formData.dureeCredit)
+      )
+    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,8 +93,16 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
 
     // Validation des champs de crédit si typeFinancement === "CREDIT"
     if (formData.typeFinancement === "CREDIT") {
-      if (!formData.mensualiteCredit || parseFloat(formData.mensualiteCredit) <= 0) {
-        alert("La mensualité est obligatoire pour un bien financé par crédit")
+      if (!formData.montantCredit || parseFloat(formData.montantCredit) <= 0) {
+        alert("Le montant emprunté est obligatoire pour un bien financé par crédit")
+        return
+      }
+      if (!formData.tauxCredit || parseFloat(formData.tauxCredit) <= 0) {
+        alert("Le taux d'intérêt est obligatoire pour un bien financé par crédit")
+        return
+      }
+      if (!formData.dureeCredit || parseInt(formData.dureeCredit) <= 0) {
+        alert("La durée du crédit est obligatoire pour un bien financé par crédit")
         return
       }
     }
@@ -92,11 +125,17 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     }
 
     if (formData.typeFinancement === "CREDIT") {
-      const mensualite = parseFloat(formData.mensualiteCredit)
-      data.mensualiteCredit = mensualite
-      data.montantCredit = formData.montantCredit ? parseFloat(formData.montantCredit) : (mensualite * 240)
-      data.tauxCredit = formData.tauxCredit ? parseFloat(formData.tauxCredit) : 3.5
-      data.dureeCredit = formData.dureeCredit ? parseInt(formData.dureeCredit) : 240
+      // Calculer la mensualité automatiquement
+      const mensualiteCalculee = calculateMensualite(
+        parseFloat(formData.montantCredit),
+        parseFloat(formData.tauxCredit),
+        parseInt(formData.dureeCredit)
+      )
+      
+      data.mensualiteCredit = mensualiteCalculee
+      data.montantCredit = parseFloat(formData.montantCredit)
+      data.tauxCredit = parseFloat(formData.tauxCredit)
+      data.dureeCredit = parseInt(formData.dureeCredit)
       data.dateDebutCredit = formData.dateDebutCredit ? formData.dateDebutCredit : null
     }
 
@@ -115,7 +154,6 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         fraisGestion: "",
         autresCharges: "",
         typeFinancement: "CREDIT",
-        mensualiteCredit: "",
         dateDebutCredit: "",
         montantCredit: "",
         tauxCredit: "",
@@ -370,7 +408,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                   </div>
                   <div>
                     <Label htmlFor="dureeCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Durée (mois)
+                      Durée (mois) *
                     </Label>
                     <Input
                       id="dureeCredit"
@@ -387,7 +425,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="montantCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Montant emprunté (€)
+                      Montant emprunté (€) *
                     </Label>
                     <Input
                       id="montantCredit"
@@ -402,7 +440,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                   </div>
                   <div>
                     <Label htmlFor="tauxCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                      Taux d'intérêt (%)
+                      Taux d'intérêt (%) *
                     </Label>
                     <Input
                       id="tauxCredit"
@@ -418,26 +456,25 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="mensualiteCredit" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Mensualité (€) {formData.typeFinancement === "CREDIT" && "*"}
-                  </Label>
-                  <Input
-                    id="mensualiteCredit"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.mensualiteCredit}
-                    onChange={(e) => setFormData({ ...formData, mensualiteCredit: e.target.value })}
-                    placeholder="Ex: 1000"
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                    {formData.typeFinancement === "CREDIT" 
-                      ? "Obligatoire pour un bien financé par crédit"
-                      : "Les détails du crédit pourront être enrichis plus tard si vous ne les avez pas"}
-                  </p>
-                </div>
+                {/* Affichage mensualité calculée */}
+                {mensualiteCalculee !== null && mensualiteCalculee > 0 && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                    <p className="text-sm text-slate-400 dark:text-slate-500 mb-1">
+                      Mensualité calculée automatiquement
+                    </p>
+                    <p className="text-xl font-semibold text-emerald-400">
+                      {new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: 'EUR',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(mensualiteCalculee)}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                      Calculée à partir du montant, du taux et de la durée
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
