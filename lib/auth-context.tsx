@@ -80,10 +80,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setUser(null)
-    setSession(null)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("[AuthContext] Erreur lors de la déconnexion:", error)
+        throw error
+      }
+      setUser(null)
+      setSession(null)
+      console.log("[AuthContext] Déconnexion réussie")
+    } catch (error) {
+      console.error("[AuthContext] Erreur dans signOut:", error)
+      // Nettoyer l'état même en cas d'erreur
+      setUser(null)
+      setSession(null)
+      throw error
+    }
   }
 
   return (

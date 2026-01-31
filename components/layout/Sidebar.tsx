@@ -7,38 +7,79 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getBiens } from "@/lib/database"
 
+// Événement personnalisé pour rafraîchir la sidebar
+export const REFRESH_SIDEBAR_EVENT = 'refresh-sidebar'
+
+// Fonction utilitaire pour déclencher le refresh de la sidebar
+export const refreshSidebar = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(REFRESH_SIDEBAR_EVENT))
+  }
+}
+
 export function Sidebar() {
   const pathname = usePathname()
-  const { signOut, user } = useAuth()
+  const { signOut, user, loading: authLoading } = useAuth()
   const [biens, setBiens] = useState<any[]>([])
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
 
   const handleSignOut = async () => {
-    await signOut()
-    // Redirection complète pour forcer le rechargement de la session
-    window.location.href = '/login'
+    try {
+      console.log("[Sidebar] Déconnexion en cours...")
+      await signOut()
+      console.log("[Sidebar] Déconnexion réussie, redirection...")
+      // Redirection complète pour forcer le rechargement de la session
+      window.location.href = '/login'
+    } catch (error) {
+      console.error("[Sidebar] Erreur lors de la déconnexion:", error)
+      // Redirection même en cas d'erreur
+      window.location.href = '/login'
+    }
   }
 
   useEffect(() => {
+    // Attendre que l'authentification soit chargée
+    if (authLoading) {
+      return
+    }
+
     const fetchBiens = async () => {
       if (!user) {
         setLoading(false)
+        setBiens([])
         return
       }
 
       try {
+        console.log("[Sidebar] Récupération des biens pour user:", user.id)
         const data = await getBiens(user.id)
+        console.log("[Sidebar] Biens récupérés:", data.length, data)
         setBiens(data)
       } catch (error) {
-        console.error("Erreur:", error)
+        console.error("[Sidebar] Erreur lors de la récupération des biens:", error)
+        setBiens([])
       } finally {
         setLoading(false)
       }
     }
 
+    // Charger les biens au montage et quand user change
     fetchBiens()
-  }, [user])
+
+    // Écouter les événements de refresh
+    const handleRefresh = () => {
+      console.log("[Sidebar] Événement de refresh reçu")
+      if (user) {
+        fetchBiens()
+      }
+    }
+
+    window.addEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
+    return () => {
+      window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
+    }
+  }, [user, authLoading])
 
   const isActive = (path: string) => pathname === path
 
