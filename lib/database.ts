@@ -103,7 +103,7 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     code_postal: bien.codePostal || "",
     prix_achat: bien.prixAchat ? parseFloat(bien.prixAchat.toString()) : 0,
     frais_notaire: bien.fraisNotaire ? parseFloat(bien.fraisNotaire.toString()) : 0,
-    travaux: bien.travauxInitiaux ? parseFloat(bien.travauxInitiaux.toString()) : 0,
+    travaux_initiaux: bien.travauxInitiaux ? parseFloat(bien.travauxInitiaux.toString()) : 0,
     type_financement: typeFinancement,
     montant_credit: bien.montantCredit ? parseFloat(bien.montantCredit.toString()) : null,
     taux_credit: bien.tauxCredit ? parseFloat(bien.tauxCredit.toString()) : null,

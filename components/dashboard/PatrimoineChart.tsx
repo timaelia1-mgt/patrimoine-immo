@@ -2,9 +2,51 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AlertTriangle } from 'lucide-react'
 
 interface PatrimoineChartProps {
   biens: any[]
+}
+
+// Calcule le montant total investi dans un bien
+function calculateMontantInvestissement(bien: any): number {
+  const prixAchat = bien.prixAchat || 0
+  const fraisNotaire = bien.fraisNotaire || 0
+  const travaux = bien.travauxInitiaux || 0
+  const autresFrais = bien.autresFrais || 0
+  
+  const total = prixAchat + fraisNotaire + travaux + autresFrais
+  
+  // Si aucune donnée d'investissement n'est renseignée, on garde l'ancienne estimation
+  if (total === 0) {
+    return (bien.loyerMensuel || 0) * 12 * 15
+  }
+  
+  return total
+}
+
+// Vérifie si tous les biens ont leurs données d'investissement
+function checkDonneesInvestissementCompletes(biens: any[]): {
+  complete: boolean
+  biensManquants: string[]
+} {
+  const biensManquants: string[] = []
+  
+  biens.forEach(bien => {
+    const hasData = (bien.prixAchat || 0) > 0 || 
+                    (bien.fraisNotaire || 0) > 0 || 
+                    (bien.travauxInitiaux || 0) > 0 || 
+                    (bien.autresFrais || 0) > 0
+    
+    if (!hasData) {
+      biensManquants.push(bien.nom)
+    }
+  })
+  
+  return {
+    complete: biensManquants.length === 0,
+    biensManquants
+  }
 }
 
 // Fonction pour calculer l'évolution du patrimoine net
@@ -20,17 +62,27 @@ function calculatePatrimoineEvolution(biens: any[]) {
     let patrimoineTotal = 0
     
     biens.forEach(bien => {
+      const montantInvestissement = calculateMontantInvestissement(bien)
+      
       if (bien.typeFinancement === 'CASH') {
-        patrimoineTotal += (bien.loyerMensuel || 0) * 12 * 15
+        // Pour un bien comptant, le patrimoine = montant investi (constant)
+        patrimoineTotal += montantInvestissement
+        
       } else if (bien.typeFinancement === 'CREDIT') {
-        const dateDebutCredit = bien.dateDebutCredit ? new Date(bien.dateDebutCredit) : new Date(bien.createdAt)
+        const dateDebutCredit = bien.dateDebutCredit 
+          ? new Date(bien.dateDebutCredit) 
+          : new Date(bien.createdAt)
+        
         const dureeMois = bien.dureeCredit || 240
-        const montantTotal = bien.montantCredit || ((bien.loyerMensuel || 0) * 12 * 15)
+        
+        // Utiliser montantCredit s'il existe, sinon montantInvestissement
+        const montantTotal = bien.montantCredit || montantInvestissement
         const mensualiteCapital = montantTotal / dureeMois
         
-        const moisEcoules = Math.max(0, 
-          (currentDate.getFullYear() - dateDebutCredit.getFullYear()) * 12 + 
-          (currentDate.getMonth() - dateDebutCredit.getMonth())
+        const moisEcoules = Math.max(
+          0,
+          (currentDate.getFullYear() - dateDebutCredit.getFullYear()) * 12 +
+            (currentDate.getMonth() - dateDebutCredit.getMonth())
         )
         
         const capitalRembourse = Math.min(mensualiteCapital * moisEcoules, montantTotal)
@@ -55,6 +107,7 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
   const data = calculatePatrimoineEvolution(biens)
   const currentValue = data.find(d => d.isNow)?.patrimoine || 0
   const projectedValue = data[data.length - 1]?.patrimoine || 0
+  const donneesInvestissement = checkDonneesInvestissementCompletes(biens)
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
@@ -66,6 +119,31 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
           Votre richesse réelle qui grandit mois après mois avec les remboursements de crédit
         </p>
       </div>
+
+      {/* Message d'avertissement si données incomplètes */}
+      {!donneesInvestissement.complete && (
+        <div className="mb-6 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-amber-300 mb-1">
+                📊 Patrimoine estimé (données d'investissement manquantes)
+              </h4>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Les montants affichés sont des <strong className="text-amber-200">approximations</strong> basées sur vos loyers. 
+                Pour un calcul précis, complétez la section <strong className="text-amber-200">Investissement</strong> de vos biens.
+              </p>
+              {donneesInvestissement.biensManquants.length > 0 && (
+                <p className="text-xs text-slate-400 mt-2">
+                  Biens concernés : {donneesInvestissement.biensManquants.join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       <Card className="border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden">
         <CardHeader>
