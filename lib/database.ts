@@ -53,8 +53,11 @@ export interface UserProfile {
 }
 
 // Fonctions pour les biens
-export async function getBiens(userId: string): Promise<Bien[]> {
-  const supabase = createClient()
+export async function getBiens(userId: string, supabaseClient?: any): Promise<Bien[]> {
+  // Si un client est fourni (pour Server Components), l'utiliser
+  // Sinon, utiliser le client par défaut (pour Client Components)
+  const supabase = supabaseClient || createClient()
+  
   const { data, error } = await supabase
     .from("biens")
     .select("*")
@@ -102,10 +105,10 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     frais_notaire: bien.fraisNotaire ? parseFloat(bien.fraisNotaire.toString()) : 0,
     travaux: bien.travauxInitiaux ? parseFloat(bien.travauxInitiaux.toString()) : 0,
     type_financement: typeFinancement,
-    montant_emprunt: bien.montantCredit ? parseFloat(bien.montantCredit.toString()) : null,
-    taux_interet: bien.tauxCredit ? parseFloat(bien.tauxCredit.toString()) : null,
-    duree_mois: bien.dureeCredit ? parseInt(bien.dureeCredit.toString()) : null,
-    mensualite: bien.mensualiteCredit ? parseFloat(bien.mensualiteCredit.toString()) : null,
+    montant_credit: bien.montantCredit ? parseFloat(bien.montantCredit.toString()) : null,
+    taux_credit: bien.tauxCredit ? parseFloat(bien.tauxCredit.toString()) : null,
+    duree_credit: bien.dureeCredit ? parseInt(bien.dureeCredit.toString()) : null,
+    mensualite_credit: bien.mensualiteCredit ? parseFloat(bien.mensualiteCredit.toString()) : null,
     apport: 0, // Valeur par défaut, peut être enrichi plus tard
     loyer_mensuel: bien.loyerMensuel ? parseFloat(bien.loyerMensuel.toString()) : 0,
     charges_mensuelles: bien.chargesMensuelles ? parseFloat(bien.chargesMensuelles.toString()) : 0,

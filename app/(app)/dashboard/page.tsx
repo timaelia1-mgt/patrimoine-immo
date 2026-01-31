@@ -59,7 +59,8 @@ export default async function DashboardPage() {
       redirect('/login')
     }
 
-    const biens = await getBiens(user.id)
+    // Passer le client Supabase serveur à getBiens
+    const biens = await getBiens(user.id, supabase)
     const stats = calculateStats(biens)
 
     return (
