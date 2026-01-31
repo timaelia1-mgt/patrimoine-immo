@@ -65,13 +65,8 @@ export default async function DashboardPage() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        {/* Hero Section avec effet glassmorphism */}
-        <div className="relative overflow-hidden">
-          {/* Background decoratif */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-amber-600/5" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-          
+        {/* Hero Section - SANS effets de background */}
+        <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
           <div className="relative px-8 py-6">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center gap-3 mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -80,7 +75,7 @@ export default async function DashboardPage() {
                   Votre Patrimoine
                 </span>
               </div>
-              <h1 className="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 Tableau de Bord
               </h1>
               <p className="text-slate-400 text-base max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
@@ -90,8 +85,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* KPIs Premium */}
-        <div className="px-8 pb-6">
+        {/* KPIs Premium - SANS overlap */}
+        <div className="px-8 py-8">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {/* Cash Flow */}
