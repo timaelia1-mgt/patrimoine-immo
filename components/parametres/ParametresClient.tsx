@@ -33,7 +33,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
 
   // États pour le changement de mot de passe
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
@@ -85,7 +84,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     setPasswordSuccess('')
     
     // Validations
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
       setPasswordError('Tous les champs sont obligatoires')
       return
     }
@@ -100,28 +99,12 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       return
     }
     
-    if (passwordForm.currentPassword === passwordForm.newPassword) {
-      setPasswordError('Le nouveau mot de passe doit être différent de l\'ancien')
-      return
-    }
-    
     setPasswordLoading(true)
     
     try {
       const supabase = createClient()
       
-      // Vérifier l'ancien mot de passe en tentant de se reconnecter
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: passwordForm.currentPassword
-      })
-      
-      if (signInError) {
-        setPasswordError('Ancien mot de passe incorrect')
-        return
-      }
-      
-      // Changer le mot de passe
+      // Changer le mot de passe directement
       const { error } = await supabase.auth.updateUser({
         password: passwordForm.newPassword
       })
@@ -131,7 +114,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       // Succès
       setPasswordSuccess('Mot de passe modifié avec succès !')
       setPasswordForm({
-        currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       })
@@ -334,17 +316,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
           <CardDescription>Modifiez votre mot de passe</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="currentPassword">Ancien mot de passe</Label>
-            <Input 
-              id="currentPassword"
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-              disabled={passwordLoading}
-            />
-          </div>
-          
           <div>
             <Label htmlFor="newPassword">Nouveau mot de passe</Label>
             <Input 
