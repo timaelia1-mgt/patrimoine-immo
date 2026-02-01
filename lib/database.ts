@@ -72,8 +72,11 @@ export async function getBiens(userId: string, supabaseClient?: any): Promise<Bi
   return (data || []).map(convertBienFromSupabase)
 }
 
-export async function getBien(bienId: string): Promise<Bien | null> {
-  const supabase = createClient()
+export async function getBien(bienId: string, supabaseClient?: any): Promise<Bien | null> {
+  // Si un client est fourni (pour Server Components), l'utiliser
+  // Sinon, utiliser le client par défaut (pour Client Components)
+  const supabase = supabaseClient || createClient()
+  
   const { data, error } = await supabase
     .from("biens")
     .select("*")
