@@ -80,6 +80,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
   }
 
   const handlePasswordChange = async () => {
+    console.log('[Password] Début changement')
     setPasswordError('')
     setPasswordSuccess('')
     
@@ -100,8 +101,10 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     }
     
     setPasswordLoading(true)
+    console.log('[Password] Loading = true')
     
     try {
+      console.log('[Password] Appel updateUser...')
       const supabase = createClient()
       
       // Changer le mot de passe directement
@@ -109,8 +112,11 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         password: passwordForm.newPassword
       })
       
+      console.log('[Password] Réponse reçue, error:', error)
+      
       if (error) throw error
       
+      console.log('[Password] Succès !')
       // Succès
       setPasswordSuccess('Mot de passe modifié avec succès !')
       setPasswordForm({
@@ -119,8 +125,10 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       })
       
     } catch (error: any) {
+      console.error('[Password] Erreur:', error)
       setPasswordError(error.message || 'Erreur lors du changement de mot de passe')
     } finally {
+      console.log('[Password] Finally block - setLoading(false)')
       setPasswordLoading(false)
     }
   }
