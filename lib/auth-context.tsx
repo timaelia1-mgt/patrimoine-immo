@@ -43,11 +43,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let initAuthCompleted = false
 
     console.log("[AuthContext] useEffect déclenché")
+    console.log("[AuthContext] supabase:", supabase ? "défini" : "UNDEFINED")
 
     // Fonction async pour initialiser l'authentification
     const initAuth = async () => {
       try {
         console.log("[AuthContext] initAuth() - Début getSession()")
+        if (!supabase) {
+          console.error("[AuthContext] ERREUR: supabase est undefined!")
+          throw new Error("supabase client is undefined")
+        }
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (!isMounted) {
@@ -98,7 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Initialiser l'authentification
-    initAuth()
+    console.log("[AuthContext] Appel de initAuth()...")
+    initAuth().catch((error) => {
+      console.error("[AuthContext] Erreur non capturée dans initAuth():", error)
+      if (isMounted) {
+        setLoading(false)
+      }
+    })
 
     // Écouter les changements d'authentification
     const {
