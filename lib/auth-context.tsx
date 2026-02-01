@@ -40,20 +40,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true
+    let initAuthCompleted = false
 
     console.log("[AuthContext] useEffect déclenché")
 
     // Fonction async pour initialiser l'authentification
     const initAuth = async () => {
       try {
+        console.log("[AuthContext] initAuth() - Début getSession()")
         const { data: { session }, error } = await supabase.auth.getSession()
         
-        if (!isMounted) return
+        if (!isMounted) {
+          console.log("[AuthContext] initAuth() - Composant démonté, arrêt")
+          return
+        }
         
         if (error) {
           console.error("[AuthContext] Erreur getSession:", error)
           setSession(null)
           setUser(null)
+          initAuthCompleted = true
+          setLoading(false)
           return
         }
         
@@ -63,17 +70,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Créer le profil si l'utilisateur existe mais n'a pas de profil
         if (session?.user) {
+          console.log("[AuthContext] Création profil si nécessaire...")
           await createProfileIfNeeded(
             session.user.id,
             session.user.email || "",
             session.user.user_metadata?.name
           )
+          console.log("[AuthContext] Profil vérifié/créé")
         }
+        
+        initAuthCompleted = true
+        console.log("[AuthContext] initAuth() terminé avec succès")
       } catch (error) {
         console.error("[AuthContext] Erreur lors de l'initialisation:", error)
         if (isMounted) {
           setSession(null)
           setUser(null)
+          initAuthCompleted = true
         }
       } finally {
         // CRITIQUE : toujours définir loading à false
@@ -94,6 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return
       
       console.log("[AuthContext] Auth state changed:", _event, session?.user?.id || "null")
+      
+      // Ne mettre à jour que si initAuth n'a pas encore terminé
+      // Sinon, onAuthStateChange peut se déclencher avant initAuth et causer des problèmes
+      if (!initAuthCompleted) {
+        console.log("[AuthContext] initAuth pas encore terminé, onAuthStateChange ignoré temporairement")
+        return
+      }
+      
       setSession(session)
       setUser(session?.user ?? null)
       
@@ -106,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
       }
       
-      // Mettre à jour loading si nécessaire (mais normalement déjà false après initAuth)
+      // Mettre à jour loading si nécessaire
       if (isMounted) {
         setLoading(false)
       }
