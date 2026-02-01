@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/client"
 import { AlertCircle, Lock, CheckCircle2 } from "lucide-react"
 
 export default function ResetPasswordPage() {
+  const router = useRouter()
   const supabase = createClient()
   
   const [formData, setFormData] = useState({
@@ -16,8 +18,25 @@ export default function ResetPasswordPage() {
     confirmPassword: ""
   })
   const [loading, setLoading] = useState(false)
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Vérifier la session au chargement
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        // Pas de session valide, rediriger vers login
+        router.push('/login?error=' + encodeURIComponent('Session expirée, demandez un nouveau lien'))
+      } else {
+        setReady(true)
+      }
+    }
+    
+    checkSession()
+  }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +73,19 @@ export default function ResetPasswordPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!ready) {
+    return (
+      <Card className="border-0 shadow-large bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl">
+        <CardContent className="py-12">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Vérification de la session...</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (success) {
