@@ -47,6 +47,7 @@ export function Sidebar() {
 
     try {
       console.log("[Sidebar] Récupération des biens pour user:", user.id)
+      setLoading(true)
       const data = await getBiens(user.id)
       console.log("[Sidebar] Biens récupérés:", data.length, data)
       setBiens(data)
@@ -56,11 +57,14 @@ export function Sidebar() {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user?.id]) // CRITIQUE : Utiliser user?.id (primitif) au lieu de user (objet)
 
   useEffect(() => {
+    console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
+    
     // Attendre que l'authentification soit chargée
     if (authLoading) {
+      console.log("[Sidebar] Auth en cours de chargement, attente...")
       return
     }
 
@@ -79,7 +83,7 @@ export function Sidebar() {
     return () => {
       window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
     }
-  }, [user, authLoading, fetchBiens])
+  }, [user?.id, authLoading, fetchBiens]) // CRITIQUE : Utiliser user?.id au lieu de user
 
   const isActive = (path: string) => pathname === path
 

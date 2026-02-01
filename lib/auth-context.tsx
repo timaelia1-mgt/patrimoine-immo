@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react"
 import { User, Session } from "@supabase/supabase-js"
 import { createClient } from "./supabase/client"
 import { createUserProfile, getUserProfile } from "./database"
@@ -23,7 +23,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  
+  // CRITIQUE : Créer supabase une seule fois avec useMemo pour éviter les re-renders infinis
+  const supabase = useMemo(() => createClient(), [])
 
   const createProfileIfNeeded = useCallback(async (userId: string, email: string, name?: string) => {
     try {
@@ -39,10 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
+    console.log("[AuthContext] useEffect déclenché")
+
     // Récupérer la session initiale
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return
       
+      console.log("[AuthContext] Session récupérée:", session?.user?.id || "null")
       setSession(session)
       setUser(session?.user ?? null)
       
@@ -56,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setLoading(false)
+      console.log("[AuthContext] Loading mis à false")
     })
 
     // Écouter les changements d'authentification
@@ -64,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return
       
+      console.log("[AuthContext] Auth state changed:", _event, session?.user?.id || "null")
       setSession(session)
       setUser(session?.user ?? null)
       
@@ -80,10 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
+      console.log("[AuthContext] Cleanup")
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [createProfileIfNeeded, supabase])
+  }, [createProfileIfNeeded, supabase]) // supabase est maintenant stable grâce à useMemo
 
   const signOut = async () => {
     try {
