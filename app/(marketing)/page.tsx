@@ -1,13 +1,50 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TrendingUp, Calculator, Home, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LandingPage() {
+  const router = useRouter()
+  const supabase = createClient()
   const [isAnnual, setIsAnnual] = useState(false)
+
+  // Vérifier si c'est un lien de recovery ou si l'utilisateur est déjà connecté
+  useEffect(() => {
+    const checkRecoverySession = async () => {
+      // Vérifier si on a un hash fragment (access_token, type=recovery, etc.)
+      const hash = window.location.hash
+      const hasRecoveryHash = hash.includes('type=recovery') || hash.includes('access_token')
+      
+      if (hasRecoveryHash) {
+        // Attendre que Supabase traite le hash
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Vérifier la session
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          // Rediriger vers reset-password
+          router.push('/reset-password')
+          return
+        }
+      }
+
+      // Vérifier si l'utilisateur est déjà connecté
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user && !hasRecoveryHash) {
+        // Utilisateur déjà connecté, aller au dashboard
+        router.push('/dashboard')
+      }
+    }
+    
+    checkRecoverySession()
+  }, [router, supabase])
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}

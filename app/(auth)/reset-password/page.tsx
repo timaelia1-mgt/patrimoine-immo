@@ -22,15 +22,26 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // Vérifier la session au chargement
+  // Vérifier la session au chargement et gérer les hash fragments
   useEffect(() => {
     const checkSession = async () => {
+      // Vérifier si on a un hash fragment (access_token, etc.)
+      const hash = window.location.hash
+      if (hash) {
+        // Supabase gère automatiquement les hash fragments, on attend un peu
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session) {
         // Pas de session valide, rediriger vers login
         router.push('/login?error=' + encodeURIComponent('Session expirée, demandez un nouveau lien'))
       } else {
+        // Nettoyer le hash de l'URL
+        if (hash) {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
         setReady(true)
       }
     }
