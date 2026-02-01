@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -12,7 +12,7 @@ import { updateUserProfile, getUserProfile } from "@/lib/database"
 
 export default function ParametresPage() {
   const { theme, toggleTheme } = useTheme()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [settings, setSettings] = useState({
     nom: "",
     email: "",
@@ -27,59 +27,69 @@ export default function ParametresPage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
-  // Charger les données initiales depuis le profil
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!user) {
-        setInitialLoading(false)
-        return
-      }
+  // Mémoriser la fonction de chargement pour éviter les re-renders infinis
+  const loadProfile = useCallback(async () => {
+    // Attendre que l'auth soit chargée
+    if (authLoading) {
+      return
+    }
 
-      try {
-        setInitialLoading(true)
-        const profile = await getUserProfile(user.id)
-        
-        if (profile) {
-          setSettings({
-            nom: profile.name || "",
-            email: user.email || "",
-            devise: "EUR", // TODO: ajouter au profil si nécessaire
-            jourPaiement: "5", // TODO: ajouter au profil si nécessaire
-            delaiPaiement: "5", // TODO: ajouter au profil si nécessaire
-            alertesEmail: true, // TODO: ajouter au profil si nécessaire
-            alertesNotification: true, // TODO: ajouter au profil si nécessaire
-          })
-        } else {
-          // Profil n'existe pas encore, utiliser les valeurs par défaut
-          setSettings({
-            nom: "",
-            email: user.email || "",
-            devise: "EUR",
-            jourPaiement: "5",
-            delaiPaiement: "5",
-            alertesEmail: true,
-            alertesNotification: true,
-          })
-        }
-      } catch (error) {
-        console.error("Erreur chargement profil:", error)
-        // En cas d'erreur, utiliser les valeurs par défaut
+    // Si pas d'utilisateur, arrêter le chargement
+    if (!user) {
+      setInitialLoading(false)
+      return
+    }
+
+    const userId = user.id
+    const userEmail = user.email || ""
+
+    try {
+      setInitialLoading(true)
+      const profile = await getUserProfile(userId)
+      
+      if (profile) {
+        setSettings({
+          nom: profile.name || "",
+          email: userEmail,
+          devise: "EUR", // TODO: ajouter au profil si nécessaire
+          jourPaiement: "5", // TODO: ajouter au profil si nécessaire
+          delaiPaiement: "5", // TODO: ajouter au profil si nécessaire
+          alertesEmail: true, // TODO: ajouter au profil si nécessaire
+          alertesNotification: true, // TODO: ajouter au profil si nécessaire
+        })
+      } else {
+        // Profil n'existe pas encore, utiliser les valeurs par défaut
         setSettings({
           nom: "",
-          email: user?.email || "",
+          email: userEmail,
           devise: "EUR",
           jourPaiement: "5",
           delaiPaiement: "5",
           alertesEmail: true,
           alertesNotification: true,
         })
-      } finally {
-        setInitialLoading(false)
       }
+    } catch (error) {
+      console.error("Erreur chargement profil:", error)
+      // En cas d'erreur, utiliser les valeurs par défaut
+      setSettings({
+        nom: "",
+        email: userEmail,
+        devise: "EUR",
+        jourPaiement: "5",
+        delaiPaiement: "5",
+        alertesEmail: true,
+        alertesNotification: true,
+      })
+    } finally {
+      setInitialLoading(false)
     }
+  }, [user?.id, authLoading]) // Dépendances stables : user.id (primitif) et authLoading
 
+  // Charger les données initiales depuis le profil
+  useEffect(() => {
     loadProfile()
-  }, [user])
+  }, [loadProfile])
 
   const handleSave = async () => {
     if (!user) {
