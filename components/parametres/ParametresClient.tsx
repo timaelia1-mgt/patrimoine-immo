@@ -80,7 +80,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
   }
 
   const handlePasswordChange = async () => {
-    console.log('[Password] Début changement')
     setPasswordError('')
     setPasswordSuccess('')
     
@@ -101,10 +100,8 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     }
     
     setPasswordLoading(true)
-    console.log('[Password] Loading = true')
     
     try {
-      console.log('[Password] Appel updateUser...')
       const supabase = createClient()
       
       // Créer une promesse avec timeout
@@ -118,20 +115,17 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       
       try {
         const { error } = await Promise.race([updatePromise, timeoutPromise]) as any
-        console.log('[Password] Réponse reçue, error:', error)
         
         if (error) throw error
       } catch (err: any) {
         // Si timeout, vérifier si USER_UPDATED a été émis
         if (err.message === 'timeout') {
-          console.log('[Password] Timeout - mais probablement réussi (USER_UPDATED détecté)')
           // Considérer comme succès car USER_UPDATED est émis
         } else {
           throw err
         }
       }
       
-      console.log('[Password] Succès !')
       // Succès
       setPasswordSuccess('Mot de passe modifié avec succès !')
       setPasswordForm({
@@ -140,10 +134,9 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       })
       
     } catch (error: any) {
-      console.error('[Password] Erreur:', error)
+      console.error('Erreur lors du changement de mot de passe:', error)
       setPasswordError(error.message || 'Erreur lors du changement de mot de passe')
     } finally {
-      console.log('[Password] Finally block - setLoading(false)')
       setPasswordLoading(false)
     }
   }
