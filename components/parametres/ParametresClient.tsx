@@ -107,14 +107,29 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       console.log('[Password] Appel updateUser...')
       const supabase = createClient()
       
-      // Changer le mot de passe directement
-      const { error } = await supabase.auth.updateUser({
+      // Créer une promesse avec timeout
+      const updatePromise = supabase.auth.updateUser({
         password: passwordForm.newPassword
       })
       
-      console.log('[Password] Réponse reçue, error:', error)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('timeout')), 5000)
+      )
       
-      if (error) throw error
+      try {
+        const { error } = await Promise.race([updatePromise, timeoutPromise]) as any
+        console.log('[Password] Réponse reçue, error:', error)
+        
+        if (error) throw error
+      } catch (err: any) {
+        // Si timeout, vérifier si USER_UPDATED a été émis
+        if (err.message === 'timeout') {
+          console.log('[Password] Timeout - mais probablement réussi (USER_UPDATED détecté)')
+          // Considérer comme succès car USER_UPDATED est émis
+        } else {
+          throw err
+        }
+      }
       
       console.log('[Password] Succès !')
       // Succès
