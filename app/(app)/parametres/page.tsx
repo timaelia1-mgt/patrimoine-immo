@@ -11,8 +11,13 @@ import { useAuth } from "@/lib/auth-context"
 import { updateUserProfile, getUserProfile } from "@/lib/database"
 
 export default function ParametresPage() {
+  console.log('[Parametres] Composant rendu')
+  
   const { theme, toggleTheme } = useTheme()
   const { user, loading: authLoading } = useAuth()
+  
+  console.log('[Parametres] Auth state - user:', user?.id, 'authLoading:', authLoading)
+  
   const [settings, setSettings] = useState({
     nom: "",
     email: "",
@@ -26,16 +31,22 @@ export default function ParametresPage() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  
+  console.log('[Parametres] State - initialLoading:', initialLoading)
 
   // Mémoriser la fonction de chargement pour éviter les re-renders infinis
   const loadProfile = useCallback(async () => {
+    console.log('[Parametres] loadProfile appelé - user:', user?.id, 'authLoading:', authLoading)
+    
     // Attendre que l'auth soit chargée
     if (authLoading) {
+      console.log('[Parametres] En attente auth...')
       return
     }
 
     // Si pas d'utilisateur, arrêter le chargement
     if (!user) {
+      console.log('[Parametres] Pas de user, arrêt du chargement')
       setInitialLoading(false)
       return
     }
@@ -44,8 +55,10 @@ export default function ParametresPage() {
     const userEmail = user.email || ""
 
     try {
+      console.log('[Parametres] Début chargement profil pour user:', userId)
       setInitialLoading(true)
       const profile = await getUserProfile(userId)
+      console.log('[Parametres] Profil récupéré:', profile)
       
       if (profile) {
         setSettings({
@@ -57,6 +70,7 @@ export default function ParametresPage() {
           alertesEmail: true, // TODO: ajouter au profil si nécessaire
           alertesNotification: true, // TODO: ajouter au profil si nécessaire
         })
+        console.log('[Parametres] Settings mis à jour avec profil')
       } else {
         // Profil n'existe pas encore, utiliser les valeurs par défaut
         setSettings({
@@ -68,9 +82,10 @@ export default function ParametresPage() {
           alertesEmail: true,
           alertesNotification: true,
         })
+        console.log('[Parametres] Settings mis à jour avec valeurs par défaut')
       }
     } catch (error) {
-      console.error("Erreur chargement profil:", error)
+      console.error("[Parametres] Erreur chargement profil:", error)
       // En cas d'erreur, utiliser les valeurs par défaut
       setSettings({
         nom: "",
@@ -81,13 +96,16 @@ export default function ParametresPage() {
         alertesEmail: true,
         alertesNotification: true,
       })
+      console.log('[Parametres] Settings mis à jour après erreur')
     } finally {
+      console.log('[Parametres] setInitialLoading(false)')
       setInitialLoading(false)
     }
-  }, [user?.id, authLoading]) // Dépendances stables : user.id (primitif) et authLoading
+  }, [user?.id, user?.email, authLoading]) // Dépendances stables
 
   // Charger les données initiales depuis le profil
   useEffect(() => {
+    console.log('[Parametres] useEffect déclenché - user:', user?.id, 'authLoading:', authLoading, 'loadProfile:', loadProfile)
     loadProfile()
   }, [loadProfile])
 
