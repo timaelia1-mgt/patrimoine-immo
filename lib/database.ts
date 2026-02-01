@@ -206,8 +206,11 @@ export async function deleteBien(bienId: string): Promise<void> {
 }
 
 // Fonctions pour le profil utilisateur
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const supabase = createClient()
+export async function getUserProfile(userId: string, supabaseClient?: any): Promise<UserProfile | null> {
+  // Si un client est fourni (pour Server Components), l'utiliser
+  // Sinon, utiliser le client par défaut (pour Client Components)
+  const supabase = supabaseClient || createClient()
+  
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
