@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
 import { getLocataire, getLoyers, upsertLoyer } from "@/lib/database"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface LoyersProps {
   bien: any
 }
 
 export function Loyers({ bien }: LoyersProps) {
+  const router = useRouter()
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
 
   const [locataireInfo, setLocataireInfo] = useState<any>(null)
