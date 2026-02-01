@@ -15,7 +15,18 @@ const ThemeContext = createContext<ThemeContextType>({
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light")
+  // CRITIQUE : Initialiser le theme avec la valeur de localStorage dès le départ
+  // pour éviter un changement de state qui démonterait AuthProvider
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Lire localStorage immédiatement lors de l'initialisation
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("theme") as Theme
+      const initialTheme = saved || "dark" // défaut: dark
+      console.log("[ThemeProvider] Initialisation theme:", initialTheme, "(saved:", saved, ")")
+      return initialTheme
+    }
+    return "dark"
+  })
   const [mounted, setMounted] = useState(false)
 
   console.log("[ThemeProvider] Render - theme:", theme, "mounted:", mounted)
@@ -23,15 +34,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("[ThemeProvider] useEffect - Initialisation")
     setMounted(true)
-    const savedTheme = localStorage.getItem("theme") as Theme
-    if (savedTheme) {
-      console.log("[ThemeProvider] Theme sauvegardé trouvé:", savedTheme)
-      setTheme(savedTheme)
-      document.documentElement.classList.toggle("dark", savedTheme === "dark")
-    } else {
-      console.log("[ThemeProvider] Pas de theme sauvegardé, utilisation du défaut")
-    }
-  }, [])
+    // Appliquer la classe CSS selon le theme actuel (déjà initialisé)
+    // Ne PAS changer le state ici pour éviter de démonter AuthProvider
+    document.documentElement.classList.toggle("dark", theme === "dark")
+    console.log("[ThemeProvider] Classe CSS appliquée pour theme:", theme)
+  }, [theme])
 
   const toggleTheme = useCallback(() => {
     console.log("[ThemeProvider] toggleTheme appelé")
