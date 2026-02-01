@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 function VerifyOtpForm() {
   const searchParams = useSearchParams()
   const email = searchParams?.get('email') || ''
+  const type = searchParams?.get('type') || 'signup' // 'signup' ou 'login'
   
   const supabase = createClient()
   const [otp, setOtp] = useState('')
@@ -30,24 +31,25 @@ function VerifyOtpForm() {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'signup'
+        type: type === 'signup' ? 'signup' : 'email'
       })
 
       if (error) throw error
 
+      // Succès → Dashboard
       window.location.href = '/dashboard'
     } catch (error: any) {
-      setError(error.message || 'Code invalide')
+      setError(error.message || 'Code invalide ou expiré')
       setLoading(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-md border-0 shadow-large bg-white dark:bg-slate-800">
+    <Card className="w-full max-w-md border-0 shadow-large bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-display">Vérification</CardTitle>
         <CardDescription>
-          Entrez le code reçu par email à {email}
+          Entrez le code reçu par email à <span className="font-medium">{email}</span>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -66,17 +68,22 @@ function VerifyOtpForm() {
               type="text"
               placeholder="123456"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               required
               disabled={loading}
               maxLength={6}
-              className="text-center text-2xl tracking-widest"
+              className="text-center text-2xl tracking-widest bg-slate-50 dark:bg-slate-900/50"
             />
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400">
+              {type === 'signup' 
+                ? 'Vérifiez votre boîte mail pour le code de confirmation' 
+                : 'Vérifiez votre boîte mail pour le code de connexion'}
+            </p>
           </div>
 
           <Button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+            className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white shadow-lg"
             disabled={loading || otp.length !== 6}
           >
             {loading ? 'Vérification...' : 'Vérifier'}
