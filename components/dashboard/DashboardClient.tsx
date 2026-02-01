@@ -44,8 +44,10 @@ export function DashboardClient({ biens, stats }: DashboardClientProps) {
   }, [searchParams])
 
   const handleSuccess = () => {
+    // 1. Fermer le dialog d'abord
     setDialogOpen(false)
-    // Refresh des données sans recharger toute la page
+    
+    // 2. Refresh des données pour afficher le nouveau bien
     router.refresh()
   }
 

@@ -165,6 +165,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     try {
       await createBien(user.id, data)
       
+      // Reset du formulaire
       setFormData({
         nom: "",
         adresse: "",
@@ -182,7 +183,9 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         tauxCredit: "",
         dureeCredit: "",
       })
-      onOpenChange?.(false)
+      
+      // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
+      // Ne pas fermer le dialog ici pour éviter les conflits
       onSuccess?.()
     } catch (error) {
       console.error("Erreur:", error)
