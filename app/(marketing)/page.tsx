@@ -16,29 +16,20 @@ export default function LandingPage() {
   // Vérifier si c'est un lien de recovery ou si l'utilisateur est déjà connecté
   useEffect(() => {
     const checkRecoverySession = async () => {
-      // Vérifier si on a un hash fragment (access_token, type=recovery, etc.)
+      // 1. VÉRIFIER D'ABORD LE HASH (recovery token)
       const hash = window.location.hash
-      const hasRecoveryHash = hash.includes('type=recovery') || hash.includes('access_token')
       
-      if (hasRecoveryHash) {
-        // Attendre que Supabase traite le hash
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Vérifier la session
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          // Rediriger vers reset-password
-          router.push('/reset-password')
-          return
-        }
+      if (hash.includes('type=recovery') || hash.includes('access_token')) {
+        // C'est un lien de recovery, FORCER la redirection vers reset-password
+        router.push('/reset-password')
+        return // IMPORTANT : sortir ici
       }
-
-      // Vérifier si l'utilisateur est déjà connecté
+      
+      // 2. ENSUITE SEULEMENT vérifier la session normale
       const { data: { session } } = await supabase.auth.getSession()
       
-      if (session?.user && !hasRecoveryHash) {
-        // Utilisateur déjà connecté, aller au dashboard
+      if (session?.user) {
+        // Utilisateur déjà connecté normalement
         router.push('/dashboard')
       }
     }
