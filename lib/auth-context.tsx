@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [createProfileIfNeeded, supabase]) // supabase est maintenant stable grâce à useMemo
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.signOut()
@@ -137,10 +137,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null)
       throw error
     }
-  }
+  }, [])
+
+  // CRITIQUE : Mémoriser l'objet value pour éviter les re-renders en cascade
+  const contextValue = useMemo(
+    () => ({
+      user,
+      session,
+      loading,
+      signOut,
+    }),
+    [user, session, loading, signOut]
+  )
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )
