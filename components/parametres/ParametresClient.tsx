@@ -8,6 +8,7 @@ import { useState } from "react"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
 import { updateUserProfile, type UserProfile } from "@/lib/database"
+import { createClient } from "@/lib/supabase/client"
 
 interface ParametresClientProps {
   profile: UserProfile | null
@@ -29,6 +30,16 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
 
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // États pour le changement de mot de passe
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   const handleSave = async () => {
     if (!profile) {
@@ -66,6 +77,69 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     } finally {
       setLoading(false)
       console.log("Loading réinitialisé")
+    }
+  }
+
+  const handlePasswordChange = async () => {
+    setPasswordError('')
+    setPasswordSuccess('')
+    
+    // Validations
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('Tous les champs sont obligatoires')
+      return
+    }
+    
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins 8 caractères')
+      return
+    }
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Les mots de passe ne correspondent pas')
+      return
+    }
+    
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      setPasswordError('Le nouveau mot de passe doit être différent de l\'ancien')
+      return
+    }
+    
+    setPasswordLoading(true)
+    
+    try {
+      const supabase = createClient()
+      
+      // Vérifier l'ancien mot de passe en tentant de se reconnecter
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: passwordForm.currentPassword
+      })
+      
+      if (signInError) {
+        setPasswordError('Ancien mot de passe incorrect')
+        return
+      }
+      
+      // Changer le mot de passe
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      })
+      
+      if (error) throw error
+      
+      // Succès
+      setPasswordSuccess('Mot de passe modifié avec succès !')
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+      
+    } catch (error: any) {
+      setPasswordError(error.message || 'Erreur lors du changement de mot de passe')
+    } finally {
+      setPasswordLoading(false)
     }
   }
 
@@ -251,6 +325,56 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
               Afficher des notifications dans l'application
             </Label>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sécurité</CardTitle>
+          <CardDescription>Modifiez votre mot de passe</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Ancien mot de passe</Label>
+            <Input 
+              id="currentPassword"
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+              disabled={passwordLoading}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+            <Input 
+              id="newPassword"
+              type="password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+              minLength={8}
+              disabled={passwordLoading}
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Minimum 8 caractères</p>
+          </div>
+          
+          <div>
+            <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+            <Input 
+              id="confirmPassword"
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+              disabled={passwordLoading}
+            />
+          </div>
+          
+          {passwordError && <p className="text-sm text-red-500 dark:text-red-400">{passwordError}</p>}
+          {passwordSuccess && <p className="text-sm text-green-500 dark:text-green-400">{passwordSuccess}</p>}
+          
+          <Button onClick={handlePasswordChange} disabled={passwordLoading}>
+            {passwordLoading ? "Modification..." : "Changer le mot de passe"}
+          </Button>
         </CardContent>
       </Card>
 

@@ -151,15 +151,6 @@ export default function LoginPage() {
               >
                 {loading ? "Connexion..." : "Se connecter"}
               </Button>
-
-              <div className="text-center mt-4">
-                <Link 
-                  href="/forgot-password"
-                  className="text-sm text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                >
-                  Mot de passe oublié ?
-                </Link>
-              </div>
             </form>
           </TabsContent>
 
