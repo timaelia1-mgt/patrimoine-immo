@@ -75,7 +75,8 @@ export function Locataire({ bien }: LocataireProps) {
       router.refresh()
     } catch (error) {
       console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+      // Ne pas fermer le mode édition en cas d'erreur
     }
   }
 

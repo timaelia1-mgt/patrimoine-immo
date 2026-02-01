@@ -101,6 +101,9 @@ export function Loyers({ bien }: LoyersProps) {
     mois: number,
     paiement: { locataire: boolean; apl: boolean }
   ) => {
+    // Sauvegarder l'état précédent pour rollback
+    const previousState = [...paiements]
+    
     try {
       const annee = new Date().getFullYear()
 
@@ -110,8 +113,13 @@ export function Loyers({ bien }: LoyersProps) {
         payeLocataire: paiement.locataire,
         payeAPL: paiement.apl,
       })
+      router.refresh() // Refresh data after saving
     } catch (error) {
       console.error("Erreur sauvegarde paiement:", error)
+      // Rollback de l'état local
+      setPaiements(previousState)
+      // Feedback utilisateur
+      alert("Erreur lors de la sauvegarde du paiement. Veuillez réessayer.")
     }
   }
 

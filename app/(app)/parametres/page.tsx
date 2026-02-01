@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { updateUserProfile } from "@/lib/database"
 
 export default function ParametresPage() {
   const { theme, toggleTheme } = useTheme()
+  const { user } = useAuth()
   const [settings, setSettings] = useState({
     nom: "Utilisateur",
     email: "user@example.com",
@@ -21,11 +24,29 @@ export default function ParametresPage() {
   })
 
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleSave = () => {
-    // TODO: Sauvegarder les paramètres
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    if (!user) {
+      alert("Vous devez être connecté")
+      return
+    }
+
+    try {
+      setLoading(true)
+      await updateUserProfile(user.id, {
+        name: settings.nom,
+        // Note: Les autres champs (devise, jourPaiement, etc.) ne sont pas encore dans la table profiles
+        // Ils seront ajoutés plus tard si nécessaire
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (error) {
+      console.error("Erreur:", error)
+      alert("Erreur lors de la sauvegarde")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -75,8 +96,8 @@ export default function ParametresPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button onClick={handleSave}>
-              {saved ? "✓ Enregistré" : "Enregistrer"}
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? "Enregistrement..." : saved ? "✓ Enregistré" : "Enregistrer"}
             </Button>
           </div>
         </CardContent>

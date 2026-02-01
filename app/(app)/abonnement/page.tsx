@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,13 +17,7 @@ export default function AbonnementPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (user) {
-      fetchData()
-    }
-  }, [user])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return
 
     try {
@@ -45,7 +39,15 @@ export default function AbonnementPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      fetchData()
+    } else {
+      setLoading(false)
+    }
+  }, [user, fetchData])
 
   const plan = PLANS[currentPlan]
   const usagePercentage = (biensCount / plan.maxBiens) * 100

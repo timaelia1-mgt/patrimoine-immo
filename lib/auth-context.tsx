@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { User, Session } from "@supabase/supabase-js"
 import { createClient } from "./supabase/client"
 import { createUserProfile, getUserProfile } from "./database"
@@ -25,26 +25,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
+  const createProfileIfNeeded = useCallback(async (userId: string, email: string, name?: string) => {
+    try {
+      const profile = await getUserProfile(userId)
+      if (!profile) {
+        await createUserProfile(userId, email, name)
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création du profil:", error)
+    }
+  }, [])
+
   useEffect(() => {
+    let isMounted = true
+
     // Récupérer la session initiale
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       
       // Créer le profil si l'utilisateur existe mais n'a pas de profil
       if (session?.user) {
-        try {
-          const profile = await getUserProfile(session.user.id)
-          if (!profile) {
-            await createUserProfile(
-              session.user.id,
-              session.user.email || "",
-              session.user.user_metadata?.name
-            )
-          }
-        } catch (error) {
-          console.error("Erreur lors de la création du profil:", error)
-        }
+        await createProfileIfNeeded(
+          session.user.id,
+          session.user.email || "",
+          session.user.user_metadata?.name
+        )
       }
       
       setLoading(false)
@@ -54,30 +62,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return
+      
       setSession(session)
       setUser(session?.user ?? null)
       
       // Créer le profil si l'utilisateur existe mais n'a pas de profil
       if (session?.user) {
-        try {
-          const profile = await getUserProfile(session.user.id)
-          if (!profile) {
-            await createUserProfile(
-              session.user.id,
-              session.user.email || "",
-              session.user.user_metadata?.name
-            )
-          }
-        } catch (error) {
-          console.error("Erreur lors de la création du profil:", error)
-        }
+        await createProfileIfNeeded(
+          session.user.id,
+          session.user.email || "",
+          session.user.user_metadata?.name
+        )
       }
       
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [createProfileIfNeeded, supabase])
 
   const signOut = async () => {
     try {

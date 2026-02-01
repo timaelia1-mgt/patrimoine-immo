@@ -25,7 +25,7 @@ import { useAuth } from "@/lib/auth-context"
 export default function BienDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [bien, setBien] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,8 +74,31 @@ export default function BienDetailPage() {
   }, [params.id])
 
   useEffect(() => {
-    fetchBien()
-  }, [fetchBien])
+    if (!authLoading && !user) {
+      router.push("/login")
+      return
+    }
+    if (user) {
+      fetchBien()
+    }
+  }, [fetchBien, user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null // Redirection en cours
+  }
 
   const handleEnrichir = (themeId: string) => {
     setFonctionnalitesOpen(false)  // Fermer le dialog principal

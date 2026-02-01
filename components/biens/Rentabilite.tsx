@@ -22,10 +22,31 @@ export function Rentabilite({ bien }: RentabiliteProps) {
   
   const cashFlowMensuel = loyerMensuel - totalCharges - mensualiteCredit
 
-  // Calcul des revenus et charges cumulés (simulés sur 12 mois)
-  const moisPossession = 12 // À améliorer avec les vraies dates
-  const revenusCumules = loyerMensuel * moisPossession
-  const chargesCumulees = (totalCharges + mensualiteCredit) * moisPossession
+  // Calculer la durée réelle de possession
+  const calculerDureePossession = () => {
+    if (!bien.dateAcquisition) return 0
+    
+    const dateAcquisition = new Date(bien.dateAcquisition)
+    const dateDebut = bien.dateMiseEnLocation 
+      ? new Date(bien.dateMiseEnLocation) 
+      : dateAcquisition
+    const maintenant = new Date()
+    
+    const diffMs = maintenant.getTime() - dateDebut.getTime()
+    const moisPossession = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44))
+    
+    return Math.max(0, moisPossession)
+  }
+
+  const moisPossession = calculerDureePossession()
+  const revenusCumules = (bien.revenusAnterieursOverride ?? null) !== null
+    ? bien.revenusAnterieursOverride!
+    : loyerMensuel * moisPossession
+
+  const chargesCumulees = (bien.chargesAnterieuresOverride ?? null) !== null
+    ? bien.chargesAnterieuresOverride!
+    : (totalCharges + mensualiteCredit) * moisPossession
+
   const bilanNet = revenusCumules - chargesCumulees
 
   return (

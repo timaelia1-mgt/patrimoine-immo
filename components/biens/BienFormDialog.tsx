@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +48,29 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     const mensualite = (montant * tauxMensuel) / (1 - Math.pow(1 + tauxMensuel, -dureeMois))
     return Math.round(mensualite * 100) / 100
   }
+
+  // Réinitialiser le formulaire quand le dialog se ferme
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        nom: "",
+        adresse: "",
+        ville: "",
+        codePostal: "",
+        loyerMensuel: "",
+        taxeFonciere: "",
+        chargesCopro: "",
+        assurance: "",
+        fraisGestion: "",
+        autresCharges: "",
+        typeFinancement: "CREDIT",
+        dateDebutCredit: "",
+        montantCredit: "",
+        tauxCredit: "",
+        dureeCredit: "",
+      })
+    }
+  }, [open])
 
   // Calculer la mensualité automatiquement
   const mensualiteCalculee = formData.typeFinancement === "CREDIT" && 

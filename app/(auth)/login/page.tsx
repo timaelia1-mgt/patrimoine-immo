@@ -34,9 +34,11 @@ export default function LoginPage() {
 
       // Rediriger vers la page de vérification
       router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
+      // Note: setLoading(false) pas nécessaire car on quitte la page
     } catch (error: any) {
       setError(error.message || 'Une erreur est survenue')
-      setLoading(false)
+    } finally {
+      setLoading(false) // ✅ Garantit la réinitialisation
     }
   }
 

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getBiens } from "@/lib/database"
 
@@ -38,30 +38,30 @@ export function Sidebar() {
     }
   }
 
+  const fetchBiens = useCallback(async () => {
+    if (!user) {
+      setLoading(false)
+      setBiens([])
+      return
+    }
+
+    try {
+      console.log("[Sidebar] Récupération des biens pour user:", user.id)
+      const data = await getBiens(user.id)
+      console.log("[Sidebar] Biens récupérés:", data.length, data)
+      setBiens(data)
+    } catch (error) {
+      console.error("[Sidebar] Erreur lors de la récupération des biens:", error)
+      setBiens([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
+
   useEffect(() => {
     // Attendre que l'authentification soit chargée
     if (authLoading) {
       return
-    }
-
-    const fetchBiens = async () => {
-      if (!user) {
-        setLoading(false)
-        setBiens([])
-        return
-      }
-
-      try {
-        console.log("[Sidebar] Récupération des biens pour user:", user.id)
-        const data = await getBiens(user.id)
-        console.log("[Sidebar] Biens récupérés:", data.length, data)
-        setBiens(data)
-      } catch (error) {
-        console.error("[Sidebar] Erreur lors de la récupération des biens:", error)
-        setBiens([])
-      } finally {
-        setLoading(false)
-      }
     }
 
     // Charger les biens au montage et quand user change
@@ -79,7 +79,7 @@ export function Sidebar() {
     return () => {
       window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
     }
-  }, [user, authLoading])
+  }, [user, authLoading, fetchBiens])
 
   const isActive = (path: string) => pathname === path
 

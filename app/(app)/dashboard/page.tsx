@@ -23,30 +23,46 @@ export const revalidate = 0
 
 // Fonction pour calculer les stats
 function calculateStats(biens: any[]) {
+  if (!biens || !Array.isArray(biens)) {
+    return {
+      totalLoyers: 0,
+      totalCharges: 0,
+      totalMensualites: 0,
+      totalCashFlow: 0,
+      nombreBiens: 0
+    }
+  }
+
   let totalLoyers = 0
   let totalCharges = 0
   let totalMensualites = 0
 
   biens.forEach((bien) => {
-    totalLoyers += bien.loyerMensuel || 0
-    const charges = (bien.taxeFonciere || 0) / 12 +
-      (bien.chargesCopro || 0) +
-      (bien.assurance || 0) +
-      (bien.fraisGestion || 0) +
-      (bien.autresCharges || 0)
-    totalCharges += charges
+    const loyer = parseFloat(bien.loyerMensuel?.toString() || "0") || 0
+    totalLoyers += loyer
+    
+    const charges = (
+      (parseFloat(bien.taxeFonciere?.toString() || "0") || 0) / 12 +
+      (parseFloat(bien.chargesCopro?.toString() || "0") || 0) +
+      (parseFloat(bien.assurance?.toString() || "0") || 0) +
+      (parseFloat(bien.fraisGestion?.toString() || "0") || 0) +
+      (parseFloat(bien.autresCharges?.toString() || "0") || 0)
+    )
+    totalCharges += charges || 0
+    
     if (bien.typeFinancement === 'CREDIT') {
-      totalMensualites += bien.mensualiteCredit || 0
+      const mensualite = parseFloat(bien.mensualiteCredit?.toString() || "0") || 0
+      totalMensualites += mensualite
     }
   })
 
   const totalCashFlow = totalLoyers - totalCharges - totalMensualites
 
   return {
-    totalLoyers,
-    totalCharges,
-    totalMensualites,
-    totalCashFlow,
+    totalLoyers: isNaN(totalLoyers) ? 0 : totalLoyers,
+    totalCharges: isNaN(totalCharges) ? 0 : totalCharges,
+    totalMensualites: isNaN(totalMensualites) ? 0 : totalMensualites,
+    totalCashFlow: isNaN(totalCashFlow) ? 0 : totalCashFlow,
     nombreBiens: biens.length
   }
 }
