@@ -4,18 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { updateUserProfile } from "@/lib/database"
+import { updateUserProfile, getUserProfile } from "@/lib/database"
 
 export default function ParametresPage() {
   const { theme, toggleTheme } = useTheme()
   const { user } = useAuth()
   const [settings, setSettings] = useState({
-    nom: "Utilisateur",
-    email: "user@example.com",
+    nom: "",
+    email: "",
     devise: "EUR",
     jourPaiement: "5",
     delaiPaiement: "5",
@@ -25,6 +25,61 @@ export default function ParametresPage() {
 
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+
+  // Charger les données initiales depuis le profil
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setInitialLoading(false)
+        return
+      }
+
+      try {
+        setInitialLoading(true)
+        const profile = await getUserProfile(user.id)
+        
+        if (profile) {
+          setSettings({
+            nom: profile.name || "",
+            email: user.email || "",
+            devise: "EUR", // TODO: ajouter au profil si nécessaire
+            jourPaiement: "5", // TODO: ajouter au profil si nécessaire
+            delaiPaiement: "5", // TODO: ajouter au profil si nécessaire
+            alertesEmail: true, // TODO: ajouter au profil si nécessaire
+            alertesNotification: true, // TODO: ajouter au profil si nécessaire
+          })
+        } else {
+          // Profil n'existe pas encore, utiliser les valeurs par défaut
+          setSettings({
+            nom: "",
+            email: user.email || "",
+            devise: "EUR",
+            jourPaiement: "5",
+            delaiPaiement: "5",
+            alertesEmail: true,
+            alertesNotification: true,
+          })
+        }
+      } catch (error) {
+        console.error("Erreur chargement profil:", error)
+        // En cas d'erreur, utiliser les valeurs par défaut
+        setSettings({
+          nom: "",
+          email: user?.email || "",
+          devise: "EUR",
+          jourPaiement: "5",
+          delaiPaiement: "5",
+          alertesEmail: true,
+          alertesNotification: true,
+        })
+      } finally {
+        setInitialLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [user])
 
   const handleSave = async () => {
     if (!user) {
@@ -32,21 +87,51 @@ export default function ParametresPage() {
       return
     }
 
+    if (!settings.nom.trim()) {
+      alert("Le nom est obligatoire")
+      return
+    }
+
     try {
       setLoading(true)
-      await updateUserProfile(user.id, {
-        name: settings.nom,
+      console.log("Début sauvegarde profil...", { userId: user.id, name: settings.nom })
+      
+      const result = await updateUserProfile(user.id, {
+        name: settings.nom.trim(),
         // Note: Les autres champs (devise, jourPaiement, etc.) ne sont pas encore dans la table profiles
         // Ils seront ajoutés plus tard si nécessaire
       })
+      
+      console.log("Sauvegarde réussie:", result)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error)
+      console.error("Détails erreur:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      })
+      alert(`Erreur lors de la sauvegarde: ${error?.message || "Erreur inconnue"}`)
     } finally {
+      // CRITIQUE : toujours réinitialiser loading même en cas d'erreur
       setLoading(false)
+      console.log("Loading réinitialisé")
     }
+  }
+
+  if (initialLoading) {
+    return (
+      <div className="p-8 dark:bg-slate-950">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Chargement des paramètres...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -78,8 +163,12 @@ export default function ParametresPage() {
               id="email"
               type="email"
               value={settings.email}
-              onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+              disabled
+              className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              L'email ne peut pas être modifié ici
+            </p>
           </div>
 
           <div>
