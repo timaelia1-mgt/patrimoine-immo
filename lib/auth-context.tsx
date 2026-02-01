@@ -43,26 +43,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     console.log("[AuthContext] useEffect déclenché")
 
-    // Récupérer la session initiale
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return
-      
-      console.log("[AuthContext] Session récupérée:", session?.user?.id || "null")
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      // Créer le profil si l'utilisateur existe mais n'a pas de profil
-      if (session?.user) {
-        await createProfileIfNeeded(
-          session.user.id,
-          session.user.email || "",
-          session.user.user_metadata?.name
-        )
+    // Fonction async pour initialiser l'authentification
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (!isMounted) return
+        
+        if (error) {
+          console.error("[AuthContext] Erreur getSession:", error)
+          setSession(null)
+          setUser(null)
+          return
+        }
+        
+        console.log("[AuthContext] Session récupérée:", session?.user?.id || "null")
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        // Créer le profil si l'utilisateur existe mais n'a pas de profil
+        if (session?.user) {
+          await createProfileIfNeeded(
+            session.user.id,
+            session.user.email || "",
+            session.user.user_metadata?.name
+          )
+        }
+      } catch (error) {
+        console.error("[AuthContext] Erreur lors de l'initialisation:", error)
+        if (isMounted) {
+          setSession(null)
+          setUser(null)
+        }
+      } finally {
+        // CRITIQUE : toujours définir loading à false
+        if (isMounted) {
+          console.log("[AuthContext] setLoading(false) - Initialisation terminée")
+          setLoading(false)
+        }
       }
-      
-      setLoading(false)
-      console.log("[AuthContext] Loading mis à false")
-    })
+    }
+
+    // Initialiser l'authentification
+    initAuth()
 
     // Écouter les changements d'authentification
     const {
@@ -83,7 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
       }
       
-      setLoading(false)
+      // Mettre à jour loading si nécessaire (mais normalement déjà false après initAuth)
+      if (isMounted) {
+        setLoading(false)
+      }
     })
 
     return () => {
