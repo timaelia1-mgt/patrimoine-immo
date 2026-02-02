@@ -55,12 +55,24 @@ export function Charges({ bien }: ChargesProps) {
     }
   }
 
-  const totalCharges = 
-    parseFloat(formData.taxeFonciere) +
-    parseFloat(formData.chargesCopro) +
-    parseFloat(formData.assurance) +
-    parseFloat(formData.fraisGestion) +
-    parseFloat(formData.autresCharges)
+  // Calculer le total depuis formData (pour l'affichage en temps réel)
+  const totalChargesForm = 
+    parseFloat(formData.taxeFonciere || "0") +
+    parseFloat(formData.chargesCopro || "0") +
+    parseFloat(formData.assurance || "0") +
+    parseFloat(formData.fraisGestion || "0") +
+    parseFloat(formData.autresCharges || "0")
+  
+  // Calculer le total depuis le bien (pour l'affichage initial)
+  const totalChargesBien = 
+    parseFloat(bien.taxeFonciere?.toString() || "0") +
+    parseFloat(bien.chargesCopro?.toString() || "0") +
+    parseFloat(bien.assurance?.toString() || "0") +
+    parseFloat(bien.fraisGestion?.toString() || "0") +
+    parseFloat(bien.autresCharges?.toString() || "0")
+  
+  // Utiliser le total du formulaire si en édition, sinon celui du bien
+  const totalCharges = editing ? totalChargesForm : totalChargesBien
 
   return (
     <div className="space-y-6">
@@ -150,9 +162,16 @@ export function Charges({ bien }: ChargesProps) {
             />
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-lg mt-4">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg mt-4 border border-slate-200 dark:border-slate-700">
             <p className="text-sm text-muted-foreground mb-2">Total des charges mensuelles</p>
-            <p className="text-3xl font-bold">{formatCurrency(totalCharges)}</p>
+            <p className="text-3xl font-bold text-slate-900 dark:text-white">
+              {formatCurrency(totalCharges)}
+            </p>
+            {totalCharges === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Aucune charge renseignée
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

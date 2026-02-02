@@ -169,10 +169,13 @@ export function Financement({ bien }: FinancementProps) {
                 </span>
               </div>
               
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all"
-                  style={{ width: `${progressionCredit.progression}%` }}
+                  className="bg-gradient-to-r from-blue-500 to-emerald-500 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
+                  style={{ 
+                    width: `${Math.max(0, Math.min(100, progressionCredit.progression))}%`,
+                    minWidth: progressionCredit.progression > 0 ? '2px' : '0'
+                  }}
                 />
               </div>
 
