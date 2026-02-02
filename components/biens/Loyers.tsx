@@ -3,9 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
-import { getLocataire, getLoyers, upsertLoyer } from "@/lib/database"
+import { getLocataire, getLoyers, upsertLoyer, getUserProfile } from "@/lib/database"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { QuittanceModal } from "@/components/biens/QuittanceModal"
+import { QuittanceData } from "@/lib/generateQuittance"
 
 interface LoyersProps {
   bien: any
@@ -16,7 +18,13 @@ export function Loyers({ bien }: LoyersProps) {
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
 
   const [locataireInfo, setLocataireInfo] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loyersData, setLoyersData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // États pour le modal quittance
+  const [quittanceOpen, setQuittanceOpen] = useState(false)
+  const [quittanceData, setQuittanceData] = useState<QuittanceData | null>(null)
   
   const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
   const anneeActuelle = new Date().getFullYear()
@@ -39,12 +47,19 @@ export function Loyers({ bien }: LoyersProps) {
           setLocataireInfo(locataireData)
         }
 
+        // Charger le profile du propriétaire
+        const profileData = await getUserProfile(bien.userId)
+        if (profileData) {
+          setProfile(profileData)
+        }
+
         // Charger les loyers de l'année
         const annee = new Date().getFullYear()
-        const loyersData = await getLoyers(bien.id, annee)
+        const loyers = await getLoyers(bien.id, annee)
+        setLoyersData(loyers)
 
         const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
-          const loyerMois = loyersData.find((l) => l.mois === i)
+          const loyerMois = loyers.find((l) => l.mois === i)
           return {
             locataire: loyerMois?.payeLocataire || false,
             apl: loyerMois?.payeAPL || false,
@@ -60,7 +75,7 @@ export function Loyers({ bien }: LoyersProps) {
     }
 
     fetchData()
-  }, [bien.id])
+  }, [bien.id, bien.userId])
 
   const montantAPL = parseFloat(locataireInfo?.montantAPL || "0")
   const loyerNetLocataire = loyerMensuel - montantAPL
@@ -123,6 +138,30 @@ export function Loyers({ bien }: LoyersProps) {
       // Feedback utilisateur
       alert("Erreur lors de la sauvegarde du paiement. Veuillez réessayer.")
     }
+  }
+
+  const openQuittance = (moisIndex: number) => {
+    const loyer = loyersData.find((l) => l.mois === moisIndex)
+    if (!loyer || !loyer.payeLocataire) return
+
+    setQuittanceData({
+      proprietaireNom: profile?.name || 'Propriétaire',
+      bienNom: bien.nom,
+      bienAdresse: bien.adresse || '',
+      bienVille: bien.ville || '',
+      bienCodePostal: bien.codePostal || '',
+      locataireNom: locataireInfo?.nom || '',
+      locatairePrenom: locataireInfo?.prenom || '',
+      annee: anneeActuelle,
+      mois: moisIndex + 1, // Convertir 0-11 en 1-12
+      datePaiement: loyer.datePaiementLocataire 
+        ? new Date(loyer.datePaiementLocataire).toLocaleDateString('fr-FR')
+        : new Date().toLocaleDateString('fr-FR'),
+      modePaiement: locataireInfo?.modePaiement || 'virement',
+      montantLocataire: parseFloat(loyer.montantLocataire?.toString() || loyerNetLocataire.toString() || "0"),
+      montantAPL: parseFloat(loyer.montantAPL?.toString() || montantAPL.toString() || "0"),
+    })
+    setQuittanceOpen(true)
   }
 
   if (loading) {
@@ -232,7 +271,7 @@ export function Loyers({ bien }: LoyersProps) {
                   `}
                 >
                   {isMoisActuel && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-20">
                       <span className="text-white text-xs font-bold">•</span>
                     </div>
                   )}
@@ -246,23 +285,35 @@ export function Loyers({ bien }: LoyersProps) {
 
                   <div className="space-y-2">
                     {/* Bouton Locataire */}
-                    <button
-                      onClick={() => !isFutur && togglePaiementLocataire(index)}
-                      disabled={isFutur}
-                      className={`
-                        w-full p-2 rounded border-2 text-sm font-medium transition-all
-                        ${paiement.locataire
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-red-500 bg-red-50 text-red-700'
-                        }
-                        ${isFutur ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}
-                      `}
-                    >
-                      {paiement.locataire ? '✓' : '✗'} Locataire
-                      <div className="text-xs mt-1 font-semibold">
-                        {formatCurrency(loyerNetLocataire)}
-                      </div>
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => !isFutur && togglePaiementLocataire(index)}
+                        disabled={isFutur}
+                        className={`
+                          w-full p-2 rounded border-2 text-sm font-medium transition-all
+                          ${paiement.locataire
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-red-500 bg-red-50 text-red-700'
+                          }
+                          ${isFutur ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}
+                        `}
+                      >
+                        {paiement.locataire ? '✓' : '✗'} Locataire
+                        <div className="text-xs mt-1 font-semibold">
+                          {formatCurrency(loyerNetLocataire)}
+                        </div>
+                      </button>
+                      {/* Bouton Quittance (seulement si payé) */}
+                      {paiement.locataire && !isFutur && (
+                        <button
+                          onClick={() => openQuittance(index)}
+                          className="absolute -bottom-1 -right-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2 py-1 rounded shadow-lg transition-colors z-10"
+                          title="Générer quittance"
+                        >
+                          📄 Quittance
+                        </button>
+                      )}
+                    </div>
 
                     {/* Bouton APL */}
                     {montantAPL > 0 && (
@@ -345,6 +396,16 @@ export function Loyers({ bien }: LoyersProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Quittance */}
+      {quittanceData && (
+        <QuittanceModal
+          isOpen={quittanceOpen}
+          onClose={() => setQuittanceOpen(false)}
+          data={quittanceData}
+          locataireEmail={locataireInfo?.email}
+        />
+      )}
     </div>
   )
 }
