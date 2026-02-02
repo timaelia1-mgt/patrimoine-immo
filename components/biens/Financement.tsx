@@ -201,40 +201,48 @@ export function Financement({ bien }: FinancementProps) {
               {/* Chiffres détaillés - Montants */}
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Capital remboursé</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">Capital remboursé</p>
                   <p className="text-lg font-semibold text-slate-900 dark:text-white">
                     {formatCurrency(progressionCredit.capitalRembourse)}
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Capital restant dû</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">Capital restant dû</p>
                   <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
                     {formatCurrency(progressionCredit.capitalRestant)}
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Capital total</p>
-                  <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">Capital total</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
                     {formatCurrency(bien.montantCredit || 0)}
                   </p>
                 </div>
               </div>
 
               {/* Chiffres détaillés - Durées */}
-              <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+              <div className="grid grid-cols-3 gap-4 mt-2 pt-3 border-t border-slate-200 dark:border-slate-700">
                 <div>
-                  <p className="text-muted-foreground">Mois écoulés</p>
-                  <p className="font-bold text-blue-600">{progressionCredit.moisEcoules}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Mois écoulés</p>
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {progressionCredit.moisEcoules}
+                  </p>
                 </div>
+                
                 <div>
-                  <p className="text-muted-foreground">Mois restants</p>
-                  <p className="font-bold text-orange-600">{progressionCredit.moisRestants}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Mois restants</p>
+                  <p className="text-base font-semibold text-orange-600 dark:text-orange-400">
+                    {progressionCredit.moisRestants}
+                  </p>
                 </div>
+                
                 <div>
-                  <p className="text-muted-foreground">Durée totale</p>
-                  <p className="font-bold">{progressionCredit.dureeTotal} mois</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Durée totale</p>
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {bien.dureeCredit || 0} mois
+                  </p>
                 </div>
               </div>
 
