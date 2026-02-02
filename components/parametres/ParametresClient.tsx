@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
 import { updateUserProfile, type UserProfile } from "@/lib/database"
@@ -17,18 +18,20 @@ interface ParametresClientProps {
 
 export function ParametresClient({ profile, userEmail }: ParametresClientProps) {
   const { theme, toggleTheme } = useTheme()
+  const router = useRouter()
   
   const [settings, setSettings] = useState({
+    // Infos compte
     nom: profile?.name || "",
-    email: userEmail,
-    devise: "EUR",
-    jourPaiement: "5",
-    delaiPaiement: "5",
-    alertesEmail: true,
-    alertesNotification: true,
+    devise: profile?.currency || "EUR",
+    
+    // Gestion loyers
+    jourPaiement: profile?.rentPaymentDay?.toString() || "5",
+    delaiPaiement: profile?.paymentDelayDays?.toString() || "5",
+    alertesEmail: profile?.emailAlertsEnabled ?? true,
+    alertesNotification: profile?.appNotificationsEnabled ?? true,
   })
 
-  const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // États pour le changement de mot de passe
@@ -53,9 +56,8 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
 
     try {
       setLoading(true)
-      console.log("Début sauvegarde profil...", { userId: profile.id, name: settings.nom })
       
-      const result = await updateUserProfile(profile.id, {
+      await updateUserProfile(profile.id, {
         name: settings.nom.trim(),
         currency: settings.devise,
         rentPaymentDay: parseInt(settings.jourPaiement),
@@ -64,25 +66,16 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         appNotificationsEnabled: settings.alertesNotification,
       })
       
-      if (!result) {
-        throw new Error("Erreur lors de la sauvegarde")
-      }
+      // Rafraîchir la page pour afficher les nouvelles valeurs
+      router.refresh()
       
-      console.log("Sauvegarde réussie:", result)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      // Afficher un message de succès
+      alert("✓ Paramètres enregistrés avec succès !")
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error)
-      console.error("Détails erreur:", {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint
-      })
       alert(`Erreur lors de la sauvegarde: ${error?.message || "Erreur inconnue"}`)
     } finally {
       setLoading(false)
-      console.log("Loading réinitialisé")
     }
   }
 
@@ -156,10 +149,11 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
           <p className="text-slate-600 dark:text-slate-400 mb-8">Configurez votre application</p>
         </div>
 
+      {/* SECTION 1 : Informations personnelles */}
       <Card>
         <CardHeader>
-          <CardTitle>Informations du compte</CardTitle>
-          <CardDescription>Modifiez vos informations personnelles</CardDescription>
+          <CardTitle>Informations personnelles</CardTitle>
+          <CardDescription>Vos informations de compte</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -168,6 +162,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
               id="nom"
               value={settings.nom}
               onChange={(e) => setSettings({ ...settings, nom: e.target.value })}
+              placeholder="Votre nom"
             />
           </div>
 
@@ -176,7 +171,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
             <Input
               id="email"
               type="email"
-              value={settings.email}
+              value={userEmail}
               disabled
               className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
             />
@@ -196,12 +191,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
               <option value="EUR">Euro (€)</option>
               <option value="USD">Dollar ($)</option>
             </select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Enregistrement..." : saved ? "✓ Enregistré" : "Enregistrer"}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -257,10 +246,12 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         </CardContent>
       </Card>
 
+      {/* SECTION 2 : Gestion des loyers */}
+      {/* SECTION 2 : Gestion des loyers */}
       <Card>
         <CardHeader>
           <CardTitle>Gestion des loyers</CardTitle>
-          <CardDescription>Configurez les paramètres de suivi des loyers</CardDescription>
+          <CardDescription>Paramètres de suivi des paiements</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -333,10 +324,11 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         </CardContent>
       </Card>
 
+      {/* SECTION 3 : Sécurité */}
       <Card>
         <CardHeader>
           <CardTitle>Sécurité</CardTitle>
-          <CardDescription>Modifiez votre mot de passe</CardDescription>
+          <CardDescription>Changement de mot de passe</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -348,6 +340,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
               onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
               minLength={8}
               disabled={passwordLoading}
+              placeholder="Minimum 8 caractères"
             />
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Minimum 8 caractères</p>
           </div>
@@ -360,17 +353,31 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
               disabled={passwordLoading}
+              placeholder="Confirmez votre mot de passe"
             />
           </div>
           
-          {passwordError && <p className="text-sm text-red-500 dark:text-red-400">{passwordError}</p>}
-          {passwordSuccess && <p className="text-sm text-green-500 dark:text-green-400">{passwordSuccess}</p>}
+          {passwordError && (
+            <p className="text-sm text-red-500 dark:text-red-400">{passwordError}</p>
+          )}
+          {passwordSuccess && (
+            <p className="text-sm text-green-500 dark:text-green-400">{passwordSuccess}</p>
+          )}
           
-          <Button onClick={handlePasswordChange} disabled={passwordLoading}>
-            {passwordLoading ? "Modification..." : "Changer le mot de passe"}
-          </Button>
+          <div className="flex justify-end">
+            <Button onClick={handlePasswordChange} disabled={passwordLoading}>
+              {passwordLoading ? "Modification..." : "Changer le mot de passe"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {/* BOUTON UNIQUE EN BAS */}
+      <div className="flex justify-end mt-6">
+        <Button onClick={handleSave} disabled={loading} size="lg">
+          {loading ? "Enregistrement..." : "Enregistrer tous les paramètres"}
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
