@@ -180,17 +180,17 @@ export function Financement({ bien }: FinancementProps) {
             <CardTitle>Progression du remboursement</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+            <div className="mt-6 p-6 bg-slate-800 dark:bg-slate-900 rounded-lg border border-slate-700">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-sm">Progression du remboursement</h3>
-                <span className="text-2xl font-bold text-blue-600">
+                <h3 className="font-medium text-sm text-slate-200 dark:text-slate-100">Progression du remboursement</h3>
+                <span className="text-2xl font-bold text-blue-400 dark:text-blue-300">
                   {progressionCredit.progression.toFixed(0)}%
                 </span>
               </div>
               
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-3 overflow-hidden">
+              <div className="w-full bg-slate-700 dark:bg-slate-600 rounded-full h-4 mb-3 overflow-hidden">
                 <div 
-                  className="bg-slate-900 dark:bg-slate-100 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
+                  className="bg-slate-100 dark:bg-slate-200 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
                   style={{ 
                     width: `${Math.max(0, Math.min(100, progressionCredit.progression))}%`,
                     minWidth: progressionCredit.progression > 0 ? '2%' : '0%'
