@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(request: Request) {
   try {
     const { pdfBase64, locataireEmail, locataireNom, locatairePrenom, mois, annee, bienNom } = await request.json()
@@ -10,6 +8,9 @@ export async function POST(request: Request) {
     if (!pdfBase64 || !locataireEmail) {
       return NextResponse.json({ error: 'PDF et email requis' }, { status: 400 })
     }
+
+    // Instancier Resend dans la fonction pour éviter le crash au build
+    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const MOIS_NOMS = [
       'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
