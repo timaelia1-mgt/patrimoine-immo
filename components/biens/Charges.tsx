@@ -16,6 +16,7 @@ interface ChargesProps {
 export function Charges({ bien }: ChargesProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     taxeFonciere: bien.taxeFonciere?.toString() || "0",
     chargesCopro: bien.chargesCopro?.toString() || "0",
@@ -25,13 +26,23 @@ export function Charges({ bien }: ChargesProps) {
   })
 
   const handleSave = async () => {
+    setLoading(true)
     try {
+      // Calculer le total des charges
+      const totalCharges = 
+        parseFloat(formData.taxeFonciere || "0") +
+        parseFloat(formData.chargesCopro || "0") +
+        parseFloat(formData.assurance || "0") +
+        parseFloat(formData.fraisGestion || "0") +
+        parseFloat(formData.autresCharges || "0")
+
       await updateBien(bien.id, {
-        taxeFonciere: parseFloat(formData.taxeFonciere),
-        chargesCopro: parseFloat(formData.chargesCopro),
-        assurance: parseFloat(formData.assurance),
-        fraisGestion: parseFloat(formData.fraisGestion),
-        autresCharges: parseFloat(formData.autresCharges),
+        taxeFonciere: parseFloat(formData.taxeFonciere || "0"),
+        chargesCopro: parseFloat(formData.chargesCopro || "0"),
+        assurance: parseFloat(formData.assurance || "0"),
+        fraisGestion: parseFloat(formData.fraisGestion || "0"),
+        autresCharges: parseFloat(formData.autresCharges || "0"),
+        chargesMensuelles: totalCharges,
       })
 
       setEditing(false)
@@ -39,6 +50,8 @@ export function Charges({ bien }: ChargesProps) {
     } catch (error) {
       console.error("Erreur:", error)
       alert("Erreur lors de la sauvegarde")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -57,8 +70,17 @@ export function Charges({ bien }: ChargesProps) {
             <CardTitle>Charges mensuelles</CardTitle>
             {editing ? (
               <div className="flex gap-2">
-                <Button onClick={handleSave} size="sm">Enregistrer</Button>
-                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+                <Button onClick={handleSave} size="sm" disabled={loading}>
+                  {loading ? "Enregistrement..." : "Enregistrer"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setEditing(false)}
+                  disabled={loading}
+                >
+                  Annuler
+                </Button>
               </div>
             ) : (
               <Button onClick={() => setEditing(true)} size="sm">Modifier</Button>
