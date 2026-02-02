@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { updateBien } from "@/lib/database"
+import { updateBien, upsertLocataire } from "@/lib/database"
 
 interface FormDialogProps {
   open: boolean
@@ -820,6 +820,8 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
     montantAPL: "",
     modePaiement: "virement",
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const loyerAPLDeduit = formData.montantAPL 
     ? `Loyer après APL sera déduit automatiquement`
@@ -827,18 +829,39 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    // Validation : nom et prénom sont obligatoires
+    if (!formData.nomLocataire.trim() || !formData.prenomLocataire.trim()) {
+      setError("Le nom et le prénom sont obligatoires")
+      setIsLoading(false)
+      return
+    }
 
     try {
-      // Pour l'instant on active juste l'onglet
-      // La table Locataire sera créée plus tard dans le schema Prisma
+      // 1. Sauvegarder les données locataire dans la table locataires
+      await upsertLocataire(bienId, {
+        nom: formData.nomLocataire.trim(),
+        prenom: formData.prenomLocataire.trim(),
+        email: formData.emailLocataire.trim() || null,
+        telephone: formData.telephoneLocataire.trim() || null,
+        dateEntree: formData.dateEntree || null,
+        montantAPL: parseFloat(formData.montantAPL || "0"),
+        modePaiement: formData.modePaiement,
+      })
+      
+      // 2. Activer le flag enrichissement
       await updateBien(bienId, {
         enrichissementLocataire: true,
-        // Les données locataire seront stockées plus tard
       })
+      
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du locataire:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (err: any) {
+      console.error("Erreur lors de la mise à jour du locataire:", err)
+      setError(err.message || "Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -957,20 +980,30 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
             </div>
           </div>
 
-          {/* Note importante */}
-          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-            <p className="text-sm text-amber-900">
-              ⚠️ <strong>Note importante</strong> : Ces informations seront sauvegardées dans une prochaine version. 
-              Pour l'instant, l'onglet sera simplement activé.
-            </p>
-          </div>
+          {/* Affichage des erreurs */}
+          {error && (
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-900">
+              ❌ <strong>Erreur</strong> : {error}
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
               Annuler
             </Button>
-            <Button type="submit" className="bg-teal-600 hover:bg-teal-700">
-              Activer l'onglet Locataire
+            <Button 
+              type="submit" 
+              className="bg-teal-600 hover:bg-teal-700"
+              disabled={isLoading}
+            >
+              {isLoading ? "Enregistrement..." : "Enrichir le locataire"}
             </Button>
           </div>
         </form>
