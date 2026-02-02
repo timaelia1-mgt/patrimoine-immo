@@ -114,7 +114,20 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     mensualite_credit: bien.mensualiteCredit ? parseFloat(bien.mensualiteCredit.toString()) : null,
     apport: 0, // Valeur par défaut, peut être enrichi plus tard
     loyer_mensuel: bien.loyerMensuel ? parseFloat(bien.loyerMensuel.toString()) : 0,
-    charges_mensuelles: bien.chargesMensuelles ? parseFloat(bien.chargesMensuelles.toString()) : 0,
+    taxe_fonciere: bien.taxeFonciere ? parseFloat(bien.taxeFonciere.toString()) : 0,
+    charges_copro: bien.chargesCopro ? parseFloat(bien.chargesCopro.toString()) : 0,
+    assurance: bien.assurance ? parseFloat(bien.assurance.toString()) : 0,
+    frais_gestion: bien.fraisGestion ? parseFloat(bien.fraisGestion.toString()) : 0,
+    autres_charges: bien.autresCharges ? parseFloat(bien.autresCharges.toString()) : 0,
+    // Calculer charges_mensuelles comme somme des charges individuelles
+    charges_mensuelles: (
+      (bien.taxeFonciere ? parseFloat(bien.taxeFonciere.toString()) : 0) +
+      (bien.chargesCopro ? parseFloat(bien.chargesCopro.toString()) : 0) +
+      (bien.assurance ? parseFloat(bien.assurance.toString()) : 0) +
+      (bien.fraisGestion ? parseFloat(bien.fraisGestion.toString()) : 0) +
+      (bien.autresCharges ? parseFloat(bien.autresCharges.toString()) : 0)
+    ) || (bien.chargesMensuelles ? parseFloat(bien.chargesMensuelles.toString()) : 0),
+    date_debut_credit: bien.dateDebutCredit ? new Date(bien.dateDebutCredit).toISOString() : null,
   }
 
   const supabase = createClient()
