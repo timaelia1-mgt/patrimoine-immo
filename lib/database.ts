@@ -48,6 +48,11 @@ export interface UserProfile {
   email: string
   name?: string | null
   plan: PlanType
+  currency?: string
+  rentPaymentDay?: number
+  paymentDelayDays?: number
+  emailAlertsEnabled?: boolean
+  appNotificationsEnabled?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -369,6 +374,11 @@ function convertProfileFromSupabase(data: any): UserProfile {
     email: data.email || "",
     name: data.name || null, // Peut ne pas exister
     plan: (data.plan_type || data.plan || "decouverte") as PlanType, // Support plan_type et plan pour compatibilité
+    currency: data.currency || undefined,
+    rentPaymentDay: data.rent_payment_day || data.rentPaymentDay || undefined,
+    paymentDelayDays: data.payment_delay_days || data.paymentDelayDays || undefined,
+    emailAlertsEnabled: data.email_alerts_enabled !== undefined ? data.email_alerts_enabled : (data.emailAlertsEnabled !== undefined ? data.emailAlertsEnabled : undefined),
+    appNotificationsEnabled: data.app_notifications_enabled !== undefined ? data.app_notifications_enabled : (data.appNotificationsEnabled !== undefined ? data.appNotificationsEnabled : undefined),
     createdAt: data.created_at || data.createdAt || new Date().toISOString(),
     updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
   }
