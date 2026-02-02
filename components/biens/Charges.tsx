@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
 import { updateBien } from "@/lib/database"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 interface ChargesProps {
@@ -14,7 +13,6 @@ interface ChargesProps {
 }
 
 export function Charges({ bien }: ChargesProps) {
-  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -46,7 +44,10 @@ export function Charges({ bien }: ChargesProps) {
       })
 
       setEditing(false)
-      router.refresh()
+      
+      // Rafraîchir la page pour mettre à jour l'affichage avec les nouvelles données
+      window.location.reload()
+      
     } catch (error) {
       console.error("Erreur:", error)
       alert("Erreur lors de la sauvegarde")
