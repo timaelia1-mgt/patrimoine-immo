@@ -44,11 +44,30 @@ export function Financement({ bien }: FinancementProps) {
     const moisRestants = Math.max(0, dureeTotal - moisEcoules)
     const progression = Math.min(100, (moisEcoules / dureeTotal) * 100)
     
+    // Calcul des montants
+    const montantCredit = parseFloat(bien.montantCredit?.toString() || "0")
+    const capitalRestantDu = bien.capitalRestantDu ? parseFloat(bien.capitalRestantDu.toString()) : null
+    
+    // Si capitalRestantDu existe, l'utiliser, sinon calculer approximativement
+    let capitalRestant: number
+    let capitalRembourse: number
+    
+    if (capitalRestantDu !== null && capitalRestantDu !== undefined) {
+      capitalRestant = capitalRestantDu
+      capitalRembourse = montantCredit - capitalRestant
+    } else {
+      // Approximation basée sur la progression
+      capitalRembourse = montantCredit * (progression / 100)
+      capitalRestant = montantCredit - capitalRembourse
+    }
+    
     return {
       moisEcoules: Math.max(0, moisEcoules),
       moisRestants,
       dureeTotal,
-      progression
+      progression,
+      capitalRembourse: Math.max(0, capitalRembourse),
+      capitalRestant: Math.max(0, capitalRestant)
     }
   }
 
@@ -171,15 +190,40 @@ export function Financement({ bien }: FinancementProps) {
               
               <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-emerald-500 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
+                  className="bg-slate-900 dark:bg-slate-100 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
                   style={{ 
                     width: `${Math.max(0, Math.min(100, progressionCredit.progression))}%`,
-                    minWidth: progressionCredit.progression > 0 ? '2px' : '0'
+                    minWidth: progressionCredit.progression > 0 ? '2%' : '0%'
                   }}
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              {/* Chiffres détaillés - Montants */}
+              <div className="grid grid-cols-3 gap-4 mt-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Capital remboursé</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                    {formatCurrency(progressionCredit.capitalRembourse)}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Capital restant dû</p>
+                  <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                    {formatCurrency(progressionCredit.capitalRestant)}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Capital total</p>
+                  <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+                    {formatCurrency(bien.montantCredit || 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Chiffres détaillés - Durées */}
+              <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Mois écoulés</p>
                   <p className="font-bold text-blue-600">{progressionCredit.moisEcoules}</p>
