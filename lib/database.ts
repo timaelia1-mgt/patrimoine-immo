@@ -268,16 +268,27 @@ export async function createUserProfile(userId: string, email: string, name?: st
 export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
   // Convertir les clés camelCase en snake_case pour Supabase
   const updatesSnakeCase: any = {}
+  
+  // Mapping explicite pour garantir la précision
+  const fieldMapping: Record<string, string> = {
+    name: "name",
+    plan: "plan_type",
+    currency: "currency",
+    rentPaymentDay: "rent_payment_day",
+    paymentDelayDays: "payment_delay_days",
+    emailAlertsEnabled: "email_alerts_enabled",
+    appNotificationsEnabled: "app_notifications_enabled",
+  }
+  
   for (const [key, value] of Object.entries(updates)) {
-    if (key === "plan") {
-      updatesSnakeCase["plan_type"] = value
-    } else if (key === "userId" || key === "id") {
+    if (key === "userId" || key === "id") {
       // Ne pas mettre à jour l'id
       continue
-    } else {
-      const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
-      updatesSnakeCase[snakeKey] = value
     }
+    
+    // Utiliser le mapping explicite si disponible, sinon conversion automatique
+    const snakeKey = fieldMapping[key] || key.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')
+    updatesSnakeCase[snakeKey] = value
   }
 
   const supabase = createClient()

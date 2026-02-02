@@ -57,9 +57,16 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       
       const result = await updateUserProfile(profile.id, {
         name: settings.nom.trim(),
-        // Note: Les autres champs (devise, jourPaiement, etc.) ne sont pas encore dans la table profiles
-        // Ils seront ajoutés plus tard si nécessaire
+        currency: settings.devise,
+        rentPaymentDay: parseInt(settings.jourPaiement),
+        paymentDelayDays: parseInt(settings.delaiPaiement),
+        emailAlertsEnabled: settings.alertesEmail,
+        appNotificationsEnabled: settings.alertesNotification,
       })
+      
+      if (!result) {
+        throw new Error("Erreur lors de la sauvegarde")
+      }
       
       console.log("Sauvegarde réussie:", result)
       setSaved(true)
