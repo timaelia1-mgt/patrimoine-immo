@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getBiens } from "@/lib/database"
+import { createClient } from "@/lib/supabase/client"
 
 // Événement personnalisé pour rafraîchir la sidebar
 export const REFRESH_SIDEBAR_EVENT = 'refresh-sidebar'
@@ -19,7 +20,8 @@ export const refreshSidebar = () => {
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { signOut, user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [biens, setBiens] = useState<any[]>([])
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -27,13 +29,21 @@ export function Sidebar() {
   const handleSignOut = async () => {
     try {
       console.log("[Sidebar] Déconnexion en cours...")
-      await signOut()
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error("[Sidebar] Erreur lors de la déconnexion:", error)
+        throw error
+      }
+      
       console.log("[Sidebar] Déconnexion réussie, redirection...")
+      
       // Redirection complète pour forcer le rechargement de la session
       window.location.href = '/login'
     } catch (error) {
       console.error("[Sidebar] Erreur lors de la déconnexion:", error)
-      // Redirection même en cas d'erreur
+      // Redirection même en cas d'erreur pour permettre à l'utilisateur de se reconnecter
       window.location.href = '/login'
     }
   }
