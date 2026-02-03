@@ -86,14 +86,6 @@ export function Sidebar() {
     }
   }, [user?.id]) // CRITIQUE : Utiliser user?.id (primitif) au lieu de user (objet)
   
-  const handleAddBien = (e: React.MouseEvent) => {
-    if (!canCreateBien) {
-      e.preventDefault()
-      setUpgradeModalOpen(true)
-      return
-    }
-    // Sinon, laisser le Link fonctionner normalement
-  }
 
   useEffect(() => {
     console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
@@ -236,29 +228,62 @@ export function Sidebar() {
 
       {/* Bouton Ajouter en bas */}
       <div className="p-4 border-t border-slate-700/50">
-        <Link
-          href={canCreateBien ? "/dashboard?add=true" : "#"}
-          onClick={handleAddBien}
-          className={`
-            w-full flex items-center justify-center gap-2 px-4 py-3 
-            ${canCreateBien
-              ? "bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 hover:scale-[1.02] active:scale-95"
-              : "bg-slate-700 opacity-50 cursor-not-allowed"
-            }
-            text-white font-semibold rounded-xl
-            transition-all duration-200
-            shadow-lg shadow-primary-500/30
-            ${canCreateBien ? "hover:shadow-xl hover:shadow-primary-500/40" : ""}
-          `}
-        >
-          <Plus className="w-5 h-5" />
-          <span>Ajouter un bien</span>
-          {!canCreateBien && maxBiens !== null && (
-            <span className="ml-2 text-xs bg-orange-500 px-2 py-0.5 rounded">
-              Limite atteinte ({biensCount}/{maxBiens})
-            </span>
-          )}
-        </Link>
+        {canCreateBien ? (
+          // Bouton normal si limite pas atteinte
+          <Link
+            href="/dashboard?add=true"
+            className="
+              w-full flex items-center justify-center gap-2 px-4 py-3 
+              bg-gradient-to-r from-primary-600 to-primary-500 
+              hover:from-primary-500 hover:to-primary-400
+              text-white font-semibold rounded-xl
+              transition-all duration-200
+              shadow-lg shadow-primary-500/30
+              hover:shadow-xl hover:shadow-primary-500/40
+              hover:scale-[1.02]
+              active:scale-95
+            "
+          >
+            <Plus className="w-5 h-5" />
+            <span>Ajouter un bien</span>
+          </Link>
+        ) : (
+          // Bouton désactivé avec tooltip si limite atteinte
+          <div className="relative group">
+            <button
+              onClick={() => setUpgradeModalOpen(true)}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <div className="relative">
+                <Plus className="h-5 w-5" />
+                <svg className="absolute -top-1 -right-1 h-3 w-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span>Ajouter un bien</span>
+              {maxBiens !== null && (
+                <span className="ml-auto text-xs text-amber-600 dark:text-amber-500 font-semibold">
+                  {biensCount}/{maxBiens}
+                </span>
+              )}
+            </button>
+            
+            {/* Tooltip au hover */}
+            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 z-50">
+              <div className="bg-slate-900 dark:bg-slate-800 text-white text-xs rounded-lg p-3 shadow-lg">
+                <p className="font-semibold mb-1">🔒 Limite atteinte</p>
+                <p className="text-slate-300">
+                  Vous avez {biensCount}/{maxBiens} biens sur le plan {PLANS[userPlan].name}.
+                </p>
+                <p className="text-amber-400 mt-2">
+                  Cliquez pour voir les plans supérieurs
+                </p>
+                {/* Petite flèche du tooltip */}
+                <div className="absolute left-6 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900 dark:border-t-slate-800"></div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* User info */}
         <div className="mt-4 pt-4 border-t border-slate-700/50">
