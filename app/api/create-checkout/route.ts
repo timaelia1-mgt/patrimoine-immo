@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     // Instancier Stripe dans la fonction pour éviter le crash au build
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2024-11-20.acacia',
+      apiVersion: '2026-01-28.clover',
     })
 
     // Créer la session Stripe Checkout
