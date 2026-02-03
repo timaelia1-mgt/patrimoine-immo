@@ -5,8 +5,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { getBiens } from "@/lib/database"
+import { getBiens, getUserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
+import { PLANS } from "@/lib/stripe"
+import { UpgradeModal } from "@/components/modals/UpgradeModal"
 
 // Événement personnalisé pour rafraîchir la sidebar
 export const REFRESH_SIDEBAR_EVENT = 'refresh-sidebar'
@@ -25,6 +27,11 @@ export function Sidebar() {
   const [biens, setBiens] = useState<any[]>([])
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [canCreateBien, setCanCreateBien] = useState(true)
+  const [userPlan, setUserPlan] = useState<'decouverte' | 'essentiel' | 'premium'>('decouverte')
+  const [biensCount, setBiensCount] = useState(0)
+  const [maxBiens, setMaxBiens] = useState<number | null>(null)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -61,6 +68,16 @@ export function Sidebar() {
       const data = await getBiens(user.id)
       console.log("[Sidebar] Biens récupérés:", data.length, data)
       setBiens(data)
+      setBiensCount(data.length)
+      
+      // Vérifier la limite selon le plan
+      const profile = await getUserProfile(user.id)
+      const plan = (profile?.plan || 'decouverte') as 'decouverte' | 'essentiel' | 'premium'
+      const max = PLANS[plan].maxBiens
+      
+      setUserPlan(plan)
+      setMaxBiens(max)
+      setCanCreateBien(max === null || data.length < max)
     } catch (error) {
       console.error("[Sidebar] Erreur lors de la récupération des biens:", error)
       setBiens([])
@@ -68,6 +85,15 @@ export function Sidebar() {
       setLoading(false)
     }
   }, [user?.id]) // CRITIQUE : Utiliser user?.id (primitif) au lieu de user (objet)
+  
+  const handleAddBien = (e: React.MouseEvent) => {
+    if (!canCreateBien) {
+      e.preventDefault()
+      setUpgradeModalOpen(true)
+      return
+    }
+    // Sinon, laisser le Link fonctionner normalement
+  }
 
   useEffect(() => {
     console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
@@ -211,21 +237,27 @@ export function Sidebar() {
       {/* Bouton Ajouter en bas */}
       <div className="p-4 border-t border-slate-700/50">
         <Link
-          href="/dashboard?add=true"
-          className="
+          href={canCreateBien ? "/dashboard?add=true" : "#"}
+          onClick={handleAddBien}
+          className={`
             w-full flex items-center justify-center gap-2 px-4 py-3 
-            bg-gradient-to-r from-primary-600 to-primary-500 
-            hover:from-primary-500 hover:to-primary-400
+            ${canCreateBien
+              ? "bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 hover:scale-[1.02] active:scale-95"
+              : "bg-slate-700 opacity-50 cursor-not-allowed"
+            }
             text-white font-semibold rounded-xl
             transition-all duration-200
             shadow-lg shadow-primary-500/30
-            hover:shadow-xl hover:shadow-primary-500/40
-            hover:scale-[1.02]
-            active:scale-95
-          "
+            ${canCreateBien ? "hover:shadow-xl hover:shadow-primary-500/40" : ""}
+          `}
         >
           <Plus className="w-5 h-5" />
           <span>Ajouter un bien</span>
+          {!canCreateBien && maxBiens !== null && (
+            <span className="ml-2 text-xs bg-orange-500 px-2 py-0.5 rounded">
+              Limite atteinte ({biensCount}/{maxBiens})
+            </span>
+          )}
         </Link>
 
         {/* User info */}
@@ -250,6 +282,17 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+      
+      {/* Modal d'upgrade */}
+      {maxBiens !== null && (
+        <UpgradeModal
+          open={upgradeModalOpen}
+          onClose={() => setUpgradeModalOpen(false)}
+          currentPlan={PLANS[userPlan].name}
+          currentCount={biensCount}
+          maxBiens={maxBiens}
+        />
+      )}
     </aside>
   )
 }

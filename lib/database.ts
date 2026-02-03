@@ -1,5 +1,6 @@
 import { createClient } from "./supabase/client"
 import type { PlanType } from "./stripe"
+import { PLANS } from "./stripe"
 
 // Types
 export interface Bien {
@@ -100,6 +101,21 @@ export async function getBien(bienId: string, supabaseClient?: any): Promise<Bie
 }
 
 export async function createBien(userId: string, bien: Partial<Bien>): Promise<Bien> {
+  const supabase = createClient()
+  
+  // Vérifier la limite de biens selon le plan
+  const profile = await getUserProfile(userId, supabase)
+  const existingBiens = await getBiens(userId, supabase)
+  
+  const plan = profile?.plan || 'decouverte'
+  const maxBiens = PLANS[plan as keyof typeof PLANS].maxBiens
+  const currentCount = existingBiens?.length || 0
+  
+  if (maxBiens !== null && currentCount >= maxBiens) {
+    const planName = PLANS[plan as keyof typeof PLANS].name
+    throw new Error(`Limite de ${maxBiens} biens atteinte pour le plan ${planName}. Passez au plan supérieur pour en créer plus.`)
+  }
+
   // Convertir typeFinancement en format Supabase
   const typeFinancement = bien.typeFinancement === "CREDIT" ? "credit" : "comptant"
 
@@ -134,8 +150,6 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     ) || (bien.chargesMensuelles ? parseFloat(bien.chargesMensuelles.toString()) : 0),
     date_debut_credit: bien.dateDebutCredit ? new Date(bien.dateDebutCredit).toISOString() : null,
   }
-
-  const supabase = createClient()
   const { data, error } = await supabase
     .from("biens")
     .insert(bienData)

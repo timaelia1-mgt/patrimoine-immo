@@ -187,9 +187,15 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
       // Ne pas fermer le dialog ici pour éviter les conflits
       onSuccess?.()
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de l'ajout du bien")
+    } catch (error: any) {
+      console.error("Erreur création bien:", error)
+      const errorMessage = error.message || "Erreur lors de la création du bien"
+      alert(errorMessage)
+      
+      // Si c'est une erreur de limite, fermer le dialog
+      if (errorMessage.includes("Limite") || errorMessage.includes("limite")) {
+        onOpenChange?.(false)
+      }
     } finally {
       setLoading(false)
     }
