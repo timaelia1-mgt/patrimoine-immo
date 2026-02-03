@@ -1,354 +1,182 @@
-"use client"
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getUserProfile } from '@/lib/database'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { PLANS } from '@/lib/stripe'
+import { UpgradeButton } from '@/components/abonnement/UpgradeButton'
 
-import { useEffect, useState, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { PLANS, type PlanType } from "@/lib/subscription-plans"
-import { Check, AlertCircle } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
-import { getUserProfile, getBiens } from "@/lib/database"
+// Désactiver le cache
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-export default function AbonnementPage() {
-  const { user } = useAuth()
-  const [currentPlan, setCurrentPlan] = useState<PlanType>("decouverte")
-  const [biensCount, setBiensCount] = useState(0)
-  const [isAnnual, setIsAnnual] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default async function AbonnementPage() {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-  const fetchData = useCallback(async () => {
-    if (!user) return
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Récupérer le profil utilisateur
-      const profile = await getUserProfile(user.id)
-      if (profile) {
-        setCurrentPlan(profile.plan)
-      }
-
-      // Récupérer le nombre de biens
-      const biens = await getBiens(user.id)
-      setBiensCount(biens.length)
-    } catch (error: any) {
-      console.error("Erreur:", error)
-      setError(error.message || "Une erreur est survenue")
-    } finally {
-      setLoading(false)
+    if (error || !user) {
+      redirect('/login')
     }
-  }, [user])
 
-  useEffect(() => {
-    if (user) {
-      fetchData()
-    } else {
-      setLoading(false)
+    const profile = await getUserProfile(user.id, supabase)
+    if (!profile) {
+      redirect('/login')
     }
-  }, [user, fetchData])
 
-  const plan = PLANS[currentPlan]
-  const usagePercentage = (biensCount / plan.maxBiens) * 100
+    // Debug logs
+    console.log('[AbonnementPage] user.id:', user.id)
+    console.log('[AbonnementPage] user:', { id: user.id, email: user.email })
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case "green":
-        return {
-          text: "text-green-400",
-          border: "border-green-500",
-          bg: "bg-green-50/10 dark:bg-green-900/10",
-          button: "bg-green-600 hover:bg-green-700",
-          check: "text-green-500"
-        }
-      case "blue":
-        return {
-          text: "text-sky-400",
-          border: "border-sky-500",
-          bg: "bg-sky-50/10 dark:bg-sky-900/10",
-          button: "bg-sky-500 hover:bg-sky-600",
-          check: "text-sky-400"
-        }
-      case "purple":
-        return {
-          text: "text-purple-400",
-          border: "border-purple-500",
-          bg: "bg-purple-50/10 dark:bg-purple-900/10",
-          button: "bg-purple-600 hover:bg-purple-700",
-          check: "text-purple-400"
-        }
-      default:
-        return {
-          text: "text-slate-400",
-          border: "border-slate-500",
-          bg: "bg-slate-50/10 dark:bg-slate-900/10",
-          button: "bg-slate-600 hover:bg-slate-700",
-          check: "text-slate-400"
-        }
-    }
-  }
-
-  const handleUpgrade = (planId: PlanType) => {
-    alert("Disponible après authentification (Phase 5)")
-  }
-
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-400">Chargement...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
-            {error}
-          </p>
-        </div>
-      </div>
-    )
-  }
+  const currentPlan = profile.plan || 'decouverte'
+  const planDetails = PLANS[currentPlan as keyof typeof PLANS]
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white mb-2">
-            Mon abonnement
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Gérez votre plan et vos limitations
-          </p>
-        </div>
+    <div className="container max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mon abonnement</h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">
+          Gérez votre plan et votre facturation
+        </p>
+      </div>
 
-        {/* Plan actuel */}
-        <Card className="border-0 shadow-medium bg-white dark:bg-slate-800">
-          <CardHeader>
-            <CardTitle className="text-2xl mb-2">Plan actuel</CardTitle>
-            <CardDescription>
-              Vous êtes actuellement sur le plan {plan.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      {/* Plan actuel */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Biens utilisés
-                </span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {biensCount} / {plan.maxBiens} bien{plan.maxBiens > 1 ? "s" : ""} utilisé{plan.maxBiens > 1 ? "s" : ""}
-                </span>
+              <CardTitle className="text-2xl">Plan {planDetails.name}</CardTitle>
+              <CardDescription className="text-lg mt-2">
+                {planDetails.price === 0 ? (
+                  <span className="text-emerald-600 font-semibold">Gratuit</span>
+                ) : (
+                  <span className="text-slate-900 dark:text-white font-semibold">
+                    {planDetails.price}€<span className="text-sm text-slate-500">/mois</span>
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            
+            {/* Badge du plan */}
+            <div className={`px-4 py-2 rounded-full font-semibold text-sm ${
+              currentPlan === 'premium' 
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                : currentPlan === 'essentiel'
+                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                : 'bg-slate-200 text-slate-700'
+            }`}>
+              {currentPlan === 'premium' ? '💎 Premium' 
+                : currentPlan === 'essentiel' ? '⭐ Essentiel' 
+                : '🆓 Découverte'}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* Fonctionnalités incluses */}
+          <div>
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Fonctionnalités incluses :</h3>
+            <ul className="space-y-2">
+              {planDetails.features.map((feature, i) => (
+                <li key={i} className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Limite de biens */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Limite de biens :</span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {planDetails.maxBiens === null ? 'Illimité' : `${planDetails.maxBiens} biens maximum`}
+              </span>
+            </div>
+          </div>
+
+          {/* Boutons d'action */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+            {currentPlan === 'decouverte' && (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Passez à un plan supérieur pour débloquer plus de fonctionnalités
+                </p>
+                <div className="flex flex-col gap-3">
+                  <UpgradeButton 
+                    targetPlan="essentiel" 
+                    userId={user.id}
+                  />
+                  <UpgradeButton 
+                    targetPlan="premium" 
+                    userId={user.id}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
-                <div
-                  className={`h-3 rounded-full transition-all ${
-                    usagePercentage >= 100
-                      ? "bg-red-500"
-                      : usagePercentage >= 80
-                      ? "bg-orange-500"
-                      : "bg-green-500"
-                  }`}
-                  style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+            )}
+
+            {currentPlan === 'essentiel' && (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Passez au Premium pour des biens illimités
+                </p>
+                <UpgradeButton 
+                  targetPlan="premium" 
+                  userId={user.id}
                 />
               </div>
-              {usagePercentage >= 100 && (
-                <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Limite atteinte. Passez à un plan supérieur pour ajouter plus de biens.
+            )}
+
+            {currentPlan === 'premium' && (
+              <div className="text-center py-4">
+                <p className="text-emerald-600 font-semibold">
+                  🎉 Vous avez le meilleur plan ! Profitez de toutes les fonctionnalités.
                 </p>
-              )}
-            </div>
-
-            <div className="pt-4 border-t dark:border-slate-700">
-              <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">
-                Fonctionnalités incluses
-              </h3>
-              <ul className="space-y-2">
-                {plan.features.map((feature, index) => {
-                  const colors = getColorClasses(plan.color)
-                  return (
-                    <li key={index} className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                      <Check className={`w-4 h-4 ${colors.check}`} />
-                      {feature}
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Changer de plan */}
-        <div>
-          <h2 className="text-2xl font-display font-bold text-slate-900 dark:text-white mb-6">
-            Changer de plan
-          </h2>
-
-          {/* Toggle Mensuel/Annuel */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <span className={`text-sm ${!isAnnual ? "text-slate-900 dark:text-white font-medium" : "text-slate-400"}`}>
-              Mensuel
-            </span>
-            <button
-              onClick={() => setIsAnnual(!isAnnual)}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                isAnnual ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"
-              }`}
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  isAnnual ? "translate-x-7" : "translate-x-1"
-                }`}
-              />
-            </button>
-            <span className={`text-sm ${isAnnual ? "text-slate-900 dark:text-white font-medium" : "text-slate-400"}`}>
-              Annuel
-            </span>
-            {isAnnual && (
-              <span className="text-sm text-green-500 font-medium">Économisez 17%</span>
+              </div>
             )}
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Plan Découverte */}
-            {(() => {
-              const planData = PLANS.decouverte
-              const colors = getColorClasses(planData.color)
-              return (
-                <Card className={`border-2 ${
-                  currentPlan === "decouverte"
-                    ? `${colors.border} ${colors.bg}`
-                    : "border-slate-200 dark:border-slate-700"
-                }`}>
-                  <CardHeader>
-                    <CardTitle className={`text-xl ${colors.text}`}>Découverte</CardTitle>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <span className="text-3xl font-bold text-slate-900 dark:text-white">0€</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-2 text-sm">
-                      {planData.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                          <Check className={`w-4 h-4 ${colors.check}`} />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className="w-full"
-                      variant={currentPlan === "decouverte" ? "default" : "outline"}
-                      disabled={currentPlan === "decouverte"}
-                      onClick={() => handleUpgrade("decouverte")}
-                    >
-                      {currentPlan === "decouverte" ? "Plan actuel" : "Passer à Découverte"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })()}
-
-            {/* Plan Investisseur */}
-            {(() => {
-              const planData = PLANS.investisseur
-              const colors = getColorClasses(planData.color)
-              return (
-                <Card className={`border-2 relative ${
-                  currentPlan === "investisseur"
-                    ? `${colors.border} ${colors.bg}`
-                    : colors.border
-                }`}>
-                  {planData.popular && currentPlan !== "investisseur" && (
-                    <div className="absolute top-0 right-4 -translate-y-1/2">
-                      <Badge className="bg-sky-500 text-white">Populaire</Badge>
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className={`text-xl ${colors.text}`}>Investisseur</CardTitle>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                        {isAnnual ? `${planData.priceAnnual}€` : `${planData.price}€`}
-                      </span>
-                      <span className="text-slate-400 text-sm">
-                        {isAnnual ? "/an" : "/mois"}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-2 text-sm">
-                      {planData.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                          <Check className={`w-4 h-4 ${colors.check}`} />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className={`w-full ${colors.button} text-white`}
-                      disabled={currentPlan === "investisseur"}
-                      onClick={() => handleUpgrade("investisseur")}
-                    >
-                      {currentPlan === "investisseur" ? "Plan actuel" : "Passer à Investisseur"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })()}
-
-            {/* Plan Patrimoine */}
-            {(() => {
-              const planData = PLANS.patrimoine
-              const colors = getColorClasses(planData.color)
-              return (
-                <Card className={`border-2 ${
-                  currentPlan === "patrimoine"
-                    ? `${colors.border} ${colors.bg}`
-                    : colors.border
-                }`}>
-                  <CardHeader>
-                    <CardTitle className={`text-xl ${colors.text}`}>Patrimoine</CardTitle>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                        {isAnnual ? `${planData.priceAnnual}€` : `${planData.price}€`}
-                      </span>
-                      <span className="text-slate-400 text-sm">
-                        {isAnnual ? "/an" : "/mois"}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-2 text-sm">
-                      {planData.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                          <Check className={`w-4 h-4 ${colors.check}`} />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className={`w-full ${colors.button} text-white`}
-                      disabled={currentPlan === "patrimoine"}
-                      onClick={() => handleUpgrade("patrimoine")}
-                    >
-                      {currentPlan === "patrimoine" ? "Plan actuel" : "Passer à Patrimoine"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })()}
+      {/* Comparaison des plans */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Comparaison des plans</CardTitle>
+          <CardDescription>Trouvez le plan qui vous convient</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(PLANS).map(([key, plan]) => (
+              <div 
+                key={key}
+                className={`p-4 rounded-lg border-2 ${
+                  key === currentPlan 
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950' 
+                    : 'border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
+                <p className="text-2xl font-bold mb-3">
+                  {plan.price === 0 ? 'Gratuit' : `${plan.price}€/mois`}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                  {plan.maxBiens === null ? 'Biens illimités' : `${plan.maxBiens} biens max`}
+                </p>
+                {key === currentPlan && (
+                  <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    ✓ Plan actuel
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
+  } catch (error) {
+    console.error('Abonnement error:', error)
+    redirect('/login')
+  }
 }

@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/client"
-import type { PlanType } from "./subscription-plans"
+import type { PlanType } from "./stripe"
 
 // Types
 export interface Bien {
