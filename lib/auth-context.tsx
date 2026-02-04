@@ -43,9 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true
     
-    console.log('[AuthContext DEBUG] useEffect démarré')
+    console.log('[AuthContext DEBUG] useEffect démarré - version simplifiée')
 
-    // Listener pour les changements d'auth
+    // UN SEUL listener pour TOUT gérer
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        console.log('[AuthContext DEBUG] onAuthStateChange:', event, 'session:', !!session)
+        console.log('[AuthContext DEBUG] Auth event:', event, 'session:', !!session)
         
         setSession(session)
         setUser(session?.user ?? null)
@@ -61,80 +61,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Créer le profil si nécessaire
         if (session?.user) {
           console.log('[AuthContext DEBUG] Création profil pour user:', session.user.id)
-          await createProfileIfNeeded(
-            session.user.id,
-            session.user.email || "",
-            session.user.user_metadata?.name
-          )
-          console.log('[AuthContext DEBUG] Profil créé/vérifié')
-        }
-        
-        console.log('[AuthContext DEBUG] setLoading(false) depuis onAuthStateChange')
-        setLoading(false)
-      }
-    )
-
-    // Check initial de la session avec retry
-    console.log('[AuthContext DEBUG] Appel getSession() initial')
-
-    const initSession = async () => {
-      try {
-        // Petit délai pour laisser Supabase s'initialiser
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        console.log('[AuthContext DEBUG] getSession() résultat:', { session: !!session, error })
-        
-        if (!isMounted) {
-          console.log('[AuthContext DEBUG] Composant démonté après getSession')
-          return
-        }
-        
-        if (error) {
-          console.error('[AuthContext DEBUG] Erreur getSession:', error)
-          setLoading(false)
-          return
-        }
-        
-        setSession(session)
-        setUser(session?.user ?? null)
-        
-        // Créer le profil si nécessaire
-        if (session?.user) {
-          console.log('[AuthContext DEBUG] Création profil initial pour user:', session.user.id)
           try {
             await createProfileIfNeeded(
               session.user.id,
               session.user.email || "",
               session.user.user_metadata?.name
             )
-            console.log('[AuthContext DEBUG] Profil initial créé/vérifié')
+            console.log('[AuthContext DEBUG] Profil créé/vérifié')
           } catch (err) {
-            console.error('[AuthContext DEBUG] Erreur création profil:', err)
+            console.error('[AuthContext DEBUG] Erreur profil:', err)
           }
         }
         
-        console.log('[AuthContext DEBUG] setLoading(false) final')
+        // Toujours passer loading à false après le premier event
+        console.log('[AuthContext DEBUG] setLoading(false)')
         setLoading(false)
-      } catch (err) {
-        console.error('[AuthContext DEBUG] Erreur catch getSession:', err)
-        if (isMounted) {
-          console.log('[AuthContext DEBUG] setLoading(false) après erreur getSession')
-          setLoading(false)
-        }
       }
-    }
-
-    // Lancer initSession
-    initSession()
+    )
+    
+    // Trigger manuel pour forcer le premier event immédiatement
+    // Ceci évite le flash de loading
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted && loading) {
+        console.log('[AuthContext DEBUG] Session initiale récupérée:', !!session)
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    }).catch(() => {
+      // En cas d'erreur, on met juste loading à false
+      // onAuthStateChange prendra le relais
+      if (isMounted) {
+        console.log('[AuthContext DEBUG] Erreur getSession ignorée, onAuthStateChange prendra le relais')
+        setLoading(false)
+      }
+    })
 
     return () => {
       console.log('[AuthContext DEBUG] Cleanup')
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, createProfileIfNeeded])
+  }, [supabase, createProfileIfNeeded, loading])
 
   const signOut = useCallback(async () => {
     try {
