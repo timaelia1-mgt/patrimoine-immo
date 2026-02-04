@@ -15,10 +15,14 @@ export function UpgradeButton({ targetPlan, userId }: UpgradeButtonProps) {
   const plan = PLANS[targetPlan]
 
   const handleUpgrade = async () => {
+    console.log('[UpgradeButton] START')
     console.log('[UpgradeButton] targetPlan:', targetPlan)
     console.log('[UpgradeButton] userId:', userId)
+    console.log('[UpgradeButton] PLANS:', PLANS)
     console.log('[UpgradeButton] plan:', plan)
-    console.log('[UpgradeButton] plan.priceId:', plan.priceId)
+    console.log('[UpgradeButton] plan.priceId:', plan?.priceId)
+    console.log('[UpgradeButton] Env NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL:', process.env.NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL)
+    console.log('[UpgradeButton] Env NEXT_PUBLIC_STRIPE_PRICE_PREMIUM:', process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM)
     
     setLoading(true)
     try {
