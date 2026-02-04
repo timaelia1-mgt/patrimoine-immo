@@ -210,21 +210,66 @@ export function Financement({ bien }: FinancementProps) {
           </CardHeader>
           <CardContent>
             <div className="mt-6 p-6 bg-slate-800 dark:bg-slate-900 rounded-lg border border-slate-700">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-sm text-slate-200 dark:text-slate-100">Progression du remboursement</h3>
-                <span className="text-2xl font-bold text-blue-400 dark:text-blue-300">
-                  {progressionCredit.progression.toFixed(0)}%
-                </span>
-              </div>
-              
-              <div className="w-full bg-slate-700 dark:bg-slate-600 rounded-full h-4 mb-3 overflow-hidden">
-                <div 
-                  className="bg-slate-100 dark:bg-slate-200 h-4 rounded-full transition-all duration-500 ease-out shadow-sm"
-                  style={{ 
-                    width: `${Math.max(0, Math.min(100, progressionCredit.progression))}%`,
-                    minWidth: progressionCredit.progression > 0 ? '2%' : '0%'
-                  }}
-                />
+              <div className="space-y-6">
+                {/* Titre section */}
+                <h3 className="text-lg font-semibold text-slate-200 dark:text-slate-100">
+                  Progression du remboursement
+                </h3>
+
+                {/* 1️⃣ Barre : Progression temporelle */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-300 dark:text-slate-400">
+                      ⏱️ Progression temporelle
+                    </span>
+                    <span className="text-lg font-bold text-blue-400 dark:text-blue-300">
+                      {progressionCredit.dureeTotal > 0 
+                        ? Math.round((progressionCredit.moisEcoules / progressionCredit.dureeTotal) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-slate-700 dark:bg-slate-600 rounded-full h-3">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.min(100, progressionCredit.dureeTotal > 0 
+                          ? (progressionCredit.moisEcoules / progressionCredit.dureeTotal) * 100 
+                          : 0)}%` 
+                      }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    {progressionCredit.moisEcoules} mois écoulés sur {progressionCredit.dureeTotal} mois
+                  </p>
+                </div>
+
+                {/* 2️⃣ Barre : Progression du capital remboursé */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-300 dark:text-slate-400">
+                      💰 Capital remboursé
+                    </span>
+                    <span className="text-lg font-bold text-emerald-400 dark:text-emerald-300">
+                      {progressionCredit.progression.toFixed(0)}%
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-slate-700 dark:bg-slate-600 rounded-full h-3">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.max(0, Math.min(100, progressionCredit.progression))}%`,
+                        minWidth: progressionCredit.progression > 0 ? '2%' : '0%'
+                      }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    {formatCurrency(progressionCredit.capitalRembourse)} remboursé sur {formatCurrency(progressionCredit.capitalRembourse + progressionCredit.capitalRestant)}
+                  </p>
+                </div>
               </div>
 
               {/* Chiffres détaillés - Montants */}
