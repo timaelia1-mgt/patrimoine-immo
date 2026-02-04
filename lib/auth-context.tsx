@@ -42,52 +42,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true
+    
+    console.log('[AuthContext DEBUG] useEffect démarré')
 
     // Listener pour les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) return
+        if (!isMounted) {
+          console.log('[AuthContext DEBUG] Composant démonté, arrêt')
+          return
+        }
         
-        logger.log('[AuthContext] Auth state changed:', event)
+        console.log('[AuthContext DEBUG] onAuthStateChange:', event, 'session:', !!session)
         
         setSession(session)
         setUser(session?.user ?? null)
         
         // Créer le profil si nécessaire
         if (session?.user) {
+          console.log('[AuthContext DEBUG] Création profil pour user:', session.user.id)
           await createProfileIfNeeded(
             session.user.id,
             session.user.email || "",
             session.user.user_metadata?.name
           )
+          console.log('[AuthContext DEBUG] Profil créé/vérifié')
         }
         
+        console.log('[AuthContext DEBUG] setLoading(false) depuis onAuthStateChange')
         setLoading(false)
       }
     )
 
     // Check initial de la session (évite le flash)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return
+    console.log('[AuthContext DEBUG] Appel getSession() initial')
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('[AuthContext DEBUG] getSession() résultat:', { session: !!session, error })
+      
+      if (!isMounted) {
+        console.log('[AuthContext DEBUG] Composant démonté après getSession')
+        return
+      }
+      
+      if (error) {
+        console.error('[AuthContext DEBUG] Erreur getSession:', error)
+        setLoading(false)
+        return
+      }
       
       setSession(session)
       setUser(session?.user ?? null)
       
       // Créer le profil si nécessaire
       if (session?.user) {
+        console.log('[AuthContext DEBUG] Création profil initial pour user:', session.user.id)
         createProfileIfNeeded(
           session.user.id,
           session.user.email || "",
           session.user.user_metadata?.name
         ).then(() => {
-          if (isMounted) setLoading(false)
+          console.log('[AuthContext DEBUG] Profil initial créé/vérifié')
+          if (isMounted) {
+            console.log('[AuthContext DEBUG] setLoading(false) après profil initial')
+            setLoading(false)
+          }
+        }).catch((err) => {
+          console.error('[AuthContext DEBUG] Erreur création profil:', err)
+          if (isMounted) {
+            console.log('[AuthContext DEBUG] setLoading(false) après erreur profil')
+            setLoading(false)
+          }
         })
       } else {
+        console.log('[AuthContext DEBUG] Pas de session, setLoading(false)')
+        setLoading(false)
+      }
+    }).catch((err) => {
+      console.error('[AuthContext DEBUG] Erreur catch getSession:', err)
+      if (isMounted) {
+        console.log('[AuthContext DEBUG] setLoading(false) après erreur getSession')
         setLoading(false)
       }
     })
 
     return () => {
+      console.log('[AuthContext DEBUG] Cleanup')
       isMounted = false
       subscription.unsubscribe()
     }
