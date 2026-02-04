@@ -1,4 +1,6 @@
 import jsPDF from 'jspdf'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 export interface QuittanceData {
   // Propriétaire
@@ -17,7 +19,9 @@ export interface QuittanceData {
   // Paiement
   annee: number
   mois: number // 1-12
-  datePaiement: string // date du paiement
+  dateDebut: string // Format 'yyyy-MM-dd'
+  dateFin: string // Format 'yyyy-MM-dd'
+  datePaiement: string // Format 'yyyy-MM-dd'
   modePaiement: string // virement, cheque, especes, prelevement
   montantLocataire: number
   montantAPL: number
@@ -61,7 +65,8 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.setFontSize(11)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(180, 180, 200)
-  doc.text(`Période : ${MOIS_NOMS[data.mois - 1]} ${data.annee}`, 15, 35)
+  const periodeText = `Période : du ${format(new Date(data.dateDebut), 'dd MMMM yyyy', { locale: fr })} au ${format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr })}`
+  doc.text(periodeText, 15, 35)
 
   // Logo/Branding droit
   doc.setTextColor(255, 255, 255)
@@ -176,7 +181,8 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...grayColor)
-  doc.text(`Date du paiement : ${data.datePaiement}`, 15, y)
+  const paiementText = `Payé le ${format(new Date(data.datePaiement), 'dd MMMM yyyy', { locale: fr })}`
+  doc.text(paiementText, 15, y)
   doc.text(`Mode de paiement : ${MODE_PAIEMENT_LABELS[data.modePaiement] || data.modePaiement}`, 15, y + 12)
 
   // --- BADGE "PAYÉ" ---

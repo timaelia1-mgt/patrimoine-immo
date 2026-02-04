@@ -144,6 +144,16 @@ export function Loyers({ bien }: LoyersProps) {
     const loyer = loyersData.find((l) => l.mois === moisIndex)
     if (!loyer || !loyer.payeLocataire) return
 
+    // Calculer les dates de début et fin du mois
+    const mois = moisIndex + 1 // Convertir 0-11 en 1-12
+    const debut = new Date(anneeActuelle, moisIndex, 1)
+    const fin = new Date(anneeActuelle, moisIndex + 1, 0)
+    
+    // Date de paiement
+    const datePaiementDate = loyer.datePaiementLocataire 
+      ? new Date(loyer.datePaiementLocataire)
+      : new Date()
+
     setQuittanceData({
       proprietaireNom: profile?.name || 'Propriétaire',
       bienNom: bien.nom,
@@ -153,10 +163,10 @@ export function Loyers({ bien }: LoyersProps) {
       locataireNom: locataireInfo?.nom || '',
       locatairePrenom: locataireInfo?.prenom || '',
       annee: anneeActuelle,
-      mois: moisIndex + 1, // Convertir 0-11 en 1-12
-      datePaiement: loyer.datePaiementLocataire 
-        ? new Date(loyer.datePaiementLocataire).toLocaleDateString('fr-FR')
-        : new Date().toLocaleDateString('fr-FR'),
+      mois: mois, // 1-12
+      dateDebut: debut.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
+      dateFin: fin.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
+      datePaiement: datePaiementDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
       modePaiement: locataireInfo?.modePaiement || 'virement',
       montantLocataire: parseFloat(loyer.montantLocataire?.toString() || loyerNetLocataire.toString() || "0"),
       montantAPL: parseFloat(loyer.montantAPL?.toString() || montantAPL.toString() || "0"),
