@@ -1,8 +1,11 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBiens } from '@/lib/database'
 import { logger } from '@/lib/logger'
+import { calculateChargesMensuelles } from '@/lib/calculations'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -42,14 +45,9 @@ function calculateStats(biens: any[]) {
     const loyer = parseFloat(bien.loyerMensuel?.toString() || "0") || 0
     totalLoyers += loyer
     
-    const charges = (
-      (parseFloat(bien.taxeFonciere?.toString() || "0") || 0) / 12 +
-      (parseFloat(bien.chargesCopro?.toString() || "0") || 0) +
-      (parseFloat(bien.assurance?.toString() || "0") || 0) +
-      (parseFloat(bien.fraisGestion?.toString() || "0") || 0) +
-      (parseFloat(bien.autresCharges?.toString() || "0") || 0)
-    )
-    totalCharges += charges || 0
+    // Utiliser la fonction centralisée
+    const charges = calculateChargesMensuelles(bien)
+    totalCharges += charges
     
     if (bien.typeFinancement === 'CREDIT') {
       const mensualite = parseFloat(bien.mensualiteCredit?.toString() || "0") || 0
@@ -82,7 +80,8 @@ export default async function DashboardPage() {
     const stats = calculateStats(biens)
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <Suspense fallback={<DashboardSkeleton />}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         {/* Hero Section - SANS effets de background */}
         <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
           <div className="relative px-8 py-6">
@@ -108,9 +107,8 @@ export default async function DashboardPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {/* Cash Flow */}
-              <div className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.3s' }}>
+                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-emerald-500/20 transition-shadow duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30">
@@ -121,7 +119,14 @@ export default async function DashboardPage() {
                           ? 'bg-emerald-500/20 text-emerald-400' 
                           : 'bg-red-500/20 text-red-400'
                       }`}>
-                        {stats.totalCashFlow > 0 ? '↑' : '↓'} {Math.abs((stats.totalCashFlow / stats.totalLoyers * 100) || 0).toFixed(1)}%
+                        {stats.totalLoyers > 0 ? (
+                          <>
+                            {stats.totalCashFlow > 0 ? '↑' : '↓'}{' '}
+                            {Math.abs((stats.totalCashFlow / stats.totalLoyers) * 100).toFixed(1)}%
+                          </>
+                        ) : (
+                          'N/A'
+                        )}
                       </span>
                     </div>
                     <CardTitle className="text-sm font-medium text-slate-400">
@@ -144,9 +149,8 @@ export default async function DashboardPage() {
               </div>
 
               {/* Loyers */}
-              <div className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700 delay-400">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1">
+              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.4s' }}>
+                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/20 transition-shadow duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
@@ -171,9 +175,8 @@ export default async function DashboardPage() {
               </div>
 
               {/* Charges */}
-              <div className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-orange-500/20 transition-all duration-500 hover:-translate-y-1">
+              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.5s' }}>
+                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-orange-500/20 transition-shadow duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg shadow-orange-500/30">
@@ -198,9 +201,8 @@ export default async function DashboardPage() {
               </div>
 
               {/* Nombre de biens */}
-              <div className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700 delay-600">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-purple-500/20 transition-all duration-500 hover:-translate-y-1">
+              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.6s' }}>
+                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-purple-500/20 transition-shadow duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg shadow-purple-500/30">
@@ -237,22 +239,17 @@ export default async function DashboardPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {biens.map((bien, index) => {
-                    const charges = (bien.taxeFonciere || 0) / 12 +
-                      (bien.chargesCopro || 0) +
-                      (bien.assurance || 0) +
-                      (bien.fraisGestion || 0) +
-                      (bien.autresCharges || 0)
+                    const charges = calculateChargesMensuelles(bien)
                     const mensualite = bien.typeFinancement === 'CREDIT' ? (bien.mensualiteCredit || 0) : 0
                     const cashflow = (bien.loyerMensuel || 0) - charges - mensualite
 
                     return (
                       <div 
                         key={bien.id} 
-                        className="group relative animate-in fade-in slide-in-from-bottom-8 duration-700"
-                        style={{ animationDelay: `${800 + index * 100}ms` }}
+                        className="animate-in fade-in duration-500"
+                        style={{ animationDelay: `${0.8 + index * 0.1}s` }}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-amber-600/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-                        <Card className="relative border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+                        <Card className="relative border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/10 transition-shadow duration-300 overflow-hidden">
                           {/* Decorative corner */}
                           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/10 to-transparent rounded-bl-[100px]" />
                           
@@ -325,30 +322,72 @@ export default async function DashboardPage() {
 
             {/* Graphique d'évolution du patrimoine */}
             {biens.length > 0 && (
-              <div className="mt-12">
+              <div className="mt-12 animate-in fade-in duration-500" style={{ animationDelay: '1s' }}>
                 <PatrimoineChart biens={biens} />
               </div>
             )}
 
             {/* Message d'accueil si aucun bien */}
             {biens.length === 0 && (
-              <div className="text-center max-w-md mx-auto py-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
-                <div className="w-24 h-24 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Home className="w-12 h-12 text-amber-400" />
+              <div className="text-center max-w-lg mx-auto py-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full blur-3xl"></div>
+                  <div className="relative w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full flex items-center justify-center mx-auto border border-amber-500/30">
+                    <Home className="w-16 h-16 text-amber-400" />
+                  </div>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4">
-                  Bienvenue sur Patrimoine Immo
+                
+                <h2 className="text-4xl font-bold text-white mb-4">
+                  Commencez votre aventure immobilière
                 </h2>
-                <p className="text-slate-400 mb-8 leading-relaxed">
-                  Commencez par ajouter votre premier bien immobilier pour suivre vos investissements avec élégance.
+                
+                <p className="text-slate-400 mb-8 leading-relaxed text-lg">
+                  Ajoutez votre premier bien pour suivre vos investissements, calculer votre patrimoine et optimiser votre rentabilité.
                 </p>
+                
+                <Link href="/dashboard?add=true">
+                  <Button 
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/50 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-semibold"
+                  >
+                    <Home className="w-5 h-5 mr-2" />
+                    Ajouter mon premier bien
+                  </Button>
+                </Link>
+                
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <TrendingUp className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-1">Suivez votre patrimoine</h3>
+                    <p className="text-slate-400 text-sm">Visualisez l'évolution de votre richesse immobilière</p>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <DollarSign className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-1">Optimisez vos revenus</h3>
+                    <p className="text-slate-400 text-sm">Analysez votre cash-flow et rentabilité</p>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <Wallet className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-1">Gérez vos charges</h3>
+                    <p className="text-slate-400 text-sm">Suivez tous vos coûts et dépenses</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
 
         <DashboardClient biens={biens} stats={stats} />
-      </div>
+        </div>
+      </Suspense>
     )
   } catch (error: unknown) {
     logger.error('[Dashboard] Erreur chargement:', error)

@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { AlertTriangle } from 'lucide-react'
@@ -188,26 +189,43 @@ function calculatePatrimoineEvolution(biens: any[]) {
 }
 
 export function PatrimoineChart({ biens }: PatrimoineChartProps) {
-  let data: any[] = []
-  let hasError = false
+  // Mémoïser le calcul du patrimoine pour éviter les recalculs inutiles
+  // Le calcul ne se refait que si les biens changent
+  const { data, hasError } = useMemo(() => {
+    let calculatedData: any[] = []
+    let error = false
+    
+    try {
+      calculatedData = calculatePatrimoineEvolution(biens)
+    } catch (err) {
+      logger.error('[PatrimoineChart] Erreur calcul:', err)
+      error = true
+      calculatedData = []
+    }
+    
+    return { data: calculatedData, hasError: error }
+  }, [biens]) // Ne recalculer que si les biens changent
   
-  try {
-    data = calculatePatrimoineEvolution(biens)
-  } catch (error) {
-    logger.error('[PatrimoineChart] Erreur calcul:', error)
-    hasError = true
-    // Données vides pour éviter le crash
-    data = []
-  }
+  // Mémoïser les valeurs calculées
+  const currentValue = useMemo(
+    () => data.find(d => d.isNow)?.patrimoine || 0,
+    [data]
+  )
   
-  const currentValue = data.find(d => d.isNow)?.patrimoine || 0
-  const projectedValue = data[data.length - 1]?.patrimoine || 0
-  const donneesInvestissement = checkDonneesInvestissementCompletes(biens)
+  const projectedValue = useMemo(
+    () => data[data.length - 1]?.patrimoine || 0,
+    [data]
+  )
+  
+  const donneesInvestissement = useMemo(
+    () => checkDonneesInvestissementCompletes(biens),
+    [biens]
+  )
   
   // Si erreur, afficher un message au lieu du graphique
   if (hasError || data.length === 0) {
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
+      <div className="animate-in fade-in duration-500" style={{ animationDelay: '1s' }}>
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">
             Évolution du Patrimoine Net
@@ -235,7 +253,7 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
+    <div className="animate-in fade-in duration-500" style={{ animationDelay: '1s' }}>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">
           Évolution du Patrimoine Net

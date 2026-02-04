@@ -133,3 +133,33 @@ export function formatCurrency(amount: number): string {
     currency: 'EUR'
   }).format(amount)
 }
+
+/**
+ * Calcule les charges mensuelles totales d'un bien
+ * @param bien Objet bien avec les différentes charges
+ * @returns Charges mensuelles totales en euros
+ */
+export function calculateChargesMensuelles(bien: {
+  taxeFonciere?: number | null
+  chargesCopro?: number | null
+  assurance?: number | null
+  fraisGestion?: number | null
+  autresCharges?: number | null
+}): number {
+  const taxeFonciereAnnuelle = parseFloat(bien.taxeFonciere?.toString() || "0") || 0
+  const chargesCoproMensuelles = parseFloat(bien.chargesCopro?.toString() || "0") || 0
+  const assuranceMensuelle = parseFloat(bien.assurance?.toString() || "0") || 0
+  const fraisGestionMensuels = parseFloat(bien.fraisGestion?.toString() || "0") || 0
+  const autresChargesMensuelles = parseFloat(bien.autresCharges?.toString() || "0") || 0
+  
+  // Taxe foncière est annuelle, on divise par 12
+  const taxeFonciereMensuelle = taxeFonciereAnnuelle / 12
+  
+  const total = taxeFonciereMensuelle + 
+                chargesCoproMensuelles + 
+                assuranceMensuelle + 
+                fraisGestionMensuels + 
+                autresChargesMensuelles
+  
+  return isNaN(total) ? 0 : total
+}
