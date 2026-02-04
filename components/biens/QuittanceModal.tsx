@@ -187,7 +187,7 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 mt-8">
           <Button onClick={handleDownload} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white">
             📥 Télécharger le PDF
           </Button>
