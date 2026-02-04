@@ -19,9 +19,8 @@ export interface QuittanceData {
   // Paiement
   annee: number
   mois: number // 1-12
-  dateDebut: string // Format 'yyyy-MM-dd'
-  dateFin: string // Format 'yyyy-MM-dd'
-  datePaiement: string // Format 'yyyy-MM-dd'
+  datePayeLocataire: string // Format 'yyyy-MM-dd'
+  datePayeAPL: string // Format 'yyyy-MM-dd'
   modePaiement: string // virement, cheque, especes, prelevement
   montantLocataire: number
   montantAPL: number
@@ -61,11 +60,14 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.setFont('helvetica', 'bold')
   doc.text('QUITTANCE DE LOYER', 15, 22)
 
-  // Sous-titre : période
+  // Sous-titre : période (calculée à partir du mois)
   doc.setFontSize(11)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(180, 180, 200)
-  const periodeText = `Période : du ${format(new Date(data.dateDebut), 'dd MMMM yyyy', { locale: fr })} au ${format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr })}`
+  // Calculer début et fin du mois
+  const debutMois = new Date(data.annee, data.mois - 1, 1)
+  const finMois = new Date(data.annee, data.mois, 0)
+  const periodeText = `Période : du ${format(debutMois, 'dd MMMM yyyy', { locale: fr })} au ${format(finMois, 'dd MMMM yyyy', { locale: fr })}`
   doc.text(periodeText, 15, 35)
 
   // Logo/Branding droit
@@ -181,9 +183,15 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...grayColor)
-  const paiementText = `Payé le ${format(new Date(data.datePaiement), 'dd MMMM yyyy', { locale: fr })}`
-  doc.text(paiementText, 15, y)
-  doc.text(`Mode de paiement : ${MODE_PAIEMENT_LABELS[data.modePaiement] || data.modePaiement}`, 15, y + 12)
+  const paiementLocataireText = `Paiement locataire : ${format(new Date(data.datePayeLocataire), 'dd MMMM yyyy', { locale: fr })}`
+  doc.text(paiementLocataireText, 15, y)
+  if (data.montantAPL > 0) {
+    const paiementAPLText = `Paiement APL : ${format(new Date(data.datePayeAPL), 'dd MMMM yyyy', { locale: fr })}`
+    doc.text(paiementAPLText, 15, y + 12)
+    doc.text(`Mode de paiement : ${MODE_PAIEMENT_LABELS[data.modePaiement] || data.modePaiement}`, 15, y + 24)
+  } else {
+    doc.text(`Mode de paiement : ${MODE_PAIEMENT_LABELS[data.modePaiement] || data.modePaiement}`, 15, y + 12)
+  }
 
   // --- BADGE "PAYÉ" ---
   doc.setFillColor(...greenColor)

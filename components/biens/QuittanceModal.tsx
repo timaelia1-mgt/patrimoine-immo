@@ -15,28 +15,15 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [dateDebut, setDateDebut] = useState('')
-  const [dateFin, setDateFin] = useState('')
-  const [datePaiement, setDatePaiement] = useState('')
+  const [datePayeLocataire, setDatePayeLocataire] = useState('')
+  const [datePayeAPL, setDatePayeAPL] = useState('')
 
   // Pré-remplir les dates quand le modal s'ouvre
   useEffect(() => {
     if (data && isOpen) {
-      // Date de paiement : date où le loyer a été marqué payé (ou aujourd'hui)
-      const today = new Date()
-      setDatePaiement(format(today, 'yyyy-MM-dd'))
-      
-      // Période du loyer : début et fin du mois concerné
-      const mois = data.mois // mois est 1-indexed (1 = janvier)
-      const annee = data.annee
-      
-      // Premier jour du mois
-      const debut = new Date(annee, mois - 1, 1)
-      setDateDebut(format(debut, 'yyyy-MM-dd'))
-      
-      // Dernier jour du mois
-      const fin = new Date(annee, mois, 0)
-      setDateFin(format(fin, 'yyyy-MM-dd'))
+      const today = format(new Date(), 'yyyy-MM-dd')
+      setDatePayeLocataire(today)
+      setDatePayeAPL(today)
     }
   }, [data, isOpen])
 
@@ -47,9 +34,8 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
   const handleDownload = () => {
     const quittanceData: QuittanceData = {
       ...data,
-      dateDebut,
-      dateFin,
-      datePaiement,
+      datePayeLocataire,
+      datePayeAPL,
     }
     const doc = generateQuittancePDF(quittanceData)
     doc.save(`Quittance_${MOIS_NOMS[data.mois - 1]}_${data.annee}_${data.bienNom.replace(/\s+/g, '_')}.pdf`)
@@ -68,9 +54,8 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
     try {
       const quittanceData: QuittanceData = {
         ...data,
-        dateDebut,
-        dateFin,
-        datePaiement,
+        datePayeLocataire,
+        datePayeAPL,
       }
       const doc = generateQuittancePDF(quittanceData)
       // Convertir le PDF en base64
@@ -162,51 +147,42 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
           </div>
         )}
 
-        {/* Dates du loyer */}
+        {/* Dates de paiement */}
         <div className="space-y-4 mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
           <h3 className="font-semibold text-slate-900 dark:text-white">
-            📅 Dates du loyer
+            📅 Dates de paiement
           </h3>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Début de période
+                Date paiement locataire
               </label>
               <input
                 type="date"
-                value={dateDebut}
-                onChange={(e) => setDateDebut(e.target.value)}
+                value={datePayeLocataire}
+                onChange={(e) => setDatePayeLocataire(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Date où le locataire a payé
+              </p>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Fin de période
+                Date paiement APL
               </label>
               <input
                 type="date"
-                value={dateFin}
-                onChange={(e) => setDateFin(e.target.value)}
+                value={datePayeAPL}
+                onChange={(e) => setDatePayeAPL(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Date où l'APL a été versée
+              </p>
             </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Date de paiement
-            </label>
-            <input
-              type="date"
-              value={datePaiement}
-              onChange={(e) => setDatePaiement(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Date à laquelle le paiement a été effectué
-            </p>
           </div>
         </div>
 
