@@ -17,6 +17,9 @@ export function Financement({ bien }: FinancementProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
+    dateDebutCredit: bien.dateDebutCredit 
+      ? new Date(bien.dateDebutCredit).toISOString().split('T')[0] 
+      : "",
     mensualiteCredit: bien.mensualiteCredit?.toString() || "0",
     montantCredit: bien.montantCredit?.toString() || "0",
     tauxCredit: bien.tauxCredit?.toString() || "0",
@@ -86,6 +89,7 @@ export function Financement({ bien }: FinancementProps) {
   const handleSave = async () => {
     try {
       await updateBien(bien.id, {
+        dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
         mensualiteCredit: parseFloat(formData.mensualiteCredit),
         montantCredit: parseFloat(formData.montantCredit),
         tauxCredit: parseFloat(formData.tauxCredit),
@@ -133,6 +137,21 @@ export function Financement({ bien }: FinancementProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Date de début du crédit */}
+          <div>
+            <Label htmlFor="dateDebutCredit">Date de début du crédit</Label>
+            <Input
+              id="dateDebutCredit"
+              type="date"
+              value={formData.dateDebutCredit}
+              onChange={(e) => setFormData({ ...formData, dateDebutCredit: e.target.value })}
+              disabled={!editing}
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Date de la première mensualité
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="mensualiteCredit">Mensualité (€)</Label>
