@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBiens } from '@/lib/database'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -349,8 +350,8 @@ export default async function DashboardPage() {
         <DashboardClient biens={biens} stats={stats} />
       </div>
     )
-  } catch (error) {
-    console.error('Dashboard error:', error)
+  } catch (error: unknown) {
+    logger.error('[Dashboard] Erreur chargement:', error)
     redirect('/login')
   }
 }

@@ -3,12 +3,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { AlertTriangle } from 'lucide-react'
+import { logger } from '@/lib/logger'
+
+// Taux d'appréciation immobilière moyen utilisé pour estimer la valeur des biens comptants.
+// Valeur historique moyenne en France : ~2% par an sur le long terme.
+const APPRECIATION_ANNUELLE = 0.02
 
 interface PatrimoineChartProps {
   biens: any[]
 }
 
 // Calcule le montant total investi dans un bien
+// Retourne 0 si les données sont manquantes (pas d'estimation)
 function calculateMontantInvestissement(bien: any): number {
   const prixAchat = bien.prixAchat || 0
   const fraisNotaire = bien.fraisNotaire || 0
@@ -17,11 +23,8 @@ function calculateMontantInvestissement(bien: any): number {
   
   const total = prixAchat + fraisNotaire + travaux + autresFrais
   
-  // Si aucune donnée d'investissement n'est renseignée, on garde l'ancienne estimation
-  if (total === 0) {
-    return (bien.loyerMensuel || 0) * 12 * 15
-  }
-  
+  // Si aucune donnée d'investissement n'est renseignée, retourner 0
+  // Le graphique affichera un avertissement pour inciter à compléter les données
   return total
 }
 
@@ -64,16 +67,83 @@ function calculatePatrimoineEvolution(biens: any[]) {
     biens.forEach(bien => {
       const montantInvestissement = calculateMontantInvestissement(bien)
       
+      // Si pas de données d'investissement, on ne compte pas ce bien dans le patrimoine
+      // L'avertissement en haut du graphique incite l'utilisateur à compléter les données
+      if (montantInvestissement === 0) {
+        return // Skip ce bien
+      }
+      
       if (bien.typeFinancement === 'CASH') {
-        // Pour un bien comptant, le patrimoine = montant investi (constant)
-        patrimoineTotal += montantInvestissement
+        // Pour un bien comptant, on calcule la valeur avec l'appréciation immobilière
+        const dateAcquisition = (() => {
+          if (bien.dateAcquisition) {
+            const d = new Date(bien.dateAcquisition)
+            if (!isNaN(d.getTime())) {
+              return d
+            }
+          }
+          
+          if (bien.createdAt) {
+            const d = new Date(bien.createdAt)
+            if (!isNaN(d.getTime())) {
+              return d
+            }
+          }
+          
+          return new Date()
+        })()
+
+        // Vérifier que la date n'est pas dans le futur
+        if (dateAcquisition > currentDate) {
+          return // Skip ce bien pour cette date
+        }
+        
+        // Nombre d'années écoulées depuis l'acquisition
+        const anneesEcoulees = Math.max(
+          0,
+          (currentDate.getFullYear() - dateAcquisition.getFullYear()) +
+            (currentDate.getMonth() - dateAcquisition.getMonth()) / 12
+        )
+        
+        // Valeur actuelle = valeur initiale × (1 + taux)^années
+        const valeurActuelle = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
+        patrimoineTotal += valeurActuelle
         
       } else if (bien.typeFinancement === 'CREDIT') {
-        const dateDebutCredit = bien.dateDebutCredit 
-          ? new Date(bien.dateDebutCredit) 
-          : new Date(bien.createdAt)
+        // Validation et parsing sécurisé des dates
+        const dateDebutCredit = (() => {
+          if (bien.dateDebutCredit) {
+            const d = new Date(bien.dateDebutCredit)
+            // Vérifier que la date est valide
+            if (!isNaN(d.getTime())) {
+              return d
+            }
+          }
+          
+          // Fallback sur createdAt
+          if (bien.createdAt) {
+            const d = new Date(bien.createdAt)
+            if (!isNaN(d.getTime())) {
+              return d
+            }
+          }
+          
+          // Dernier fallback : date actuelle
+          return new Date()
+        })()
+
+        // Vérifier que la date n'est pas dans le futur (erreur de saisie)
+        if (dateDebutCredit > currentDate) {
+          // Si date future, on considère que le crédit n'a pas encore commencé
+          return // Skip ce bien pour cette date
+        }
         
         const dureeMois = bien.dureeCredit || 240
+
+        // Validation : durée doit être positive et raisonnable
+        if (dureeMois <= 0 || dureeMois > 600) {
+          return // Skip ce bien si durée invalide
+        }
         
         // Utiliser montantCredit s'il existe, sinon montantInvestissement
         const montantTotal = bien.montantCredit || montantInvestissement
@@ -118,10 +188,51 @@ function calculatePatrimoineEvolution(biens: any[]) {
 }
 
 export function PatrimoineChart({ biens }: PatrimoineChartProps) {
-  const data = calculatePatrimoineEvolution(biens)
+  let data: any[] = []
+  let hasError = false
+  
+  try {
+    data = calculatePatrimoineEvolution(biens)
+  } catch (error) {
+    logger.error('[PatrimoineChart] Erreur calcul:', error)
+    hasError = true
+    // Données vides pour éviter le crash
+    data = []
+  }
+  
   const currentValue = data.find(d => d.isNow)?.patrimoine || 0
   const projectedValue = data[data.length - 1]?.patrimoine || 0
   const donneesInvestissement = checkDonneesInvestissementCompletes(biens)
+  
+  // Si erreur, afficher un message au lieu du graphique
+  if (hasError || data.length === 0) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            Évolution du Patrimoine Net
+          </h2>
+          <p className="text-slate-400">
+            Votre richesse réelle qui grandit mois après mois
+          </p>
+        </div>
+        
+        <Card className="border border-red-500/20 bg-red-500/5 p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-red-400 flex-shrink-0 mt-1" />
+            <div>
+              <h4 className="text-lg font-semibold text-red-300 mb-2">
+                Impossible de calculer le patrimoine
+              </h4>
+              <p className="text-sm text-slate-300">
+                Une erreur s'est produite lors du calcul. Vérifiez que tous vos biens ont des données valides (dates, montants, etc.).
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-1000">
@@ -143,16 +254,19 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-amber-300 mb-1">
-                📊 Patrimoine estimé (données d'investissement manquantes)
+                📊 Données d'investissement manquantes
               </h4>
               <p className="text-sm text-slate-300 leading-relaxed">
-                Les montants affichés sont des <strong className="text-amber-200">approximations</strong> basées sur vos loyers. 
-                Pour un calcul précis, complétez la section <strong className="text-amber-200">Investissement</strong> de vos biens.
+                Complétez la section <strong className="text-amber-200">Investissement</strong> de vos biens pour voir l'évolution réelle de votre patrimoine.
               </p>
               {donneesInvestissement.biensManquants.length > 0 && (
-                <p className="text-xs text-slate-400 mt-2">
-                  Biens concernés : {donneesInvestissement.biensManquants.join(', ')}
-                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {donneesInvestissement.biensManquants.map((nom, idx) => (
+                    <span key={idx} className="text-xs px-2 py-1 bg-amber-500/10 text-amber-300 rounded-md border border-amber-500/20">
+                      {nom}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </div>
