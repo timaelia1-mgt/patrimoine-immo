@@ -29,10 +29,29 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Rediriger si pas connecté et qu'on tente d'accéder au dashboard
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  // Liste des routes protégées (nécessitent authentification)
+  const protectedRoutes = ['/dashboard', '/biens', '/parametres', '/abonnement']
+  const isProtectedRoute = protectedRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  )
+
+  // Liste des routes d'authentification (ne doivent pas être accessibles si connecté)
+  const authRoutes = ['/login', '/signup', '/verify-otp', '/forgot-password', '/reset-password']
+  const isAuthRoute = authRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  )
+
+  // Rediriger vers login si pas connecté et route protégée
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // Rediriger vers dashboard si connecté et sur une page auth
+  if (user && isAuthRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

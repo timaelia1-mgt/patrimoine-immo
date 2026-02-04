@@ -7,22 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from "@/lib/supabase/client"
 import { sanitizeAuthError } from "@/lib/auth-errors"
 import { useAuth } from "@/lib/auth-context"
-import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
-import { toast } from "sonner"
-import { AlertCircle, Lock, Mail } from "lucide-react"
+import { AlertCircle, Mail, CheckCircle2 } from "lucide-react"
 
-export default function SignupPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter()
+  const supabase = createClient()
   const { user, loading: authLoading } = useAuth()
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: ""
-  })
+  const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
 
   // Focus management sur les erreurs
@@ -40,60 +37,43 @@ export default function SignupPage() {
     }
   }, [user, authLoading, router])
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(false)
+
+    // Validation email
+    if (!email.trim()) {
+      setError("Veuillez saisir votre adresse email")
+      return
+    }
+
+    if (!validateEmail(email)) {
+      setError("Veuillez saisir une adresse email valide")
+      return
+    }
+
     setLoading(true)
 
-    // Validations
-    if (formData.password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères")
-      setLoading(false)
-      return
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      setLoading(false)
-      return
-    }
-
-    // Validation complexité du mot de passe
-    const hasUpperCase = /[A-Z]/.test(formData.password)
-    const hasLowerCase = /[a-z]/.test(formData.password)
-    const hasNumber = /[0-9]/.test(formData.password)
-
-    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      setError("Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre")
-      setLoading(false)
-      return
-    }
-
     try {
-      // Appel API pour signup sécurisé
-      const response = await fetchWithTimeout('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: formData.email, 
-          password: formData.password 
-        })
-      }, 10000)
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'inscription')
-      }
-
-      toast.success('Inscription réussie !', {
-        description: 'Vérifiez votre email pour le code de confirmation'
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== 'undefined' 
+          ? `${window.location.origin}/reset-password`
+          : undefined
       })
 
-      // Redirection vers verify-otp avec l'email et type=signup
-      router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}&type=signup`)
+      if (error) throw error
+
+      // Succès - afficher message générique pour éviter l'énumération
+      setSuccess(true)
     } catch (error: unknown) {
-      setError(sanitizeAuthError(error))
+      // Message générique pour éviter l'énumération d'emails
+      setError("Si cet email existe, vous recevrez un lien de réinitialisation")
     } finally {
       setLoading(false)
     }
@@ -122,16 +102,47 @@ export default function SignupPage() {
     return null
   }
 
+  if (success) {
+    return (
+      <Card className="border-0 shadow-large bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <CheckCircle2 className="w-16 h-16 text-emerald-500" aria-hidden="true" />
+          </div>
+          <CardTitle className="text-2xl font-display">Email envoyé !</CardTitle>
+          <CardDescription className="mt-2">
+            Si un compte existe avec cet email, vous recevrez un lien de réinitialisation
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+              Vérifiez votre boîte de réception et suivez les instructions pour réinitialiser votre mot de passe.
+            </p>
+            <Button
+              asChild
+              className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white shadow-lg"
+            >
+              <Link href="/login">
+                Retour à la connexion
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="border-0 shadow-large bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-display">Inscription</CardTitle>
+        <CardTitle className="text-2xl font-display">Mot de passe oublié</CardTitle>
         <CardDescription>
-          Créez votre compte Patrimo gratuitement
+          Entrez votre adresse email pour recevoir un lien de réinitialisation
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSignup} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div 
               ref={errorRef}
@@ -154,52 +165,15 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="votre@email.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
               className="bg-slate-50 dark:bg-slate-900/50"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2">
-              <Lock className="w-4 h-4" aria-hidden="true" />
-              Mot de passe
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Minimum 8 caractères"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-              minLength={8}
-              disabled={loading}
-              className="bg-slate-50 dark:bg-slate-900/50"
-              aria-describedby="password-requirements"
-            />
-            <p id="password-requirements" className="text-xs text-slate-600 dark:text-slate-300">
-              Minimum 8 caractères, une majuscule, une minuscule et un chiffre
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Vous recevrez un lien pour réinitialiser votre mot de passe
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="flex items-center gap-2">
-              <Lock className="w-4 h-4" aria-hidden="true" />
-              Confirmer le mot de passe
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Répétez le mot de passe"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              required
-              minLength={8}
-              disabled={loading}
-              className="bg-slate-50 dark:bg-slate-900/50"
-            />
           </div>
 
           <Button
@@ -211,21 +185,17 @@ export default function SignupPage() {
             {loading ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
-                Inscription...
+                Envoi en cours...
               </span>
             ) : (
-              "S'inscrire"
+              "Envoyer le lien"
             )}
           </Button>
-
-          <p className="text-xs text-center text-slate-600 dark:text-slate-300">
-            Un code de vérification vous sera envoyé par email après l'inscription
-          </p>
         </form>
 
         <div className="mt-6 text-center text-sm">
           <p className="text-slate-600 dark:text-slate-400">
-            Déjà un compte ?{" "}
+            Vous vous souvenez de votre mot de passe ?{" "}
             <Link href="/login" className="text-sky-500 hover:text-sky-600 font-medium">
               Se connecter
             </Link>
