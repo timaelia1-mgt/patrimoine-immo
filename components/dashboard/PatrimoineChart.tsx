@@ -77,7 +77,6 @@ function calculatePatrimoineEvolution(biens: any[]) {
         
         // Utiliser montantCredit s'il existe, sinon montantInvestissement
         const montantTotal = bien.montantCredit || montantInvestissement
-        const mensualiteCapital = montantTotal / dureeMois
         
         const moisEcoules = Math.max(
           0,
@@ -85,8 +84,23 @@ function calculatePatrimoineEvolution(biens: any[]) {
             (currentDate.getMonth() - dateDebutCredit.getMonth())
         )
         
-        const capitalRembourse = Math.min(mensualiteCapital * moisEcoules, montantTotal)
-        patrimoineTotal += capitalRembourse
+        // ✅ Calcul avec amortissement dégressif
+        const taux = (bien.tauxCredit || 0) / 100 / 12 // Taux mensuel
+        const mensualite = bien.mensualiteCredit || 0
+        
+        let capitalRembourse = 0
+        
+        if (moisEcoules > 0 && taux > 0 && mensualite > 0) {
+          // Formule d'amortissement dégressif
+          const capitalRestant = montantTotal * Math.pow(1 + taux, moisEcoules) -
+                                 mensualite * ((Math.pow(1 + taux, moisEcoules) - 1) / taux)
+          capitalRembourse = montantTotal - Math.max(0, Math.min(montantTotal, capitalRestant))
+        } else if (moisEcoules >= dureeMois) {
+          // Crédit terminé
+          capitalRembourse = montantTotal
+        }
+        
+        patrimoineTotal += Math.max(0, capitalRembourse)
       }
     })
     
