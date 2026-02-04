@@ -27,7 +27,7 @@ export function Financement({ bien }: FinancementProps) {
   const isComptant = bien.typeFinancement === "CASH" || bien.typeFinancement === "comptant" || bien.typeFinancement?.toLowerCase() === "cash"
   const isCredit = bien.typeFinancement === "CREDIT" || bien.typeFinancement === "credit" || bien.typeFinancement?.toLowerCase() === "credit"
 
-  // Calcul de la progression du crédit
+  // Calcul de la progression du crédit avec amortissement dégressif
   const calculerProgressionCredit = () => {
     if (!isCredit || !bien.dateDebutCredit || !bien.dureeCredit) {
       return null
@@ -42,30 +42,40 @@ export function Financement({ bien }: FinancementProps) {
     
     const dureeTotal = parseInt(bien.dureeCredit?.toString() || "0")
     const moisRestants = Math.max(0, dureeTotal - moisEcoules)
-    const progression = Math.min(100, (moisEcoules / dureeTotal) * 100)
     
-    // Calcul des montants
     const montantCredit = parseFloat(bien.montantCredit?.toString() || "0")
-    const capitalRestantDu = bien.capitalRestantDu ? parseFloat(bien.capitalRestantDu.toString()) : null
+    const taux = parseFloat(bien.tauxCredit?.toString() || "0") / 100 / 12 // Taux mensuel
+    const mensualite = parseFloat(bien.mensualiteCredit?.toString() || "0")
     
-    // Si capitalRestantDu existe, l'utiliser, sinon calculer approximativement
     let capitalRestant: number
     let capitalRembourse: number
+    
+    // Utiliser le capital restant dû stocké si disponible
+    const capitalRestantDu = bien.capitalRestantDu ? parseFloat(bien.capitalRestantDu.toString()) : null
     
     if (capitalRestantDu !== null && capitalRestantDu !== undefined) {
       capitalRestant = capitalRestantDu
       capitalRembourse = montantCredit - capitalRestant
+    } else if (moisEcoules > 0 && taux > 0 && mensualite > 0) {
+      // ✅ FORMULE CORRECTE avec amortissement dégressif
+      capitalRestant = montantCredit * Math.pow(1 + taux, moisEcoules) -
+                       mensualite * ((Math.pow(1 + taux, moisEcoules) - 1) / taux)
+      capitalRestant = Math.max(0, Math.min(montantCredit, capitalRestant))
+      capitalRembourse = montantCredit - capitalRestant
     } else {
-      // Approximation basée sur la progression
-      capitalRembourse = montantCredit * (progression / 100)
-      capitalRestant = montantCredit - capitalRembourse
+      // Si pas assez de données, utiliser les valeurs initiales
+      capitalRestant = montantCredit
+      capitalRembourse = 0
     }
+    
+    // ✅ Progression RÉELLE basée sur le capital remboursé
+    const progression = montantCredit > 0 ? (capitalRembourse / montantCredit) * 100 : 0
     
     return {
       moisEcoules: Math.max(0, moisEcoules),
       moisRestants,
       dureeTotal,
-      progression,
+      progression: Math.min(100, Math.max(0, progression)),
       capitalRembourse: Math.max(0, capitalRembourse),
       capitalRestant: Math.max(0, capitalRestant)
     }
