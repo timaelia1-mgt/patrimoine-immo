@@ -74,56 +74,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    // Check initial de la session (évite le flash)
+    // Check initial de la session avec retry
     console.log('[AuthContext DEBUG] Appel getSession() initial')
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('[AuthContext DEBUG] getSession() résultat:', { session: !!session, error })
-      
-      if (!isMounted) {
-        console.log('[AuthContext DEBUG] Composant démonté après getSession')
-        return
-      }
-      
-      if (error) {
-        console.error('[AuthContext DEBUG] Erreur getSession:', error)
-        setLoading(false)
-        return
-      }
-      
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      // Créer le profil si nécessaire
-      if (session?.user) {
-        console.log('[AuthContext DEBUG] Création profil initial pour user:', session.user.id)
-        createProfileIfNeeded(
-          session.user.id,
-          session.user.email || "",
-          session.user.user_metadata?.name
-        ).then(() => {
-          console.log('[AuthContext DEBUG] Profil initial créé/vérifié')
-          if (isMounted) {
-            console.log('[AuthContext DEBUG] setLoading(false) après profil initial')
-            setLoading(false)
+
+    const initSession = async () => {
+      try {
+        // Petit délai pour laisser Supabase s'initialiser
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        console.log('[AuthContext DEBUG] getSession() résultat:', { session: !!session, error })
+        
+        if (!isMounted) {
+          console.log('[AuthContext DEBUG] Composant démonté après getSession')
+          return
+        }
+        
+        if (error) {
+          console.error('[AuthContext DEBUG] Erreur getSession:', error)
+          setLoading(false)
+          return
+        }
+        
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        // Créer le profil si nécessaire
+        if (session?.user) {
+          console.log('[AuthContext DEBUG] Création profil initial pour user:', session.user.id)
+          try {
+            await createProfileIfNeeded(
+              session.user.id,
+              session.user.email || "",
+              session.user.user_metadata?.name
+            )
+            console.log('[AuthContext DEBUG] Profil initial créé/vérifié')
+          } catch (err) {
+            console.error('[AuthContext DEBUG] Erreur création profil:', err)
           }
-        }).catch((err) => {
-          console.error('[AuthContext DEBUG] Erreur création profil:', err)
-          if (isMounted) {
-            console.log('[AuthContext DEBUG] setLoading(false) après erreur profil')
-            setLoading(false)
-          }
-        })
-      } else {
-        console.log('[AuthContext DEBUG] Pas de session, setLoading(false)')
+        }
+        
+        console.log('[AuthContext DEBUG] setLoading(false) final')
         setLoading(false)
+      } catch (err) {
+        console.error('[AuthContext DEBUG] Erreur catch getSession:', err)
+        if (isMounted) {
+          console.log('[AuthContext DEBUG] setLoading(false) après erreur getSession')
+          setLoading(false)
+        }
       }
-    }).catch((err) => {
-      console.error('[AuthContext DEBUG] Erreur catch getSession:', err)
-      if (isMounted) {
-        console.log('[AuthContext DEBUG] setLoading(false) après erreur getSession')
-        setLoading(false)
-      }
-    })
+    }
+
+    // Lancer initSession
+    initSession()
 
     return () => {
       console.log('[AuthContext DEBUG] Cleanup')
