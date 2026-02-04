@@ -42,39 +42,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true
-    
-    console.log('[AuthContext DEBUG] useEffect démarré - version simplifiée')
 
     // UN SEUL listener pour TOUT gérer
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) {
-          console.log('[AuthContext DEBUG] Composant démonté, arrêt')
-          return
-        }
-        
-        console.log('[AuthContext DEBUG] Auth event:', event, 'session:', !!session)
+        if (!isMounted) return
         
         setSession(session)
         setUser(session?.user ?? null)
         
         // Créer le profil si nécessaire
         if (session?.user) {
-          console.log('[AuthContext DEBUG] Création profil pour user:', session.user.id)
           try {
             await createProfileIfNeeded(
               session.user.id,
               session.user.email || "",
               session.user.user_metadata?.name
             )
-            console.log('[AuthContext DEBUG] Profil créé/vérifié')
           } catch (err) {
-            console.error('[AuthContext DEBUG] Erreur profil:', err)
+            logger.error("[AuthContext] Erreur lors de la création du profil:", err)
           }
         }
         
         // Toujours passer loading à false après le premier event
-        console.log('[AuthContext DEBUG] setLoading(false)')
         setLoading(false)
       }
     )
@@ -83,7 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Ceci évite le flash de loading
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (isMounted && loading) {
-        console.log('[AuthContext DEBUG] Session initiale récupérée:', !!session)
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
@@ -92,13 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // En cas d'erreur, on met juste loading à false
       // onAuthStateChange prendra le relais
       if (isMounted) {
-        console.log('[AuthContext DEBUG] Erreur getSession ignorée, onAuthStateChange prendra le relais')
         setLoading(false)
       }
     })
 
     return () => {
-      console.log('[AuthContext DEBUG] Cleanup')
       isMounted = false
       subscription.unsubscribe()
     }
