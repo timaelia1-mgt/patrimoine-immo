@@ -8,6 +8,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { QuittanceModal } from "@/components/biens/QuittanceModal"
 import { QuittanceData } from "@/lib/generateQuittance"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface LoyersProps {
   bien: any
@@ -68,7 +70,8 @@ export function Loyers({ bien }: LoyersProps) {
 
         setPaiements(paiementsFromDB)
       } catch (error) {
-        console.error("Erreur chargement données:", error)
+        logger.error('[Loyers] Erreur chargement:', error)
+        toast.error('Impossible de charger les données des loyers')
       } finally {
         setLoading(false)
       }
@@ -132,11 +135,11 @@ export function Loyers({ bien }: LoyersProps) {
       })
       router.refresh() // Refresh data after saving
     } catch (error) {
-      console.error("Erreur sauvegarde paiement:", error)
+      logger.error('[Loyers] Erreur sauvegarde paiement:', error)
       // Rollback de l'état local
       setPaiements(previousState)
       // Feedback utilisateur
-      alert("Erreur lors de la sauvegarde du paiement. Veuillez réessayer.")
+      toast.error('Erreur lors de la sauvegarde du paiement')
     }
   }
 

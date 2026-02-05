@@ -9,6 +9,8 @@ import { formatCurrency } from "@/lib/calculations"
 import { getLocataire, upsertLocataire } from "@/lib/database"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface LocataireProps {
   bien: any
@@ -44,7 +46,8 @@ export function Locataire({ bien }: LocataireProps) {
           })
         }
       } catch (error) {
-        console.error("Erreur chargement locataire:", error)
+        logger.error('[Locataire] Erreur chargement:', error)
+        toast.error('Impossible de charger les informations du locataire')
       } finally {
         setLoading(false)
       }
@@ -56,7 +59,7 @@ export function Locataire({ bien }: LocataireProps) {
   const handleSave = async () => {
     try {
       if (!formData.nom || !formData.prenom) {
-        alert("Le nom et le prénom sont obligatoires")
+        toast.error('Le nom et le prénom sont obligatoires')
         return
       }
 
@@ -71,11 +74,11 @@ export function Locataire({ bien }: LocataireProps) {
       })
 
       setEditing(false)
-      alert("✓ Informations locataire sauvegardées")
+      toast.success('Informations locataire sauvegardées')
       router.refresh()
     } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+      logger.error('[Locataire] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde')
       // Ne pas fermer le mode édition en cas d'erreur
     }
   }

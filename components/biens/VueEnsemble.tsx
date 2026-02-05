@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/calculations"
+import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
 
 interface VueEnsembleProps {
   bien: any
@@ -9,13 +9,7 @@ interface VueEnsembleProps {
 
 export function VueEnsemble({ bien }: VueEnsembleProps) {
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
-  const taxeFonciere = parseFloat(bien.taxeFonciere?.toString() || "0")
-  const chargesCopro = parseFloat(bien.chargesCopro?.toString() || "0")
-  const assurance = parseFloat(bien.assurance?.toString() || "0")
-  const fraisGestion = parseFloat(bien.fraisGestion?.toString() || "0")
-  const autresCharges = parseFloat(bien.autresCharges?.toString() || "0")
-  
-  const totalCharges = taxeFonciere + chargesCopro + assurance + fraisGestion + autresCharges
+  const totalCharges = calculateChargesMensuelles(bien)
   const loyerNet = loyerMensuel - totalCharges
   
   const mensualiteCredit = bien.typeFinancement === "CREDIT" 
@@ -62,7 +56,7 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
               <p className="text-sm text-muted-foreground mb-1">Statut</p>
               <p className="text-lg font-medium">
                 {bien.typeFinancement === "CASH" ? "Autofinancé (Cash)" :
-                 cashFlow >= 0 ? `Autofinancé (${Math.round((loyerNet / mensualiteCredit) * 100)}%)` :
+                 cashFlow >= 0 ? `Autofinancé (${mensualiteCredit > 0 ? Math.round((loyerNet / mensualiteCredit) * 100) : 100}%)` :
                  "Non autofinancé"}
               </p>
             </div>

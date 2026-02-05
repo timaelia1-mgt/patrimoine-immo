@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
-import { updateBien } from "@/lib/database"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface InvestissementProps {
   bien: any
@@ -23,6 +24,7 @@ interface InvestissementSecondaire {
 export function Investissement({ bien }: InvestissementProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     prixAchat: bien.prixAchat?.toString() || "0",
     fraisNotaire: bien.fraisNotaire?.toString() || "0",
@@ -63,25 +65,37 @@ export function Investissement({ bien }: InvestissementProps) {
   const investissementTotal = investissementInitial + totalInvestissementsSecondaires
 
   const handleSave = async () => {
+    setLoading(true)
     try {
-      await updateBien(bien.id, {
-        prixAchat: parseFloat(formData.prixAchat),
-        fraisNotaire: parseFloat(formData.fraisNotaire),
-        travauxInitiaux: parseFloat(formData.travauxInitiaux),
-        autresFrais: parseFloat(formData.autresFrais),
+      const response = await fetch(`/api/biens/${bien.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prixAchat: parseFloat(formData.prixAchat),
+          fraisNotaire: parseFloat(formData.fraisNotaire),
+          travauxInitiaux: parseFloat(formData.travauxInitiaux),
+          autresFrais: parseFloat(formData.autresFrais),
+        })
       })
 
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Investissement mis à jour avec succès')
       setEditing(false)
       router.refresh()
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+    } catch (error: unknown) {
+      logger.error('[Investissement] Erreur sauvegarde:', error)
+      toast.error("Erreur lors de la sauvegarde de l'investissement")
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleAddInvestissement = () => {
     if (!newInvestissement.description || !newInvestissement.montant) {
-      alert("Veuillez remplir tous les champs")
+      toast.error('Veuillez remplir tous les champs')
       return
     }
 
@@ -108,7 +122,7 @@ export function Investissement({ bien }: InvestissementProps) {
   }
 
   const handleDeleteInvestissement = (id: string) => {
-    if (!confirm("Supprimer cet investissement ?")) return
+    if (!window.confirm("Supprimer cet investissement ?")) return
 
     const updated = investissementsSecondaires.filter(inv => inv.id !== id)
     setInvestissementsSecondaires(updated)
@@ -175,8 +189,10 @@ export function Investissement({ bien }: InvestissementProps) {
             <CardTitle>Investissement initial</CardTitle>
             {editing ? (
               <div className="flex gap-2">
-                <Button onClick={handleSave} size="sm">Enregistrer</Button>
-                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+                <Button onClick={handleSave} size="sm" disabled={loading}>
+                  {loading ? "Enregistrement..." : "Enregistrer"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={loading}>Annuler</Button>
               </div>
             ) : (
               <Button onClick={() => setEditing(true)} size="sm">Modifier</Button>

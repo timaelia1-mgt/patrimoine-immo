@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/calculations"
+import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
 
 interface RentabiliteProps {
   bien: any
@@ -9,12 +9,7 @@ interface RentabiliteProps {
 
 export function Rentabilite({ bien }: RentabiliteProps) {
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
-  const totalCharges = 
-    parseFloat(bien.taxeFonciere?.toString() || "0") +
-    parseFloat(bien.chargesCopro?.toString() || "0") +
-    parseFloat(bien.assurance?.toString() || "0") +
-    parseFloat(bien.fraisGestion?.toString() || "0") +
-    parseFloat(bien.autresCharges?.toString() || "0")
+  const totalCharges = calculateChargesMensuelles(bien)
   
   const mensualiteCredit = bien.typeFinancement === "CREDIT" 
     ? parseFloat(bien.mensualiteCredit?.toString() || "0")
@@ -49,52 +44,205 @@ export function Rentabilite({ bien }: RentabiliteProps) {
 
   const bilanNet = revenusCumules - chargesCumulees
 
+  // Calculs de rentabilité
+  const prixAchat = parseFloat(bien.prixAchat?.toString() || "0")
+  const fraisNotaire = parseFloat(bien.fraisNotaire?.toString() || "0")
+  const travauxInitiaux = parseFloat(bien.travauxInitiaux?.toString() || "0")
+  const autresFrais = parseFloat(bien.autresFrais?.toString() || "0")
+  const investissementTotal = prixAchat + fraisNotaire + travauxInitiaux + autresFrais
+
+  // Rentabilité brute annuelle (loyer annuel / prix d'achat)
+  const loyerAnnuel = loyerMensuel * 12
+  const rentabiliteBrute = prixAchat > 0 ? (loyerAnnuel / prixAchat) * 100 : 0
+
+  // Rentabilité nette annuelle ((loyer - charges) annuel / investissement total)
+  const chargesAnnuelles = totalCharges * 12
+  const loyerNetAnnuel = loyerAnnuel - chargesAnnuelles
+  const rentabiliteNette = investissementTotal > 0 ? (loyerNetAnnuel / investissementTotal) * 100 : 0
+
+  // Cash-flow annuel
+  const mensualitesAnnuelles = mensualiteCredit * 12
+  const cashFlowAnnuel = loyerNetAnnuel - mensualitesAnnuelles
+
+  // ROI si le bien était revendu maintenant au prix d'achat
+  const roi = investissementTotal > 0 ? (bilanNet / investissementTotal) * 100 : 0
+
   return (
     <div className="space-y-6">
+      {/* Alerte si données manquantes */}
+      {investissementTotal === 0 && (
+        <Card className="border-amber-500 bg-amber-50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-amber-900">
+              ⚠️ <strong>Données d&apos;investissement manquantes :</strong> Renseignez l&apos;onglet &quot;Investissement&quot; pour obtenir des calculs de rentabilité précis.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Section 1: Indicateurs de rentabilité */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="border-blue-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Rentabilité brute</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-blue-600">
+              {rentabiliteBrute.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Loyer annuel / Prix d&apos;achat
+            </p>
+            {prixAchat === 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                Prix d&apos;achat manquant
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card className="border-green-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Rentabilité nette</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-green-600">
+              {rentabiliteNette.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              (Loyer - Charges) annuel / Investissement total
+            </p>
+            {investissementTotal === 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                Investissement manquant
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Section 2: Performance financière */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Cash-flow annuel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold ${
+              cashFlowAnnuel > 0 ? "text-green-600" : "text-red-600"
+            }`}>
+              {cashFlowAnnuel > 0 ? "+" : ""}{formatCurrency(cashFlowAnnuel)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Loyer net - Mensualités
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">ROI actuel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold ${
+              roi > 0 ? "text-green-600" : "text-red-600"
+            }`}>
+              {roi > 0 ? "+" : ""}{roi.toFixed(1)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Bilan net / Investissement total
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Investissement total</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              {formatCurrency(investissementTotal)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Achat + frais + travaux
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Section 3: Revenus et charges cumulés (ancien contenu conservé) */}
       <Card>
         <CardHeader>
-          <CardTitle>Revenus cumulés</CardTitle>
+          <CardTitle>Bilan cumulé depuis la mise en location</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-blue-600 mb-2">
-            {formatCurrency(revenusCumules)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Sur {moisPossession} mois • {formatCurrency(loyerMensuel)}/mois en moyenne
-          </p>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-muted-foreground">Revenus cumulés</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Sur {moisPossession} mois • {formatCurrency(loyerMensuel)}/mois en moyenne
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-blue-600">
+                {formatCurrency(revenusCumules)}
+              </p>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2 border-t">
+              <div>
+                <p className="text-sm text-muted-foreground">Charges cumulées</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Mensualités : {formatCurrency(mensualiteCredit * moisPossession)} • 
+                  Charges : {formatCurrency(totalCharges * moisPossession)}
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">
+                {formatCurrency(chargesCumulees)}
+              </p>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2 border-t-2">
+              <div>
+                <p className="text-base font-medium">Bilan net cumulé</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {bilanNet > 0 ? "Bénéfice" : "Déficit"} sur {moisPossession} mois
+                </p>
+              </div>
+              <p className={`text-3xl font-bold ${
+                bilanNet > 0 ? "text-green-600" : "text-red-600"
+              }`}>
+                {bilanNet > 0 ? "+" : ""}{formatCurrency(bilanNet)}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      <Card>
+      
+      {/* Section 4: Interprétation des indicateurs */}
+      <Card className="border-indigo-500 bg-indigo-50 dark:bg-indigo-950">
         <CardHeader>
-          <CardTitle>Charges cumulées</CardTitle>
+          <CardTitle className="text-indigo-900 dark:text-indigo-100">
+            💡 Interprétation des indicateurs
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-orange-600 mb-2">
-            {formatCurrency(chargesCumulees)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Dont mensualités : {formatCurrency(mensualiteCredit * moisPossession)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Dont charges : {formatCurrency(totalCharges * moisPossession)}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Bilan net</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className={`text-3xl font-bold mb-2 ${
-            bilanNet > 0 ? "text-green-600" : "text-red-600"
-          }`}>
-            {bilanNet > 0 ? "+" : ""}{formatCurrency(bilanNet)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {bilanNet > 0 ? "Bénéfice" : "Déficit"} cumulé sur {moisPossession} mois
-          </p>
+        <CardContent className="space-y-3 text-sm text-indigo-900 dark:text-indigo-100">
+          <div>
+            <strong>Rentabilité brute :</strong> Indicateur rapide du potentiel locatif. 
+            Une rentabilité &gt; 5% est généralement considérée comme bonne pour l&apos;immobilier locatif.
+          </div>
+          <div>
+            <strong>Rentabilité nette :</strong> Prend en compte les charges réelles. 
+            C&apos;est l&apos;indicateur le plus fiable pour comparer différents investissements.
+          </div>
+          <div>
+            <strong>Cash-flow annuel :</strong> Argent qui reste dans votre poche chaque année après toutes les dépenses. 
+            Un cash-flow positif signifie que le bien s&apos;autofinance.
+          </div>
+          <div>
+            <strong>ROI :</strong> Retour sur investissement depuis l&apos;achat. 
+            Plus il est élevé, plus vite vous rentabilisez votre investissement initial.
+          </div>
         </CardContent>
       </Card>
     </div>

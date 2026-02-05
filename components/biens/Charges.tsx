@@ -4,15 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { formatCurrency } from "@/lib/calculations"
-import { updateBien } from "@/lib/database"
+import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface ChargesProps {
   bien: any
 }
 
 export function Charges({ bien }: ChargesProps) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,29 +37,37 @@ export function Charges({ bien }: ChargesProps) {
         parseFloat(formData.fraisGestion || "0") +
         parseFloat(formData.autresCharges || "0")
 
-      await updateBien(bien.id, {
-        taxeFonciere: parseFloat(formData.taxeFonciere || "0"),
-        chargesCopro: parseFloat(formData.chargesCopro || "0"),
-        assurance: parseFloat(formData.assurance || "0"),
-        fraisGestion: parseFloat(formData.fraisGestion || "0"),
-        autresCharges: parseFloat(formData.autresCharges || "0"),
-        chargesMensuelles: totalCharges,
+      const response = await fetch(`/api/biens/${bien.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taxeFonciere: parseFloat(formData.taxeFonciere || "0"),
+          chargesCopro: parseFloat(formData.chargesCopro || "0"),
+          assurance: parseFloat(formData.assurance || "0"),
+          fraisGestion: parseFloat(formData.fraisGestion || "0"),
+          autresCharges: parseFloat(formData.autresCharges || "0"),
+          chargesMensuelles: totalCharges,
+        })
       })
 
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Charges mises à jour avec succès')
       setEditing(false)
+      router.refresh()
       
-      // Rafraîchir la page pour mettre à jour l'affichage avec les nouvelles données
-      window.location.reload()
-      
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+    } catch (error: unknown) {
+      logger.error('[Charges] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde des charges')
     } finally {
       setLoading(false)
     }
   }
 
-  // Calculer le total depuis formData (pour l'affichage en temps réel)
+  // Calculer le total depuis formData (pour l'affichage en temps réel en mode édition)
+  // Note: En édition, on additionne directement car l'utilisateur entre des valeurs mensuelles
   const totalChargesForm = 
     parseFloat(formData.taxeFonciere || "0") +
     parseFloat(formData.chargesCopro || "0") +
@@ -64,13 +75,8 @@ export function Charges({ bien }: ChargesProps) {
     parseFloat(formData.fraisGestion || "0") +
     parseFloat(formData.autresCharges || "0")
   
-  // Calculer le total depuis le bien (pour l'affichage initial)
-  const totalChargesBien = 
-    parseFloat(bien.taxeFonciere?.toString() || "0") +
-    parseFloat(bien.chargesCopro?.toString() || "0") +
-    parseFloat(bien.assurance?.toString() || "0") +
-    parseFloat(bien.fraisGestion?.toString() || "0") +
-    parseFloat(bien.autresCharges?.toString() || "0")
+  // Calculer le total depuis le bien (utilise la fonction centralisée avec division taxe foncière /12)
+  const totalChargesBien = calculateChargesMensuelles(bien)
   
   // Utiliser le total du formulaire si en édition, sinon celui du bien
   const totalCharges = editing ? totalChargesForm : totalChargesBien

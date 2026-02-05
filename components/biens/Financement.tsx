@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
-import { updateBien } from "@/lib/database"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface FinancementProps {
   bien: any
@@ -16,6 +17,7 @@ interface FinancementProps {
 export function Financement({ bien }: FinancementProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     dateDebutCredit: bien.dateDebutCredit 
       ? new Date(bien.dateDebutCredit).toISOString().split('T')[0] 
@@ -87,20 +89,32 @@ export function Financement({ bien }: FinancementProps) {
   const progressionCredit = calculerProgressionCredit()
 
   const handleSave = async () => {
+    setLoading(true)
     try {
-      await updateBien(bien.id, {
-        dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
-        mensualiteCredit: parseFloat(formData.mensualiteCredit),
-        montantCredit: parseFloat(formData.montantCredit),
-        tauxCredit: parseFloat(formData.tauxCredit),
-        dureeCredit: parseInt(formData.dureeCredit),
+      const response = await fetch(`/api/biens/${bien.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
+          mensualiteCredit: parseFloat(formData.mensualiteCredit),
+          montantCredit: parseFloat(formData.montantCredit),
+          tauxCredit: parseFloat(formData.tauxCredit),
+          dureeCredit: parseInt(formData.dureeCredit),
+        })
       })
 
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Financement mis à jour avec succès')
       setEditing(false)
       router.refresh()
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+    } catch (error: unknown) {
+      logger.error('[Financement] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde du financement')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -128,8 +142,10 @@ export function Financement({ bien }: FinancementProps) {
             <CardTitle>Informations du crédit</CardTitle>
             {editing ? (
               <div className="flex gap-2">
-                <Button onClick={handleSave} size="sm">Enregistrer</Button>
-                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+                <Button onClick={handleSave} size="sm" disabled={loading}>
+                  {loading ? "Enregistrement..." : "Enregistrer"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={loading}>Annuler</Button>
               </div>
             ) : (
               <Button onClick={() => setEditing(true)} size="sm">Modifier</Button>

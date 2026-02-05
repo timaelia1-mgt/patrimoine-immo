@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { updateBien } from "@/lib/database"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 
 interface HistoriqueProps {
   bien: any
@@ -15,23 +16,36 @@ interface HistoriqueProps {
 export function Historique({ bien }: HistoriqueProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     dateAcquisition: bien.dateAcquisition ? new Date(bien.dateAcquisition).toISOString().split('T')[0] : "",
     dateMiseEnLocation: bien.dateMiseEnLocation ? new Date(bien.dateMiseEnLocation).toISOString().split('T')[0] : "",
   })
 
   const handleSave = async () => {
+    setLoading(true)
     try {
-      await updateBien(bien.id, {
-        dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
-        dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
+      const response = await fetch(`/api/biens/${bien.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
+          dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
+        })
       })
 
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Historique mis à jour avec succès')
       setEditing(false)
       router.refresh()
-    } catch (error) {
-      console.error("Erreur:", error)
-      alert("Erreur lors de la sauvegarde")
+    } catch (error: unknown) {
+      logger.error('[Historique] Erreur sauvegarde:', error)
+      toast.error("Erreur lors de la sauvegarde de l'historique")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -42,8 +56,10 @@ export function Historique({ bien }: HistoriqueProps) {
           <CardTitle>Historique du bien</CardTitle>
           {editing ? (
             <div className="flex gap-2">
-              <Button onClick={handleSave} size="sm">Enregistrer</Button>
-              <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+              <Button onClick={handleSave} size="sm" disabled={loading}>
+                {loading ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={loading}>Annuler</Button>
             </div>
           ) : (
             <Button onClick={() => setEditing(true)} size="sm">Modifier</Button>
