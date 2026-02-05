@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBien } from '@/lib/database'
+import { logger } from '@/lib/logger'
 import { BienDetailClient } from '@/components/biens/BienDetailClient'
 import { Button } from '@/components/ui/button'
 
@@ -49,8 +50,8 @@ export default async function BienDetailPage({ params }: BienDetailPageProps) {
     }
 
     return <BienDetailClient bien={bien} />
-  } catch (error) {
-    console.error('BienDetailPage error:', error)
+  } catch (error: unknown) {
+    logger.error('[BienDetailPage] Erreur:', error)
     redirect('/dashboard')
   }
 }

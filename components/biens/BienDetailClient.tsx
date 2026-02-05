@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { formatCurrency, calculerStatutBien } from "@/lib/calculations"
+import { formatCurrency, calculerStatutBien, calculateChargesMensuelles } from "@/lib/calculations"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { VueEnsemble } from "@/components/biens/VueEnsemble"
 import { Loyers } from "@/components/biens/Loyers"
@@ -38,13 +40,20 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
 
   const fetchBien = async () => {
     try {
-      const { getBien } = await import("@/lib/database")
-      const bienData = await getBien(bien.id)
-      if (bienData) {
-        setBien(bienData)
+      const response = await fetch(`/api/biens/${bien.id}`)
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors du rechargement du bien')
       }
-    } catch (error: any) {
-      console.error("Erreur lors du rechargement:", error)
+      
+      const data = await response.json()
+      
+      if (data.bien) {
+        setBien(data.bien)
+      }
+    } catch (error: unknown) {
+      logger.error('[BienDetail] Erreur rechargement:', error)
+      toast.error('Impossible de recharger les données du bien')
     }
   }
 
@@ -69,7 +78,10 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
 
   const handleDesenrichir = async (themeId: string) => {
     if (!bien) return
-    if (!confirm("Êtes-vous sûr ? Les données seront conservées.")) return
+    
+    // Utiliser une confirmation avec un message clair
+    const shouldDesenrichir = window.confirm("Êtes-vous sûr de vouloir désactiver cette fonctionnalité ? Les données seront conservées.")
+    if (!shouldDesenrichir) return
 
     const champMap: any = {
       financement: "enrichissementFinancement",
@@ -87,36 +99,38 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
       await updateBien(bien.id, { [champ]: false })
       setFonctionnalitesOpen(false)
       fetchBien() // Recharger les données
-    } catch (error: any) {
-      console.error("Erreur:", error)
-      alert(error.message || "Erreur lors du désenrichissement")
+    } catch (error: unknown) {
+      logger.error('[BienDetail] Erreur désenrichissement:', error)
+      toast.error(error instanceof Error ? error.message : "Erreur lors du désenrichissement")
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce bien ?")) return
+    const shouldDelete = window.confirm("⚠️ Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.")
+    if (!shouldDelete) return
 
     try {
       await deleteBien(bien.id)
+      toast.success("Bien supprimé avec succès")
       router.push("/dashboard")
-    } catch (error: any) {
-      console.error("Erreur:", error)
-      alert(error.message || "Erreur lors de la suppression")
+    } catch (error: unknown) {
+      logger.error('[BienDetail] Erreur suppression:', error)
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression")
     }
   }
 
-  // Calculs des valeurs pour éviter les NaN
+  // Calculs des valeurs avec fonction centralisée
   const loyerMensuel = parseFloat(bien?.loyerMensuel?.toString() || "0")
-  const totalCharges = 
-    parseFloat(bien?.taxeFonciere?.toString() || "0") +
-    parseFloat(bien?.chargesCopro?.toString() || "0") +
-    parseFloat(bien?.assurance?.toString() || "0") +
-    parseFloat(bien?.fraisGestion?.toString() || "0") +
-    parseFloat(bien?.autresCharges?.toString() || "0")
+
+  // Utiliser la fonction centralisée pour les charges (gère correctement la taxe foncière annuelle)
+  const totalCharges = calculateChargesMensuelles(bien)
+
   const loyerNet = loyerMensuel - totalCharges
+
   const mensualiteCredit = bien?.typeFinancement === "CREDIT" 
     ? parseFloat(bien?.mensualiteCredit?.toString() || "0")
     : 0
+
   const cashFlow = loyerNet - mensualiteCredit
   
   const statut = calculerStatutBien(bien)
@@ -136,11 +150,13 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
           <div className="flex items-center gap-2">
             <Badge variant="outline">
               {[
+                bien.enrichissementFinancement,
                 bien.enrichissementInvestissement,
                 bien.enrichissementHistorique,
+                bien.enrichissementCharges,
                 bien.enrichissementLocataire,
                 bien.enrichissementRentabilite,
-              ].filter(Boolean).length}/4 enrichis
+              ].filter(Boolean).length}/6 enrichis
             </Badge>
 
             <Button 

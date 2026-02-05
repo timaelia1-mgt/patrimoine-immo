@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
+import { logger } from "@/lib/logger"
+import { toast } from "sonner"
 import { createBien } from "@/lib/database"
+import { calculateMensualiteCredit } from "@/lib/calculations"
 
 interface BienFormDialogProps {
   open?: boolean
@@ -17,6 +20,7 @@ interface BienFormDialogProps {
 export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialogProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     nom: "",
     adresse: "",
@@ -34,20 +38,6 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     tauxCredit: "",
     dureeCredit: "",
   })
-
-  // Fonction de calcul de mensualité (amortissement français)
-  const calculateMensualite = (montant: number, tauxAnnuel: number, dureeMois: number): number => {
-    if (!montant || !tauxAnnuel || !dureeMois || montant <= 0 || dureeMois <= 0) return 0
-    
-    const tauxMensuel = tauxAnnuel / 100 / 12
-    
-    if (tauxMensuel === 0) {
-      return montant / dureeMois
-    }
-    
-    const mensualite = (montant * tauxMensuel) / (1 - Math.pow(1 + tauxMensuel, -dureeMois))
-    return Math.round(mensualite * 100) / 100
-  }
 
   // Réinitialiser le formulaire quand le dialog se ferme
   useEffect(() => {
@@ -77,7 +67,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     formData.montantCredit && 
     formData.tauxCredit && 
     formData.dureeCredit
-    ? calculateMensualite(
+    ? calculateMensualiteCredit(
         parseFloat(formData.montantCredit),
         parseFloat(formData.tauxCredit),
         parseInt(formData.dureeCredit)
@@ -87,49 +77,55 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Protection double-submit
+    if (isSubmitting) {
+      return
+    }
+
     if (!user) {
-      alert("Vous devez être connecté pour ajouter un bien")
+      toast.error("Vous devez être connecté pour ajouter un bien")
       return
     }
 
     // Validation des champs obligatoires de base
     if (!formData.nom.trim()) {
-      alert("Le nom du bien est obligatoire")
+      toast.error("Le nom du bien est obligatoire")
       return
     }
     if (!formData.adresse.trim()) {
-      alert("L'adresse est obligatoire")
+      toast.error("L'adresse est obligatoire")
       return
     }
     if (!formData.ville.trim()) {
-      alert("La ville est obligatoire")
+      toast.error("La ville est obligatoire")
       return
     }
     if (!formData.codePostal.trim()) {
-      alert("Le code postal est obligatoire")
+      toast.error("Le code postal est obligatoire")
       return
     }
     if (!formData.loyerMensuel || parseFloat(formData.loyerMensuel) <= 0) {
-      alert("Le loyer mensuel est obligatoire et doit être supérieur à 0")
+      toast.error("Le loyer mensuel est obligatoire et doit être supérieur à 0")
       return
     }
 
     // Validation des champs de crédit si typeFinancement === "CREDIT"
     if (formData.typeFinancement === "CREDIT") {
       if (!formData.montantCredit || parseFloat(formData.montantCredit) <= 0) {
-        alert("Le montant emprunté est obligatoire pour un bien financé par crédit")
+        toast.error("Le montant emprunté est obligatoire pour un bien financé par crédit")
         return
       }
       if (!formData.tauxCredit || parseFloat(formData.tauxCredit) <= 0) {
-        alert("Le taux d'intérêt est obligatoire pour un bien financé par crédit")
+        toast.error("Le taux d'intérêt est obligatoire pour un bien financé par crédit")
         return
       }
       if (!formData.dureeCredit || parseInt(formData.dureeCredit) <= 0) {
-        alert("La durée du crédit est obligatoire pour un bien financé par crédit")
+        toast.error("La durée du crédit est obligatoire pour un bien financé par crédit")
         return
       }
     }
 
+    setIsSubmitting(true)
     setLoading(true)
 
     const data: any = {
@@ -149,7 +145,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
 
     if (formData.typeFinancement === "CREDIT") {
       // Calculer la mensualité automatiquement
-      const mensualiteCalculee = calculateMensualite(
+      const mensualiteCalculee = calculateMensualiteCredit(
         parseFloat(formData.montantCredit),
         parseFloat(formData.tauxCredit),
         parseInt(formData.dureeCredit)
@@ -186,11 +182,12 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       
       // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
       // Ne pas fermer le dialog ici pour éviter les conflits
+      toast.success("Bien créé avec succès !")
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Erreur création bien:", error)
-      const errorMessage = error.message || "Erreur lors de la création du bien"
-      alert(errorMessage)
+    } catch (error: unknown) {
+      logger.error('[BienForm] Erreur création:', error)
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la création du bien"
+      toast.error(errorMessage)
       
       // Si c'est une erreur de limite, fermer le dialog
       if (errorMessage.includes("Limite") || errorMessage.includes("limite")) {
@@ -198,6 +195,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       }
     } finally {
       setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -315,7 +313,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="taxeFonciere" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Taxe foncière (€/mois)
+                    Taxe foncière (€/an)
                   </Label>
                   <Input
                     id="taxeFonciere"
@@ -324,9 +322,12 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     min="0"
                     value={formData.taxeFonciere || ""}
                     onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
-                    placeholder="Ex: 150"
+                    placeholder="Ex: 1800"
                     disabled={loading}
                   />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Montant annuel (sera converti en mensuel automatiquement)
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="chargesCopro" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
@@ -521,7 +522,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || isSubmitting}>
               {loading ? "Ajout en cours..." : "Ajouter le bien"}
             </Button>
           </div>

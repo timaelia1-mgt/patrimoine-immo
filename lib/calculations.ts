@@ -163,3 +163,32 @@ export function calculateChargesMensuelles(bien: {
   
   return isNaN(total) ? 0 : total
 }
+
+/**
+ * Calcule la mensualité d'un crédit immobilier (amortissement français)
+ * @param montant Montant emprunté en euros
+ * @param tauxAnnuel Taux d'intérêt annuel en pourcentage (ex: 3.5 pour 3.5%)
+ * @param dureeMois Durée du crédit en mois
+ * @returns Mensualité en euros
+ */
+export function calculateMensualiteCredit(
+  montant: number,
+  tauxAnnuel: number,
+  dureeMois: number
+): number {
+  if (!montant || !tauxAnnuel || !dureeMois || montant <= 0 || dureeMois <= 0) {
+    return 0
+  }
+  
+  const tauxMensuel = tauxAnnuel / 100 / 12
+  
+  // Si taux nul, amortissement linéaire
+  if (tauxMensuel === 0) {
+    return montant / dureeMois
+  }
+  
+  // Formule amortissement français
+  const mensualite = (montant * tauxMensuel) / (1 - Math.pow(1 + tauxMensuel, -dureeMois))
+  
+  return Math.round(mensualite * 100) / 100
+}
