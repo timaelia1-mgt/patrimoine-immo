@@ -5,7 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { updateBien, upsertLocataire } from "@/lib/database"
+import { calculateMensualiteCredit } from '@/lib/calculations'
+import { logger } from '@/lib/logger'
+import { toast } from 'sonner'
+import { validateAndShowErrors, validateDatesCoherence } from '@/lib/validations'
 
 interface FormDialogProps {
   open: boolean
@@ -22,22 +25,16 @@ export function FinancementForm({ open, onOpenChange, bienId, onSuccess }: FormD
     dureeCredit: "",
     mensualiteCredit: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Calcul automatique de la mensualité
-  const calculerMensualite = () => {
-    const montant = parseFloat(formData.montantCredit || "0")
-    const tauxMensuel = parseFloat(formData.tauxCredit || "0") / 100 / 12
-    const duree = parseInt(formData.dureeCredit || "0")
-
-    if (!montant || !tauxMensuel || !duree) return null
-
-    // Formule de mensualité : M = C × (t × (1 + t)^n) / ((1 + t)^n - 1)
-    const mensualite = montant * (tauxMensuel * Math.pow(1 + tauxMensuel, duree)) / (Math.pow(1 + tauxMensuel, duree) - 1)
-
-    return mensualite
-  }
-
-  const mensualiteCalculee = calculerMensualite()
+  // Calcul automatique de la mensualité via fonction centralisée
+  const mensualiteCalculee = formData.montantCredit && formData.tauxCredit && formData.dureeCredit
+    ? calculateMensualiteCredit(
+        parseFloat(formData.montantCredit),
+        parseFloat(formData.tauxCredit),
+        parseInt(formData.dureeCredit)
+      )
+    : null
 
   // Calcul automatique du capital restant dû
   const calculerCapitalRestant = () => {
@@ -73,20 +70,37 @@ export function FinancementForm({ open, onOpenChange, bienId, onSuccess }: FormD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Protection double-submit
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
-      await updateBien(bienId, {
-        enrichissementFinancement: true,
-        dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
-        montantCredit: formData.montantCredit ? parseFloat(formData.montantCredit) : null,
-        tauxCredit: formData.tauxCredit ? parseFloat(formData.tauxCredit) : null,
-        dureeCredit: formData.dureeCredit ? parseInt(formData.dureeCredit) : null,
-        mensualiteCredit: mensualiteCalculee ? mensualiteCalculee : (formData.mensualiteCredit ? parseFloat(formData.mensualiteCredit) : null),
-        capitalRestantDu: capitalRestant || null,
+      const response = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementFinancement: true,
+          dateDebutCredit: formData.dateDebutCredit ? formData.dateDebutCredit : null,
+          montantCredit: formData.montantCredit ? parseFloat(formData.montantCredit) : null,
+          tauxCredit: formData.tauxCredit ? parseFloat(formData.tauxCredit) : null,
+          dureeCredit: formData.dureeCredit ? parseInt(formData.dureeCredit) : null,
+          mensualiteCredit: mensualiteCalculee ? mensualiteCalculee : (formData.mensualiteCredit ? parseFloat(formData.mensualiteCredit) : null),
+          capitalRestantDu: capitalRestant || null,
+        })
       })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Financement enrichi avec succès')
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du financement:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (error: unknown) {
+      logger.error('[FinancementForm] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde du financement')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -244,11 +258,11 @@ export function FinancementForm({ open, onOpenChange, bienId, onSuccess }: FormD
 
           {/* Boutons */}
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              Enrichir le financement
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+              {isSubmitting ? "Enrichissement..." : "Enrichir le financement"}
             </Button>
           </div>
         </form>
@@ -264,6 +278,7 @@ export function InvestissementForm({ open, onOpenChange, bienId, onSuccess }: Fo
     travauxInitiaux: "",
     autresFrais: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Calcul automatique du total investi
   const totalInvesti = 
@@ -284,18 +299,35 @@ export function InvestissementForm({ open, onOpenChange, bienId, onSuccess }: Fo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Protection double-submit
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
-      await updateBien(bienId, {
-        enrichissementInvestissement: true,
-        prixAchat: formData.prixAchat ? parseFloat(formData.prixAchat) : null,
-        fraisNotaire: formData.fraisNotaire ? parseFloat(formData.fraisNotaire) : null,
-        travauxInitiaux: formData.travauxInitiaux ? parseFloat(formData.travauxInitiaux) : null,
-        autresFrais: formData.autresFrais ? parseFloat(formData.autresFrais) : null,
+      const response = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementInvestissement: true,
+          prixAchat: formData.prixAchat ? parseFloat(formData.prixAchat) : null,
+          fraisNotaire: formData.fraisNotaire ? parseFloat(formData.fraisNotaire) : null,
+          travauxInitiaux: formData.travauxInitiaux ? parseFloat(formData.travauxInitiaux) : null,
+          autresFrais: formData.autresFrais ? parseFloat(formData.autresFrais) : null,
+        })
       })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Investissement enrichi avec succès')
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'investissement:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (error: unknown) {
+      logger.error('[InvestissementForm] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde de l\'investissement')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -410,11 +442,11 @@ export function InvestissementForm({ open, onOpenChange, bienId, onSuccess }: Fo
 
           {/* Boutons */}
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700">
-              Enrichir l'investissement
+            <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
+              {isSubmitting ? "Enrichissement..." : "Enrichir l'investissement"}
             </Button>
           </div>
         </form>
@@ -428,6 +460,7 @@ export function HistoriqueForm({ open, onOpenChange, bienId, onSuccess }: FormDi
     dateAcquisition: "",
     dateMiseEnLocation: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Calcul de la durée entre acquisition et location
   const calculerDelai = () => {
@@ -452,16 +485,53 @@ export function HistoriqueForm({ open, onOpenChange, bienId, onSuccess }: FormDi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    try {
-      await updateBien(bienId, {
-        enrichissementHistorique: true,
-        dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
-        dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
+    // Protection double-submit
+    if (isSubmitting) return
+
+    // Valider la cohérence des dates
+    const isValid = validateAndShowErrors({
+      dateAcquisition: formData.dateAcquisition,
+      dateMiseEnLocation: formData.dateMiseEnLocation,
+    })
+
+    if (!isValid) {
+      const result = validateDatesCoherence({
+        dateAcquisition: formData.dateAcquisition,
+        dateMiseEnLocation: formData.dateMiseEnLocation,
       })
+
+      // Si ce sont uniquement des warnings (⚠️), on peut continuer
+      const hasHardErrors = result.errors.some(e => !e.startsWith('⚠️'))
+
+      if (hasHardErrors) {
+        return
+      }
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementHistorique: true,
+          dateAcquisition: formData.dateAcquisition ? formData.dateAcquisition : null,
+          dateMiseEnLocation: formData.dateMiseEnLocation ? formData.dateMiseEnLocation : null,
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Historique enrichi avec succès')
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'historique:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (error: unknown) {
+      logger.error('[HistoriqueForm] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde de l\'historique')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -544,11 +614,11 @@ export function HistoriqueForm({ open, onOpenChange, bienId, onSuccess }: FormDi
 
           {/* Boutons */}
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-              Enrichir l'historique
+            <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={isSubmitting}>
+              {isSubmitting ? "Enrichissement..." : "Enrichir l'historique"}
             </Button>
           </div>
         </form>
@@ -565,6 +635,7 @@ export function ChargesForm({ open, onOpenChange, bienId, onSuccess }: FormDialo
     fraisGestion: "",
     autresCharges: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const totalCharges = 
     parseFloat(formData.taxeFonciere || "0") +
@@ -576,20 +647,37 @@ export function ChargesForm({ open, onOpenChange, bienId, onSuccess }: FormDialo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Protection double-submit
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
-      await updateBien(bienId, {
-        enrichissementCharges: true,
-        taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
-        chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) : 0,
-        assurance: formData.assurance ? parseFloat(formData.assurance) : 0,
-        fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) : 0,
-        autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) : 0,
-        chargesMensuelles: totalCharges,
+      const response = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementCharges: true,
+          taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
+          chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) : 0,
+          assurance: formData.assurance ? parseFloat(formData.assurance) : 0,
+          fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) : 0,
+          autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) : 0,
+          chargesMensuelles: totalCharges,
+        })
       })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Charges enrichies avec succès')
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour des charges:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (error: unknown) {
+      logger.error('[ChargesForm] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde des charges')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -613,17 +701,17 @@ export function ChargesForm({ open, onOpenChange, bienId, onSuccess }: FormDialo
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="taxeFonciere">Taxe foncière (€/mois)</Label>
+                <Label htmlFor="taxeFonciere">Taxe foncière annuelle (€/an)</Label>
                 <Input
                   id="taxeFonciere"
                   type="number"
                   step="0.01"
                   value={formData.taxeFonciere}
                   onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
-                  placeholder="0"
+                  placeholder="1800"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Montant annuel divisé par 12
+                  Montant annuel (sera divisé par 12 automatiquement pour le calcul mensuel)
                 </p>
               </div>
 
@@ -697,11 +785,11 @@ export function ChargesForm({ open, onOpenChange, bienId, onSuccess }: FormDialo
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-              Enrichir les charges
+            <Button type="submit" className="bg-orange-600 hover:bg-orange-700" disabled={isSubmitting}>
+              {isSubmitting ? "Enrichissement..." : "Enrichir les charges"}
             </Button>
           </div>
         </form>
@@ -715,12 +803,18 @@ export function RentabiliteForm({ open, onOpenChange, bienId, onSuccess }: FormD
     revenusAnterieursOverride: "",
     chargesAnterieuresOverride: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Protection double-submit
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
-      // Convertir les valeurs vides en null (les inputs number retournent "" si vides)
+      // Convertir les valeurs vides en null
       const revenus = formData.revenusAnterieursOverride && formData.revenusAnterieursOverride !== ""
         ? parseFloat(formData.revenusAnterieursOverride) 
         : null
@@ -728,15 +822,27 @@ export function RentabiliteForm({ open, onOpenChange, bienId, onSuccess }: FormD
         ? parseFloat(formData.chargesAnterieuresOverride) 
         : null
 
-      await updateBien(bienId, {
-        enrichissementRentabilite: true,
-        revenusAnterieursOverride: revenus,
-        chargesAnterieuresOverride: charges,
+      const response = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementRentabilite: true,
+          revenusAnterieursOverride: revenus,
+          chargesAnterieuresOverride: charges,
+        })
       })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      toast.success('Rentabilité enrichie avec succès')
       onSuccess()
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de la rentabilité:", error)
-      alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (error: unknown) {
+      logger.error('[RentabiliteForm] Erreur sauvegarde:', error)
+      toast.error('Erreur lors de la sauvegarde de la rentabilité')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -797,11 +903,11 @@ export function RentabiliteForm({ open, onOpenChange, bienId, onSuccess }: FormD
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-              Enrichir la rentabilité
+            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>
+              {isSubmitting ? "Enrichissement..." : "Enrichir la rentabilité"}
             </Button>
           </div>
         </form>
@@ -820,48 +926,68 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
     montantAPL: "",
     modePaiement: "virement",
   })
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
-
-  const loyerAPLDeduit = formData.montantAPL 
-    ? `Loyer après APL sera déduit automatiquement`
-    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+
+    // Protection double-submit
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
     setError("")
 
     // Validation : nom et prénom sont obligatoires
     if (!formData.nomLocataire.trim() || !formData.prenomLocataire.trim()) {
       setError("Le nom et le prénom sont obligatoires")
-      setIsLoading(false)
+      setIsSubmitting(false)
       return
     }
 
     try {
-      // 1. Sauvegarder les données locataire dans la table locataires
-      await upsertLocataire(bienId, {
-        nom: formData.nomLocataire.trim(),
-        prenom: formData.prenomLocataire.trim(),
-        email: formData.emailLocataire.trim() || null,
-        telephone: formData.telephoneLocataire.trim() || null,
-        dateEntree: formData.dateEntree || null,
-        montantAPL: parseFloat(formData.montantAPL || "0"),
-        modePaiement: formData.modePaiement,
+      // Appel API sécurisé pour upsert locataire
+      const locataireResponse = await fetch(`/api/biens/${bienId}/locataire`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: formData.nomLocataire.trim(),
+          prenom: formData.prenomLocataire.trim(),
+          email: formData.emailLocataire.trim() || null,
+          telephone: formData.telephoneLocataire.trim() || null,
+          dateEntree: formData.dateEntree || null,
+          montantAPL: parseFloat(formData.montantAPL || "0"),
+          modePaiement: formData.modePaiement,
+        })
       })
-      
-      // 2. Activer le flag enrichissement
-      await updateBien(bienId, {
-        enrichissementLocataire: true,
+
+      if (!locataireResponse.ok) {
+        const errorData = await locataireResponse.json()
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde')
+      }
+
+      // Activer le flag enrichissement sur le bien
+      const bienResponse = await fetch(`/api/biens/${bienId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enrichissementLocataire: true,
+        })
       })
-      
+
+      if (!bienResponse.ok) {
+        throw new Error('Erreur lors de la mise à jour du bien')
+      }
+
+      toast.success('Locataire enrichi avec succès')
       onSuccess()
-    } catch (err: any) {
-      console.error("Erreur lors de la mise à jour du locataire:", err)
-      setError(err.message || "Erreur lors de la sauvegarde. Veuillez réessayer.")
+    } catch (err: unknown) {
+      logger.error('[LocataireForm] Erreur sauvegarde:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -994,16 +1120,16 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
               Annuler
             </Button>
             <Button 
               type="submit" 
               className="bg-teal-600 hover:bg-teal-700"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
-              {isLoading ? "Enregistrement..." : "Enrichir le locataire"}
+              {isSubmitting ? "Enrichissement..." : "Enrichir le locataire"}
             </Button>
           </div>
         </form>
@@ -1016,11 +1142,20 @@ export function LocataireForm({ open, onOpenChange, bienId, onSuccess }: FormDia
 // NOTE: Cette fonction ne recharge plus la page. Le composant parent doit gérer le refresh.
 export async function enrichirThemeSimple(bienId: string, champ: string) {
   try {
-    await updateBien(bienId, { [champ]: true })
+    const response = await fetch(`/api/biens/${bienId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [champ]: true })
+    })
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la mise à jour')
+    }
+
     // Le parent doit appeler router.refresh() ou fetchBien() après cette fonction
-  } catch (error) {
-    console.error("Erreur lors de l'enrichissement:", error)
-    alert("Erreur lors de la sauvegarde. Veuillez réessayer.")
+  } catch (error: unknown) {
+    logger.error('[EnrichirThemeSimple] Erreur:', error)
+    toast.error('Erreur lors de l\'enrichissement')
     throw error
   }
 }
