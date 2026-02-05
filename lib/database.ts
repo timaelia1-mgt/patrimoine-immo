@@ -1,6 +1,7 @@
 import { createClient } from "./supabase/client"
 import type { PlanType } from "./stripe"
 import { PLANS } from "./stripe"
+import { logger } from "./logger"
 
 // Types
 export interface Bien {
@@ -595,5 +596,108 @@ export async function upsertLoyer(
     datePaiementAPL: data.date_paiement_apl || data.datePaiementAPL || null,
     createdAt: data.created_at || data.createdAt || new Date().toISOString(),
     updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+  }
+}
+
+// ============================================
+// INVESTISSEMENTS SECONDAIRES
+// ============================================
+
+export interface InvestissementSecondaire {
+  id: string
+  bienId: string
+  date: string
+  description: string
+  montant: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+/**
+ * Récupère tous les investissements secondaires d'un bien
+ */
+export async function getInvestissementsSecondaires(
+  bienId: string
+): Promise<InvestissementSecondaire[]> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('investissements_secondaires')
+    .select('*')
+    .eq('bien_id', bienId)
+    .order('date', { ascending: false })
+  
+  if (error) {
+    logger.error('[getInvestissementsSecondaires] Erreur:', error)
+    throw new Error('Impossible de récupérer les investissements secondaires')
+  }
+  
+  return (data || []).map((inv) => ({
+    id: inv.id,
+    bienId: inv.bien_id,
+    date: inv.date,
+    description: inv.description,
+    montant: parseFloat(inv.montant?.toString() || '0'),
+    createdAt: inv.created_at,
+    updatedAt: inv.updated_at,
+  }))
+}
+
+/**
+ * Crée un nouvel investissement secondaire
+ */
+export async function createInvestissementSecondaire(
+  bienId: string,
+  data: {
+    date: string
+    description: string
+    montant: number
+  }
+): Promise<InvestissementSecondaire> {
+  const supabase = createClient()
+  
+  const { data: result, error } = await supabase
+    .from('investissements_secondaires')
+    .insert({
+      bien_id: bienId,
+      date: data.date,
+      description: data.description,
+      montant: data.montant,
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    logger.error('[createInvestissementSecondaire] Erreur:', error)
+    throw new Error('Impossible de créer l\'investissement secondaire')
+  }
+  
+  return {
+    id: result.id,
+    bienId: result.bien_id,
+    date: result.date,
+    description: result.description,
+    montant: parseFloat(result.montant?.toString() || '0'),
+    createdAt: result.created_at,
+    updatedAt: result.updated_at,
+  }
+}
+
+/**
+ * Supprime un investissement secondaire
+ */
+export async function deleteInvestissementSecondaire(
+  id: string
+): Promise<void> {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('investissements_secondaires')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    logger.error('[deleteInvestissementSecondaire] Erreur:', error)
+    throw new Error('Impossible de supprimer l\'investissement secondaire')
   }
 }

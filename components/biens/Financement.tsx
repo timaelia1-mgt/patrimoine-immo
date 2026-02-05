@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { validateAndShowErrors, validateDatesCoherence } from "@/lib/validations"
 
 interface FinancementProps {
   bien: any
@@ -90,6 +91,29 @@ export function Financement({ bien }: FinancementProps) {
 
   const handleSave = async () => {
     setLoading(true)
+    
+    // Valider la cohérence des dates si date acquisition existe
+    if (bien.dateAcquisition && formData.dateDebutCredit) {
+      const isValid = validateAndShowErrors({
+        dateAcquisition: bien.dateAcquisition,
+        dateDebutCredit: formData.dateDebutCredit,
+      })
+      
+      if (!isValid) {
+        const result = validateDatesCoherence({
+          dateAcquisition: bien.dateAcquisition,
+          dateDebutCredit: formData.dateDebutCredit,
+        })
+        
+        const hasHardErrors = result.errors.some(e => !e.startsWith('⚠️'))
+        
+        if (hasHardErrors) {
+          setLoading(false)
+          return
+        }
+      }
+    }
+    
     try {
       const response = await fetch(`/api/biens/${bien.id}`, {
         method: 'PUT',

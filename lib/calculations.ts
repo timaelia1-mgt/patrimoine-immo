@@ -192,3 +192,138 @@ export function calculateMensualiteCredit(
   
   return Math.round(mensualite * 100) / 100
 }
+
+/**
+ * Calcule le TRI (Taux de Rendement Interne) d'un investissement immobilier
+ * Utilise la méthode de Newton-Raphson pour résoudre l'équation de VAN = 0
+ * 
+ * @param investissementInitial - Montant investi au départ (négatif)
+ * @param fluxAnnuels - Tableau des cash-flows annuels (positifs ou négatifs)
+ * @returns TRI en pourcentage (ex: 5.2 pour 5.2%) ou null si pas calculable
+ */
+export function calculateTRI(
+  investissementInitial: number,
+  fluxAnnuels: number[]
+): number | null {
+  // Validation des données
+  if (investissementInitial <= 0 || fluxAnnuels.length === 0) {
+    return null
+  }
+  
+  // Si tous les flux sont négatifs ou nuls, pas de TRI positif possible
+  const sommeFlux = fluxAnnuels.reduce((sum, flux) => sum + flux, 0)
+  if (sommeFlux <= 0) {
+    return null
+  }
+  
+  // Fonction VAN (Valeur Actuelle Nette)
+  const calculerVAN = (taux: number): number => {
+    let van = -investissementInitial
+    for (let t = 0; t < fluxAnnuels.length; t++) {
+      van += fluxAnnuels[t] / Math.pow(1 + taux, t + 1)
+    }
+    return van
+  }
+  
+  // Dérivée de la VAN
+  const calculerDeriveeVAN = (taux: number): number => {
+    let derivee = 0
+    for (let t = 0; t < fluxAnnuels.length; t++) {
+      derivee -= (t + 1) * fluxAnnuels[t] / Math.pow(1 + taux, t + 2)
+    }
+    return derivee
+  }
+  
+  // Méthode de Newton-Raphson
+  let taux = 0.1 // Estimation initiale : 10%
+  const maxIterations = 100
+  const precision = 0.0001 // 0.01%
+  
+  for (let i = 0; i < maxIterations; i++) {
+    const van = calculerVAN(taux)
+    const derivee = calculerDeriveeVAN(taux)
+    
+    // Éviter division par zéro
+    if (Math.abs(derivee) < 0.000001) {
+      break
+    }
+    
+    const nouveauTaux = taux - van / derivee
+    
+    // Vérifier la convergence
+    if (Math.abs(nouveauTaux - taux) < precision) {
+      // Limiter le TRI à des valeurs raisonnables (-100% à +100%)
+      const triPourcentage = nouveauTaux * 100
+      if (triPourcentage < -100 || triPourcentage > 100) {
+        return null
+      }
+      return Math.round(triPourcentage * 10) / 10 // Arrondi à 1 décimale
+    }
+    
+    taux = nouveauTaux
+    
+    // Éviter les taux négatifs extrêmes
+    if (taux < -0.99) {
+      taux = -0.99
+    }
+  }
+  
+  // Pas de convergence
+  return null
+}
+
+/**
+ * Calcule le TRI d'un bien immobilier en se basant sur son historique
+ * 
+ * @param bien - Objet bien avec toutes ses données
+ * @param loyerMensuel - Loyer mensuel actuel
+ * @param chargesMensuelles - Charges mensuelles actuelles
+ * @param mensualiteCredit - Mensualité du crédit
+ * @param moisPossession - Nombre de mois de possession
+ * @returns TRI en pourcentage ou null
+ */
+export function calculateTRIBien(
+  bien: any,
+  loyerMensuel: number,
+  chargesMensuelles: number,
+  mensualiteCredit: number,
+  moisPossession: number
+): number | null {
+  // Investissement initial
+  const prixAchat = parseFloat(bien.prixAchat?.toString() || "0")
+  const fraisNotaire = parseFloat(bien.fraisNotaire?.toString() || "0")
+  const travauxInitiaux = parseFloat(bien.travauxInitiaux?.toString() || "0")
+  const autresFrais = parseFloat(bien.autresFrais?.toString() || "0")
+  const investissementInitial = prixAchat + fraisNotaire + travauxInitiaux + autresFrais
+  
+  // Si pas d'investissement, pas de TRI
+  if (investissementInitial === 0) {
+    return null
+  }
+  
+  // Cash-flow mensuel
+  const cashFlowMensuel = loyerMensuel - chargesMensuelles - mensualiteCredit
+  
+  // Convertir en flux annuels
+  const anneesCompletes = Math.floor(moisPossession / 12)
+  const moisRestants = moisPossession % 12
+  
+  const fluxAnnuels: number[] = []
+  
+  // Années complètes
+  for (let i = 0; i < anneesCompletes; i++) {
+    fluxAnnuels.push(cashFlowMensuel * 12)
+  }
+  
+  // Année partielle
+  if (moisRestants > 0) {
+    fluxAnnuels.push(cashFlowMensuel * moisRestants)
+  }
+  
+  // Si pas assez d'historique (moins de 6 mois), pas de TRI fiable
+  if (moisPossession < 6) {
+    return null
+  }
+  
+  return calculateTRI(investissementInitial, fluxAnnuels)
+}

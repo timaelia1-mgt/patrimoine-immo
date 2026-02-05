@@ -6,25 +6,25 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/calculations"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { 
+  getInvestissementsSecondaires,
+  createInvestissementSecondaire,
+  deleteInvestissementSecondaire,
+  type InvestissementSecondaire
+} from '@/lib/database'
 
 interface InvestissementProps {
   bien: any
-}
-
-interface InvestissementSecondaire {
-  id: string
-  date: string
-  description: string
-  montant: number
 }
 
 export function Investissement({ bien }: InvestissementProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingSecondaires, setLoadingSecondaires] = useState(true)
   const [formData, setFormData] = useState({
     prixAchat: bien.prixAchat?.toString() || "0",
     fraisNotaire: bien.fraisNotaire?.toString() || "0",
@@ -32,16 +32,24 @@ export function Investissement({ bien }: InvestissementProps) {
     autresFrais: bien.autresFrais?.toString() || "0",
   })
 
-  // Investissements secondaires (stockés dans localStorage)
-  const [investissementsSecondaires, setInvestissementsSecondaires] = useState<InvestissementSecondaire[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`investissements-secondaires-${bien.id}`)
-      if (saved) {
-        return JSON.parse(saved)
+  // Investissements secondaires (stockés en base de données)
+  const [investissementsSecondaires, setInvestissementsSecondaires] = useState<InvestissementSecondaire[]>([])
+
+  useEffect(() => {
+    const fetchInvestissements = async () => {
+      try {
+        const data = await getInvestissementsSecondaires(bien.id)
+        setInvestissementsSecondaires(data)
+      } catch (error: unknown) {
+        logger.error('[Investissement] Erreur chargement:', error)
+        toast.error('Impossible de charger les investissements secondaires')
+      } finally {
+        setLoadingSecondaires(false)
       }
     }
-    return []
-  })
+    
+    fetchInvestissements()
+  }, [bien.id])
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [newInvestissement, setNewInvestissement] = useState({
@@ -93,40 +101,49 @@ export function Investissement({ bien }: InvestissementProps) {
     }
   }
 
-  const handleAddInvestissement = () => {
+  const handleAddInvestissement = async () => {
     if (!newInvestissement.description || !newInvestissement.montant) {
       toast.error('Veuillez remplir tous les champs')
       return
     }
-
-    const nouveauInv: InvestissementSecondaire = {
-      id: Date.now().toString(),
-      date: newInvestissement.date,
-      description: newInvestissement.description,
-      montant: parseFloat(newInvestissement.montant),
+    
+    try {
+      const nouveauInv = await createInvestissementSecondaire(bien.id, {
+        date: newInvestissement.date,
+        description: newInvestissement.description,
+        montant: parseFloat(newInvestissement.montant),
+      })
+      
+      setInvestissementsSecondaires([nouveauInv, ...investissementsSecondaires])
+      
+      // Réinitialiser le formulaire
+      setNewInvestissement({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        montant: '',
+      })
+      setShowAddForm(false)
+      
+      toast.success('Investissement ajouté avec succès')
+    } catch (error: unknown) {
+      logger.error('[Investissement] Erreur ajout:', error)
+      toast.error('Impossible d\'ajouter l\'investissement')
     }
-
-    const updated = [...investissementsSecondaires, nouveauInv]
-    setInvestissementsSecondaires(updated)
-    
-    // Sauvegarder dans localStorage
-    localStorage.setItem(`investissements-secondaires-${bien.id}`, JSON.stringify(updated))
-    
-    // Réinitialiser le formulaire
-    setNewInvestissement({
-      date: new Date().toISOString().split('T')[0],
-      description: "",
-      montant: "",
-    })
-    setShowAddForm(false)
   }
 
-  const handleDeleteInvestissement = (id: string) => {
-    if (!window.confirm("Supprimer cet investissement ?")) return
-
-    const updated = investissementsSecondaires.filter(inv => inv.id !== id)
-    setInvestissementsSecondaires(updated)
-    localStorage.setItem(`investissements-secondaires-${bien.id}`, JSON.stringify(updated))
+  const handleDeleteInvestissement = async (id: string) => {
+    if (!window.confirm('Supprimer cet investissement ?')) return
+    
+    try {
+      await deleteInvestissementSecondaire(id)
+      setInvestissementsSecondaires(
+        investissementsSecondaires.filter(inv => inv.id !== id)
+      )
+      toast.success('Investissement supprimé')
+    } catch (error: unknown) {
+      logger.error('[Investissement] Erreur suppression:', error)
+      toast.error('Impossible de supprimer l\'investissement')
+    }
   }
 
   // Estimation frais de notaire
@@ -321,7 +338,11 @@ export function Investissement({ bien }: InvestissementProps) {
           )}
 
           {/* Liste des investissements */}
-          {investissementsSecondaires.length > 0 ? (
+          {loadingSecondaires ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Chargement des investissements...</p>
+            </div>
+          ) : investissementsSecondaires.length > 0 ? (
             <div className="space-y-2">
               {investissementsSecondaires.map((inv) => (
                 <div key={inv.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50">

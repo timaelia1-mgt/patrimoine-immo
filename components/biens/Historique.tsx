@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { validateAndShowErrors, validateDatesCoherence } from "@/lib/validations"
 
 interface HistoriqueProps {
   bien: any
@@ -24,6 +25,29 @@ export function Historique({ bien }: HistoriqueProps) {
 
   const handleSave = async () => {
     setLoading(true)
+    
+    // Valider la cohérence des dates
+    const isValid = validateAndShowErrors({
+      dateAcquisition: formData.dateAcquisition,
+      dateMiseEnLocation: formData.dateMiseEnLocation,
+    })
+    
+    // Permettre la sauvegarde même avec warnings (⚠️) mais bloquer les erreurs
+    if (!isValid) {
+      const result = validateDatesCoherence({
+        dateAcquisition: formData.dateAcquisition,
+        dateMiseEnLocation: formData.dateMiseEnLocation,
+      })
+      
+      // Si ce sont uniquement des warnings (⚠️), on peut continuer
+      const hasHardErrors = result.errors.some(e => !e.startsWith('⚠️'))
+      
+      if (hasHardErrors) {
+        setLoading(false)
+        return
+      }
+    }
+    
     try {
       const response = await fetch(`/api/biens/${bien.id}`, {
         method: 'PUT',

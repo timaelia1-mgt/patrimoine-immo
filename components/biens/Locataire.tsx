@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/calculations"
-import { getLocataire, upsertLocataire } from "@/lib/database"
+import { upsertLocataire } from "@/lib/database"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
+import { validateAndShowErrors, validateDatesCoherence } from "@/lib/validations"
 
 interface LocataireProps {
   bien: any
@@ -33,19 +34,24 @@ export function Locataire({ bien }: LocataireProps) {
   useEffect(() => {
     const fetchLocataire = async () => {
       try {
-        const data = await getLocataire(bien.id)
-        if (data) {
-          setFormData({
-            nom: data.nom || "",
-            prenom: data.prenom || "",
-            email: data.email || "",
-            telephone: data.telephone || "",
-            dateEntree: data.dateEntree ? new Date(data.dateEntree).toISOString().split("T")[0] : "",
-            montantAPL: data.montantAPL?.toString() || "0",
-            modePaiement: data.modePaiement || "virement",
-          })
+        const response = await fetch(`/api/biens/${bien.id}/locataire`)
+        
+        if (response.ok) {
+          const { locataire } = await response.json()
+          
+          if (locataire) {
+            setFormData({
+              nom: locataire.nom || "",
+              prenom: locataire.prenom || "",
+              email: locataire.email || "",
+              telephone: locataire.telephone || "",
+              dateEntree: locataire.dateEntree ? new Date(locataire.dateEntree).toISOString().split("T")[0] : "",
+              montantAPL: locataire.montantAPL?.toString() || "0",
+              modePaiement: locataire.modePaiement || "virement",
+            })
+          }
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('[Locataire] Erreur chargement:', error)
         toast.error('Impossible de charger les informations du locataire')
       } finally {
@@ -57,12 +63,33 @@ export function Locataire({ bien }: LocataireProps) {
   }, [bien.id])
 
   const handleSave = async () => {
-    try {
-      if (!formData.nom || !formData.prenom) {
-        toast.error('Le nom et le prénom sont obligatoires')
-        return
+    if (!formData.nom || !formData.prenom) {
+      toast.error('Le nom et le prénom sont obligatoires')
+      return
+    }
+    
+    // Valider la cohérence des dates si date entrée existe
+    if (bien.dateMiseEnLocation && formData.dateEntree) {
+      const isValid = validateAndShowErrors({
+        dateMiseEnLocation: bien.dateMiseEnLocation,
+        dateEntreeLocataire: formData.dateEntree,
+      })
+      
+      if (!isValid) {
+        const result = validateDatesCoherence({
+          dateMiseEnLocation: bien.dateMiseEnLocation,
+          dateEntreeLocataire: formData.dateEntree,
+        })
+        
+        const hasHardErrors = result.errors.some(e => !e.startsWith('⚠️'))
+        
+        if (hasHardErrors) {
+          return
+        }
       }
+    }
 
+    try {
       await upsertLocataire(bien.id, {
         nom: formData.nom,
         prenom: formData.prenom,

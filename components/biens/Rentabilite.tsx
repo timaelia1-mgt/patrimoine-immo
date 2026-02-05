@@ -1,7 +1,9 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
+import { formatCurrency, calculateChargesMensuelles, calculateTRIBien } from "@/lib/calculations"
+import { CashFlowChart } from './rentabilite/CashFlowChart'
+import { ChargesBreakdown } from './rentabilite/ChargesBreakdown'
 
 interface RentabiliteProps {
   bien: any
@@ -67,6 +69,15 @@ export function Rentabilite({ bien }: RentabiliteProps) {
   // ROI si le bien était revendu maintenant au prix d'achat
   const roi = investissementTotal > 0 ? (bilanNet / investissementTotal) * 100 : 0
 
+  // Calculer le TRI
+  const tri = calculateTRIBien(
+    bien,
+    loyerMensuel,
+    totalCharges,
+    mensualiteCredit,
+    moisPossession
+  )
+
   return (
     <div className="space-y-6">
       {/* Alerte si données manquantes */}
@@ -122,7 +133,7 @@ export function Rentabilite({ bien }: RentabiliteProps) {
       </div>
       
       {/* Section 2: Performance financière */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground">Cash-flow annuel</CardTitle>
@@ -168,6 +179,57 @@ export function Rentabilite({ bien }: RentabiliteProps) {
             </p>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">TRI</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tri !== null ? (
+              <>
+                <p className={`text-2xl font-bold ${
+                  tri > 0 ? "text-green-600" : "text-red-600"
+                }`}>
+                  {tri > 0 ? "+" : ""}{tri.toFixed(1)}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Taux de rendement interne
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-slate-400">-</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {moisPossession < 6 
+                    ? "Historique insuffisant (min 6 mois)"
+                    : investissementTotal === 0
+                    ? "Données manquantes"
+                    : "Non calculable"
+                  }
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Section 2.5: Graphiques d'analyse */}
+      <div className="grid grid-cols-2 gap-4">
+        <CashFlowChart
+          loyerMensuel={loyerMensuel}
+          totalCharges={totalCharges}
+          mensualiteCredit={mensualiteCredit}
+          moisPossession={moisPossession}
+        />
+        
+        <ChargesBreakdown
+          taxeFonciere={parseFloat(bien.taxeFonciere?.toString() || "0")}
+          chargesCopro={parseFloat(bien.chargesCopro?.toString() || "0")}
+          assurance={parseFloat(bien.assurance?.toString() || "0")}
+          fraisGestion={parseFloat(bien.fraisGestion?.toString() || "0")}
+          autresCharges={parseFloat(bien.autresCharges?.toString() || "0")}
+          mensualiteCredit={mensualiteCredit}
+        />
       </div>
 
       {/* Section 3: Revenus et charges cumulés (ancien contenu conservé) */}
@@ -242,6 +304,12 @@ export function Rentabilite({ bien }: RentabiliteProps) {
           <div>
             <strong>ROI :</strong> Retour sur investissement depuis l&apos;achat. 
             Plus il est élevé, plus vite vous rentabilisez votre investissement initial.
+          </div>
+          <div>
+            <strong>TRI (Taux de Rendement Interne) :</strong> Taux d&apos;actualisation qui égalise 
+            la valeur actuelle des revenus et de l&apos;investissement initial. 
+            Un TRI &gt; 5% est généralement considéré comme excellent pour l&apos;immobilier locatif. 
+            Plus le TRI est élevé, plus l&apos;investissement est rentable sur le long terme.
           </div>
         </CardContent>
       </Card>
