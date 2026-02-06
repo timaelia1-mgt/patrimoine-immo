@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { generateQuittancePDF, QuittanceData } from '@/lib/generateQuittance'
+import { logger } from '@/lib/logger'
+import { toast } from 'sonner'
 
 interface QuittanceModalProps {
   isOpen: boolean
@@ -13,8 +15,7 @@ interface QuittanceModalProps {
 
 export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: QuittanceModalProps) {
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [loadingDownload, setLoadingDownload] = useState(false)
   const [datePayeLocataire, setDatePayeLocataire] = useState('')
   const [datePayeAPL, setDatePayeAPL] = useState('')
 
@@ -31,25 +32,136 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
 
   const MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
 
-  const handleDownload = () => {
-    const quittanceData: QuittanceData = {
-      ...data,
-      datePayeLocataire,
-      datePayeAPL,
+  const handleClose = () => {
+    if (loading || loadingDownload) {
+      if (confirm('Une opération est en cours. Voulez-vous vraiment fermer ?')) {
+        onClose()
+      }
+    } else {
+      onClose()
     }
-    const doc = generateQuittancePDF(quittanceData)
-    doc.save(`Quittance_${MOIS_NOMS[data.mois - 1]}_${data.annee}_${data.bienNom.replace(/\s+/g, '_')}.pdf`)
+  }
+
+  const handleDownload = async () => {
+    // Validation des dates
+    if (!datePayeLocataire) {
+      toast.error('Veuillez sélectionner la date de paiement du locataire')
+      return
+    }
+    
+    if (data.montantAPL > 0 && !datePayeAPL) {
+      toast.error('Veuillez sélectionner la date de paiement APL')
+      return
+    }
+    
+    // Vérifier que les dates ne sont pas trop dans le futur
+    const today = new Date()
+    const dateLocataire = new Date(datePayeLocataire)
+    const diffJoursLocataire = Math.floor((dateLocataire.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffJoursLocataire > 30) {
+      toast.error('La date de paiement locataire ne peut pas être à plus de 30 jours dans le futur')
+      return
+    }
+    
+    if (data.montantAPL > 0 && datePayeAPL) {
+      const dateAPL = new Date(datePayeAPL)
+      const diffJoursAPL = Math.floor((dateAPL.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      
+      if (diffJoursAPL > 30) {
+        toast.error('La date de paiement APL ne peut pas être à plus de 30 jours dans le futur')
+        return
+      }
+    }
+    
+    setLoadingDownload(true)
+    
+    try {
+      const quittanceData: QuittanceData = {
+        ...data,
+        datePayeLocataire,
+        datePayeAPL,
+      }
+
+      const doc = generateQuittancePDF(quittanceData)
+      doc.save(`Quittance_${MOIS_NOMS[data.mois - 1]}_${data.annee}_${data.bienNom.replace(/\s+/g, '_')}.pdf`)
+
+      logger.info('[QuittanceModal] PDF téléchargé', {
+        bienId: data.bienId,
+        mois: data.mois,
+        annee: data.annee
+      })
+
+      // Sauvegarder en DB (silencieux si erreur)
+      try {
+        await fetch(`/api/biens/${data.bienId}/quittances`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mois: data.mois,
+            annee: data.annee,
+            locataireNom: data.locataireNom,
+            locatairePrenom: data.locatairePrenom,
+            locataireEmail: locataireEmail || null,
+            montantLocataire: data.montantLocataire,
+            montantAPL: data.montantAPL,
+            datePayeLocataire,
+            datePayeAPL: data.montantAPL > 0 ? datePayeAPL : null,
+            modePaiement: data.modePaiement,
+            emailEnvoye: false,
+          })
+        })
+      } catch (dbError: unknown) {
+        logger.error('[QuittanceModal] Erreur sauvegarde DB:', dbError)
+      }
+
+      toast.success('Quittance téléchargée et sauvegardée')
+    } catch (error: unknown) {
+      logger.error('[QuittanceModal] Erreur téléchargement PDF:', error)
+      toast.error('Erreur lors du téléchargement de la quittance')
+    } finally {
+      setLoadingDownload(false)
+    }
   }
 
   const handleSendEmail = async () => {
+    // Validation des dates
+    if (!datePayeLocataire) {
+      toast.error('Veuillez sélectionner la date de paiement du locataire')
+      return
+    }
+    
+    if (data.montantAPL > 0 && !datePayeAPL) {
+      toast.error('Veuillez sélectionner la date de paiement APL')
+      return
+    }
+    
+    // Vérifier que les dates ne sont pas trop dans le futur
+    const today = new Date()
+    const dateLocataire = new Date(datePayeLocataire)
+    const diffJoursLocataire = Math.floor((dateLocataire.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffJoursLocataire > 30) {
+      toast.error('La date de paiement locataire ne peut pas être à plus de 30 jours dans le futur')
+      return
+    }
+    
+    if (data.montantAPL > 0 && datePayeAPL) {
+      const dateAPL = new Date(datePayeAPL)
+      const diffJoursAPL = Math.floor((dateAPL.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      
+      if (diffJoursAPL > 30) {
+        toast.error('La date de paiement APL ne peut pas être à plus de 30 jours dans le futur')
+        return
+      }
+    }
+    
     if (!locataireEmail) {
-      setError('Email du locataire non configuré. Ajoutez-le dans l\'enrichissement Locataire.')
+      toast.error('Email du locataire non configuré. Ajoutez-le dans l\'enrichissement Locataire.')
       return
     }
 
     setLoading(true)
-    setError('')
-    setSuccess('')
 
     try {
       const quittanceData: QuittanceData = {
@@ -57,9 +169,18 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
         datePayeLocataire,
         datePayeAPL,
       }
+
       const doc = generateQuittancePDF(quittanceData)
+
       // Convertir le PDF en base64
       const pdfBase64 = doc.output('datauristring').split(',')[1]
+
+      logger.info('[QuittanceModal] Envoi email quittance', {
+        bienId: data.bienId,
+        locataireEmail,
+        mois: data.mois,
+        annee: data.annee
+      })
 
       const response = await fetch('/api/send-quittance', {
         method: 'POST',
@@ -72,6 +193,12 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
           mois: data.mois,
           annee: data.annee,
           bienNom: data.bienNom,
+          bienId: data.bienId,
+          montantLocataire: data.montantLocataire,
+          montantAPL: data.montantAPL,
+          datePayeLocataire,
+          datePayeAPL: data.montantAPL > 0 ? datePayeAPL : null,
+          modePaiement: data.modePaiement,
         }),
       })
 
@@ -81,9 +208,26 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
         throw new Error(result.error || 'Erreur lors de l\'envoi')
       }
 
-      setSuccess('Email envoyé avec succès au locataire !')
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'envoi')
+      logger.info('[QuittanceModal] Email envoyé avec succès', {
+        bienId: data.bienId,
+        locataireEmail
+      })
+
+      toast.success('Email envoyé avec succès au locataire !')
+
+      // Fermer le modal après 1.5s
+      setTimeout(() => {
+        onClose()
+      }, 1500)
+
+    } catch (error: unknown) {
+      logger.error('[QuittanceModal] Erreur envoi email:', error)
+
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Erreur lors de l\'envoi'
+
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -101,7 +245,7 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
             </p>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             className="text-slate-400 hover:text-white transition-colors"
             aria-label="Fermer"
           >
@@ -134,18 +278,6 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
             <span className="text-emerald-400 font-bold">{(data.montantLocataire + data.montantAPL).toFixed(2)} €</span>
           </div>
         </div>
-
-        {/* Messages */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-            <p className="text-emerald-400 text-sm">{success}</p>
-          </div>
-        )}
 
         {/* Dates de paiement */}
         <div className="space-y-4 mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
@@ -184,16 +316,26 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
               </p>
             </div>
           </div>
+          
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-xs text-blue-900 dark:text-blue-200">
+              💡 <strong>Info :</strong> Les dates de paiement ne peuvent pas être à plus de 30 jours dans le futur.
+            </p>
+          </div>
         </div>
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-8">
-          <Button onClick={handleDownload} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white">
-            📥 Télécharger le PDF
+          <Button 
+            onClick={handleDownload} 
+            disabled={loadingDownload || loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingDownload ? '⏳ Téléchargement...' : '📥 Télécharger le PDF'}
           </Button>
           <Button 
             onClick={handleSendEmail} 
-            disabled={loading || !locataireEmail}
+            disabled={loading || loadingDownload || !locataireEmail}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '📧 Envoi...' : '📧 Envoyer par email au locataire'}

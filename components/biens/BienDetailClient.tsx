@@ -21,6 +21,7 @@ import { Historique } from "@/components/biens/Historique"
 import { Rentabilite } from "@/components/biens/Rentabilite"
 import { Locataire } from "@/components/biens/Locataire"
 import { FinancementForm, InvestissementForm, HistoriqueForm, ChargesForm, RentabiliteForm, LocataireForm } from "@/components/biens/EnrichissementForms"
+import { HistoriqueQuittances } from "@/components/biens/HistoriqueQuittances"
 import { updateBien, deleteBien, type Bien } from "@/lib/database"
 
 interface BienDetailClientProps {
@@ -235,7 +236,19 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
         </TabsContent>
 
         <TabsContent value="loyers">
-          <Loyers bien={bien} />
+          <div className="space-y-6">
+            <Loyers bien={bien} />
+            
+            {/* Historique des quittances */}
+            <HistoriqueQuittances
+              bienId={bien.id}
+              bienNom={bien.nom}
+              bienAdresse={bien.adresse}
+              bienVille={bien.ville}
+              bienCodePostal={bien.codePostal}
+              proprietaireNom="Propriétaire"
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="charges">

@@ -701,3 +701,184 @@ export async function deleteInvestissementSecondaire(
     throw new Error('Impossible de supprimer l\'investissement secondaire')
   }
 }
+
+// ==================== QUITTANCES ====================
+
+export interface QuittanceDB {
+  id: string
+  userId: string
+  bienId: string
+  mois: number
+  annee: number
+  locataireNom: string
+  locatairePrenom: string
+  locataireEmail: string | null
+  montantLocataire: number
+  montantAPL: number
+  montantTotal: number
+  datePayeLocataire: string
+  datePayeAPL: string | null
+  modePaiement: string
+  emailEnvoye: boolean
+  dateEnvoiEmail: string | null
+  pdfUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function createQuittance(
+  data: {
+    bienId: string
+    mois: number
+    annee: number
+    locataireNom: string
+    locatairePrenom: string
+    locataireEmail: string | null
+    montantLocataire: number
+    montantAPL: number
+    montantTotal: number
+    datePayeLocataire: string
+    datePayeAPL: string | null
+    modePaiement: string
+    emailEnvoye?: boolean
+    dateEnvoiEmail?: string | null
+  }
+): Promise<QuittanceDB> {
+  const supabase = createClient()
+  
+  const { data: quittance, error } = await supabase
+    .from('quittances')
+    .insert({
+      bien_id: data.bienId,
+      mois: data.mois,
+      annee: data.annee,
+      locataire_nom: data.locataireNom,
+      locataire_prenom: data.locatairePrenom,
+      locataire_email: data.locataireEmail,
+      montant_locataire: data.montantLocataire,
+      montant_apl: data.montantAPL,
+      montant_total: data.montantTotal,
+      date_paye_locataire: data.datePayeLocataire,
+      date_paye_apl: data.datePayeAPL,
+      mode_paiement: data.modePaiement,
+      email_envoye: data.emailEnvoye || false,
+      date_envoi_email: data.dateEnvoiEmail || null,
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    logger.error('[createQuittance] Erreur:', error)
+    throw error
+  }
+  
+  return convertQuittanceFromSupabase(quittance)
+}
+
+export async function getQuittancesByBien(bienId: string): Promise<QuittanceDB[]> {
+  const supabase = createClient()
+  
+  const { data: quittances, error } = await supabase
+    .from('quittances')
+    .select('*')
+    .eq('bien_id', bienId)
+    .order('annee', { ascending: false })
+    .order('mois', { ascending: false })
+  
+  if (error) {
+    logger.error('[getQuittancesByBien] Erreur:', error)
+    throw error
+  }
+  
+  return (quittances || []).map(convertQuittanceFromSupabase)
+}
+
+export async function getQuittancesByUser(userId: string): Promise<QuittanceDB[]> {
+  const supabase = createClient()
+  
+  const { data: quittances, error } = await supabase
+    .from('quittances')
+    .select(`
+      *,
+      biens (
+        nom,
+        adresse,
+        ville,
+        code_postal
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    logger.error('[getQuittancesByUser] Erreur:', error)
+    throw error
+  }
+  
+  return (quittances || []).map(convertQuittanceFromSupabase)
+}
+
+export async function getQuittance(bienId: string, mois: number, annee: number): Promise<QuittanceDB | null> {
+  const supabase = createClient()
+  
+  const { data: quittance, error } = await supabase
+    .from('quittances')
+    .select('*')
+    .eq('bien_id', bienId)
+    .eq('mois', mois)
+    .eq('annee', annee)
+    .single()
+  
+  if (error) {
+    if (error.code === 'PGRST116') return null // Pas trouvé
+    logger.error('[getQuittance] Erreur:', error)
+    throw error
+  }
+  
+  return quittance ? convertQuittanceFromSupabase(quittance) : null
+}
+
+export async function updateQuittanceEmailStatus(
+  quittanceId: string,
+  emailEnvoye: boolean,
+  dateEnvoiEmail?: string
+): Promise<void> {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('quittances')
+    .update({
+      email_envoye: emailEnvoye,
+      date_envoi_email: dateEnvoiEmail || new Date().toISOString(),
+    })
+    .eq('id', quittanceId)
+  
+  if (error) {
+    logger.error('[updateQuittanceEmailStatus] Erreur:', error)
+    throw error
+  }
+}
+
+function convertQuittanceFromSupabase(data: any): QuittanceDB {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    bienId: data.bien_id,
+    mois: data.mois,
+    annee: data.annee,
+    locataireNom: data.locataire_nom,
+    locatairePrenom: data.locataire_prenom,
+    locataireEmail: data.locataire_email,
+    montantLocataire: parseFloat(data.montant_locataire?.toString() || '0'),
+    montantAPL: parseFloat(data.montant_apl?.toString() || '0'),
+    montantTotal: parseFloat(data.montant_total?.toString() || '0'),
+    datePayeLocataire: data.date_paye_locataire,
+    datePayeAPL: data.date_paye_apl,
+    modePaiement: data.mode_paiement,
+    emailEnvoye: data.email_envoye || false,
+    dateEnvoiEmail: data.date_envoi_email,
+    pdfUrl: data.pdf_url,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  }
+}

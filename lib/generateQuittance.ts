@@ -1,12 +1,14 @@
 import jsPDF from 'jspdf'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { logger } from '@/lib/logger'
 
 export interface QuittanceData {
   // Propriétaire
   proprietaireNom: string
 
   // Bien
+  bienId: string
   bienNom: string
   bienAdresse: string
   bienVille: string
@@ -212,6 +214,15 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.text('Cette quittance est générée par Patrimo - Gestion Immobilière', 15, pageHeight - 25)
   doc.text(`Document généré le ${new Date().toLocaleDateString('fr-FR')}`, 15, pageHeight - 18)
   doc.text('Ce document a une valeur juridique comme preuve de paiement de loyer.', 15, pageHeight - 11)
+
+  // Logger la génération
+  logger.info('[generateQuittance] PDF généré', {
+    bienId: data.bienId,
+    bienNom: data.bienNom,
+    mois: data.mois,
+    annee: data.annee,
+    montantTotal: data.montantLocataire + data.montantAPL
+  })
 
   return doc
 }
