@@ -160,13 +160,15 @@ export function Loyers({ bien }: LoyersProps) {
       : new Date()
 
     setQuittanceData({
-      proprietaireNom: profile?.name || 'Propriétaire',
+      bienId: bien.id,
+      proprietaireNom: profile?.nom || 'Propriétaire',
       bienNom: bien.nom,
       bienAdresse: bien.adresse || '',
       bienVille: bien.ville || '',
       bienCodePostal: bien.codePostal || '',
       locataireNom: locataireInfo?.nom || '',
       locatairePrenom: locataireInfo?.prenom || '',
+      locataireEmail: locataireInfo?.email || null,
       annee: anneeActuelle,
       mois: moisIndex + 1, // Convertir 0-11 en 1-12
       datePayeLocataire: datePayeLocataireDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
