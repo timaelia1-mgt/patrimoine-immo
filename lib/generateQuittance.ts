@@ -17,6 +17,7 @@ export interface QuittanceData {
   // Locataire
   locataireNom: string
   locatairePrenom: string
+  locataireEmail: string | null
 
   // Paiement
   annee: number
