@@ -1,7 +1,18 @@
+/**
+ * @fileoverview Fonctions de validation pour les biens immobiliers
+ * 
+ * Ce module contient les fonctions de validation :
+ * - Cohérence des dates (acquisition, location, crédit)
+ * - Affichage des erreurs via toast
+ */
+
 import { toast } from 'sonner'
 
 /**
- * Valide la cohérence des dates d'un bien immobilier
+ * Interface pour les dates à valider
+ * 
+ * Contient les différentes dates d'un bien immobilier
+ * qui doivent respecter une cohérence chronologique.
  */
 export interface DatesValidation {
   dateAcquisition?: string | null
@@ -16,7 +27,40 @@ export interface ValidationResult {
 }
 
 /**
- * Valide que les dates respectent une cohérence chronologique
+ * Valide la cohérence chronologique des dates d'un bien
+ * 
+ * Vérifie que :
+ * - La date de mise en location est après la date d'acquisition
+ * - La date de début du crédit est proche de l'acquisition (±3 mois)
+ * - La date d'entrée du locataire est après la mise en location
+ * - Les dates ne sont pas trop dans le futur (alerte)
+ * 
+ * @param dates - Objet contenant les dates à valider
+ * @param dates.dateAcquisition - Date d'achat du bien (optionnel)
+ * @param dates.dateMiseEnLocation - Date de première location (optionnel)
+ * @param dates.dateDebutCredit - Date de début du crédit (optionnel)
+ * @param dates.dateEntreeLocataire - Date d'entrée du locataire actuel (optionnel)
+ * @returns ValidationResult - Objet avec isValid (boolean) et errors (string[])
+ * 
+ * @example
+ * const result = validateDatesCoherence({
+ *   dateAcquisition: '2023-01-15',
+ *   dateMiseEnLocation: '2023-03-01',
+ *   dateDebutCredit: '2023-01-20'
+ * })
+ * 
+ * if (!result.isValid) {
+ *   console.log(result.errors) // Liste des erreurs
+ * }
+ * 
+ * @example
+ * // Dates incohérentes
+ * const result = validateDatesCoherence({
+ *   dateAcquisition: '2023-06-01',
+ *   dateMiseEnLocation: '2023-03-01' // Avant acquisition !
+ * })
+ * console.log(result.isValid) // false
+ * console.log(result.errors[0]) // "La date de mise en location..."
  */
 export function validateDatesCoherence(dates: DatesValidation): ValidationResult {
   const errors: string[] = []
@@ -64,7 +108,18 @@ export function validateDatesCoherence(dates: DatesValidation): ValidationResult
 }
 
 /**
- * Affiche les erreurs de validation via toast
+ * Affiche les erreurs de validation via des notifications toast
+ * 
+ * Les messages commençant par ⚠️ sont affichés en warning,
+ * les autres en error.
+ * 
+ * @param errors - Tableau de messages d'erreur à afficher
+ * 
+ * @example
+ * showValidationErrors([
+ *   'La date de mise en location est invalide',
+ *   '⚠️ La date d\'acquisition est dans le futur'
+ * ])
  */
 export function showValidationErrors(errors: string[]): void {
   errors.forEach(error => {
@@ -77,8 +132,26 @@ export function showValidationErrors(errors: string[]): void {
 }
 
 /**
- * Valide et affiche les erreurs si nécessaire
- * Retourne true si valide, false sinon
+ * Valide les dates et affiche automatiquement les erreurs
+ * 
+ * Combine validateDatesCoherence et showValidationErrors
+ * pour une utilisation simplifiée dans les formulaires.
+ * 
+ * @param dates - Objet contenant les dates à valider
+ * @returns boolean - true si toutes les dates sont valides, false sinon
+ * 
+ * @example
+ * // Dans un handler de formulaire
+ * const handleSubmit = (formData) => {
+ *   if (!validateAndShowErrors({
+ *     dateAcquisition: formData.dateAcquisition,
+ *     dateMiseEnLocation: formData.dateMiseEnLocation
+ *   })) {
+ *     return // Les erreurs sont déjà affichées
+ *   }
+ *   
+ *   // Continuer avec la soumission...
+ * }
  */
 export function validateAndShowErrors(dates: DatesValidation): boolean {
   const result = validateDatesCoherence(dates)

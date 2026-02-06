@@ -1,4 +1,24 @@
-// Helper pour convertir Decimal en number
+/**
+ * @fileoverview Fonctions de calcul financier pour les biens immobiliers
+ * 
+ * Ce module contient toutes les fonctions de calcul :
+ * - Cash-flow mensuel et annuel
+ * - Rentabilité brute et nette
+ * - Taux de Rendement Interne (TRI)
+ * - Taux d'autofinancement
+ * - Mensualités de crédit
+ */
+
+/**
+ * Convertit une valeur en nombre
+ * 
+ * Gère les différents types de valeurs (string, number, Decimal)
+ * pour assurer des calculs cohérents.
+ * 
+ * @param value - Valeur à convertir
+ * @returns number - La valeur convertie en nombre
+ * @internal
+ */
 function toNumber(value: any): number {
   if (typeof value === 'string') return parseFloat(value)
   if (typeof value === 'number') return value
@@ -6,7 +26,38 @@ function toNumber(value: any): number {
   return parseFloat(value?.toString() || '0')
 }
 
-// Calculer le cash-flow net mensuel
+/**
+ * Calcule le cash-flow net mensuel d'un bien
+ * 
+ * Formule : Loyer - Charges mensuelles - Mensualité crédit
+ * 
+ * Le cash-flow représente l'argent réellement disponible chaque mois
+ * après paiement de toutes les charges et du crédit.
+ * 
+ * @param bien - Objet bien avec les propriétés financières
+ * @param bien.loyerMensuel - Loyer mensuel perçu
+ * @param bien.taxeFonciere - Taxe foncière mensuelle
+ * @param bien.chargesCopro - Charges de copropriété mensuelles
+ * @param bien.assurance - Assurance mensuelle
+ * @param bien.fraisGestion - Frais de gestion mensuels
+ * @param bien.autresCharges - Autres charges mensuelles
+ * @param bien.typeFinancement - "CREDIT" ou "CASH"
+ * @param bien.mensualiteCredit - Mensualité du crédit (si CREDIT)
+ * @returns number - Cash-flow mensuel (peut être négatif)
+ * 
+ * @example
+ * const cashFlow = calculerCashFlow({
+ *   loyerMensuel: 1200,
+ *   taxeFonciere: 50,
+ *   chargesCopro: 100,
+ *   assurance: 30,
+ *   fraisGestion: 0,
+ *   autresCharges: 20,
+ *   typeFinancement: 'CREDIT',
+ *   mensualiteCredit: 800
+ * })
+ * console.log(cashFlow) // 200
+ */
 export function calculerCashFlow(bien: any): number {
   const loyerMensuel = toNumber(bien.loyerMensuel)
   
@@ -24,7 +75,28 @@ export function calculerCashFlow(bien: any): number {
   return loyerMensuel - chargesMensuelles - mensualiteCredit
 }
 
-// Calculer le loyer net (après charges, avant crédit)
+/**
+ * Calcule le loyer net (après charges, avant crédit)
+ * 
+ * Formule : Loyer mensuel - Charges mensuelles
+ * 
+ * Le loyer net représente ce qui reste du loyer après paiement
+ * de toutes les charges, mais avant le remboursement du crédit.
+ * 
+ * @param bien - Objet bien avec les propriétés financières
+ * @returns number - Loyer net mensuel
+ * 
+ * @example
+ * const loyerNet = calculerLoyerNet({
+ *   loyerMensuel: 1200,
+ *   taxeFonciere: 50,
+ *   chargesCopro: 100,
+ *   assurance: 30,
+ *   fraisGestion: 0,
+ *   autresCharges: 20
+ * })
+ * console.log(loyerNet) // 1000
+ */
 export function calculerLoyerNet(bien: any): number {
   const loyerMensuel = toNumber(bien.loyerMensuel)
   
@@ -38,7 +110,28 @@ export function calculerLoyerNet(bien: any): number {
   return loyerMensuel - chargesMensuelles
 }
 
-// Calculer le taux d'autofinancement
+/**
+ * Calcule le taux d'autofinancement d'un bien
+ * 
+ * Formule : (Loyer net / Mensualité crédit) * 100
+ * 
+ * Un taux de 100% signifie que le loyer couvre exactement la mensualité.
+ * Au-dessus de 100%, le bien génère un cash-flow positif.
+ * En-dessous de 100%, il faut compléter de sa poche.
+ * 
+ * @param bien - Objet bien avec les propriétés financières
+ * @returns number - Taux d'autofinancement en % (100 = autofinancé)
+ * 
+ * @example
+ * const taux = calculerTauxAutofinancement({
+ *   loyerMensuel: 1200,
+ *   taxeFonciere: 50,
+ *   chargesCopro: 100,
+ *   typeFinancement: 'CREDIT',
+ *   mensualiteCredit: 1000
+ * })
+ * console.log(taux) // 105 (105% = cash-flow positif)
+ */
 export function calculerTauxAutofinancement(bien: any): number {
   if (bien.typeFinancement === "CASH") {
     return 100
@@ -52,7 +145,24 @@ export function calculerTauxAutofinancement(bien: any): number {
   return (loyerNet / mensualiteCredit) * 100
 }
 
-// Vérifier si le crédit est terminé
+/**
+ * Vérifie si le crédit d'un bien est terminé
+ * 
+ * Compare la date de début du crédit + durée avec la date actuelle.
+ * 
+ * @param bien - Objet bien avec les données du crédit
+ * @param bien.typeFinancement - "CREDIT" ou "CASH"
+ * @param bien.dateDebutCredit - Date de début du crédit (ISO string)
+ * @param bien.dureeCredit - Durée du crédit en mois
+ * @returns boolean - true si le crédit est remboursé
+ * 
+ * @example
+ * const termine = creditEstTermine({
+ *   typeFinancement: 'CREDIT',
+ *   dateDebutCredit: '2020-01-01',
+ *   dureeCredit: 240 // 20 ans
+ * })
+ */
 export function creditEstTermine(bien: any): boolean {
   if (bien.typeFinancement === "CASH" || !bien.dateDebutCredit || !bien.dureeCredit) {
     return false
@@ -66,7 +176,23 @@ export function creditEstTermine(bien: any): boolean {
   return moisEcoules >= bien.dureeCredit
 }
 
-// Système de statut des biens
+/**
+ * Calcule le statut financier d'un bien
+ * 
+ * Détermine si le bien est :
+ * - FINANCE : Payé cash ou crédit terminé
+ * - AUTOFINANCE : Loyer couvre le crédit (≥100%)
+ * - PARTIEL : Loyer couvre partiellement (70-99%)
+ * - NON_AUTOFINANCE : Loyer insuffisant (<70%)
+ * 
+ * @param bien - Objet bien avec toutes les données financières
+ * @returns Objet avec type, label, taux, couleur et badge
+ * 
+ * @example
+ * const statut = calculerStatutBien(bien)
+ * console.log(statut.badge) // "Autofinancé 105%"
+ * console.log(statut.couleur) // "green"
+ */
 export function calculerStatutBien(bien: any): {
   type: "FINANCE" | "AUTOFINANCE" | "PARTIEL" | "NON_AUTOFINANCE"
   label: string
@@ -126,7 +252,16 @@ export function calculerStatutBien(bien: any): {
   }
 }
 
-// Formater en euros
+/**
+ * Formate un montant en euros (format français)
+ * 
+ * @param amount - Montant à formater
+ * @returns string - Montant formaté (ex: "1 234,56 €")
+ * 
+ * @example
+ * formatCurrency(1234.56) // "1 234,56 €"
+ * formatCurrency(-500) // "-500,00 €"
+ */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',

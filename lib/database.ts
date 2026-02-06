@@ -59,7 +59,30 @@ export interface UserProfile {
   updatedAt: string
 }
 
-// Fonctions pour les biens
+// =====================================================
+// BIENS - Opérations CRUD
+// =====================================================
+
+/**
+ * Récupère tous les biens immobiliers d'un utilisateur
+ * 
+ * Les biens sont triés par date de création (plus récent en premier).
+ * 
+ * @param userId - L'ID de l'utilisateur propriétaire des biens
+ * @param supabaseClient - Client Supabase optionnel (pour Server Components)
+ * @returns Promise<Bien[]> - Liste des biens de l'utilisateur
+ * @throws {Error} Si la requête Supabase échoue
+ * 
+ * @example
+ * // Côté client
+ * const biens = await getBiens('user-123')
+ * console.log(`${biens.length} biens trouvés`)
+ * 
+ * @example
+ * // Côté serveur
+ * const supabase = await createClient()
+ * const biens = await getBiens(user.id, supabase)
+ */
 export async function getBiens(userId: string, supabaseClient?: any): Promise<Bien[]> {
   // Si un client est fourni (pour Server Components), l'utiliser
   // Sinon, utiliser le client par défaut (pour Client Components)
@@ -79,6 +102,20 @@ export async function getBiens(userId: string, supabaseClient?: any): Promise<Bi
   return (data || []).map(convertBienFromSupabase)
 }
 
+/**
+ * Récupère un bien immobilier par son ID
+ * 
+ * @param bienId - L'ID unique (UUID) du bien
+ * @param supabaseClient - Client Supabase optionnel (pour Server Components)
+ * @returns Promise<Bien | null> - Le bien trouvé ou null si non trouvé
+ * @throws {Error} Si la requête Supabase échoue (autre que "non trouvé")
+ * 
+ * @example
+ * const bien = await getBien('bien-uuid-123')
+ * if (bien) {
+ *   console.log(`Bien: ${bien.nom}`)
+ * }
+ */
 export async function getBien(bienId: string, supabaseClient?: any): Promise<Bien | null> {
   // Si un client est fourni (pour Server Components), l'utiliser
   // Sinon, utiliser le client par défaut (pour Client Components)
@@ -101,6 +138,27 @@ export async function getBien(bienId: string, supabaseClient?: any): Promise<Bie
   return data ? convertBienFromSupabase(data) : null
 }
 
+/**
+ * Crée un nouveau bien immobilier pour un utilisateur
+ * 
+ * Vérifie automatiquement la limite de biens selon le plan de l'utilisateur
+ * avant de créer le bien.
+ * 
+ * @param userId - L'ID du propriétaire du bien
+ * @param bien - Les données du bien à créer (Partial<Bien>)
+ * @returns Promise<Bien> - Le bien créé avec son ID généré
+ * @throws {Error} Si la limite du plan est atteinte
+ * @throws {Error} Si la création échoue dans Supabase
+ * 
+ * @example
+ * const nouveauBien = await createBien('user-123', {
+ *   nom: 'Appartement Paris 11',
+ *   prixAchat: 250000,
+ *   loyerMensuel: 1200,
+ *   typeFinancement: 'CREDIT'
+ * })
+ * console.log(`Bien créé: ${nouveauBien.id}`)
+ */
 export async function createBien(userId: string, bien: Partial<Bien>): Promise<Bien> {
   const supabase = createClient()
   
@@ -165,6 +223,23 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
   return convertBienFromSupabase(data)
 }
 
+/**
+ * Met à jour un bien immobilier existant
+ * 
+ * Seuls les champs fournis dans `updates` seront modifiés.
+ * Les champs `id`, `createdAt` et `updatedAt` sont ignorés.
+ * 
+ * @param bienId - L'ID du bien à mettre à jour
+ * @param updates - Les champs à modifier (Partial<Bien>)
+ * @returns Promise<Bien> - Le bien mis à jour
+ * @throws {Error} Si la mise à jour échoue dans Supabase
+ * 
+ * @example
+ * const bienModifie = await updateBien('bien-uuid-123', {
+ *   loyerMensuel: 1300,
+ *   chargesCopro: 100
+ * })
+ */
 export async function updateBien(bienId: string, updates: Partial<Bien>): Promise<Bien> {
   // Convertir les clés camelCase en snake_case pour Supabase
   const updatesSnakeCase: any = {}
@@ -228,6 +303,23 @@ export async function updateBien(bienId: string, updates: Partial<Bien>): Promis
   return convertBienFromSupabase(data)
 }
 
+/**
+ * Supprime un bien immobilier
+ * 
+ * Cette opération supprime également en cascade :
+ * - Les locataires associés
+ * - Les loyers associés
+ * - Les quittances associées
+ * - Les investissements secondaires associés
+ * 
+ * @param bienId - L'ID du bien à supprimer
+ * @returns Promise<void>
+ * @throws {Error} Si la suppression échoue dans Supabase
+ * 
+ * @example
+ * await deleteBien('bien-uuid-123')
+ * console.log('Bien supprimé avec succès')
+ */
 export async function deleteBien(bienId: string): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
@@ -241,7 +333,27 @@ export async function deleteBien(bienId: string): Promise<void> {
   }
 }
 
-// Fonctions pour le profil utilisateur
+// =====================================================
+// PROFIL UTILISATEUR
+// =====================================================
+
+/**
+ * Récupère le profil d'un utilisateur
+ * 
+ * Le profil contient les informations personnelles, le plan d'abonnement
+ * et les préférences de l'utilisateur.
+ * 
+ * @param userId - L'ID de l'utilisateur (correspond à auth.users.id)
+ * @param supabaseClient - Client Supabase optionnel (pour Server Components)
+ * @returns Promise<UserProfile | null> - Le profil ou null si non trouvé
+ * @throws {Error} Si la requête Supabase échoue
+ * 
+ * @example
+ * const profile = await getUserProfile(user.id)
+ * if (profile) {
+ *   console.log(`Plan: ${profile.plan}`) // 'decouverte' | 'essentiel' | 'premium'
+ * }
+ */
 export async function getUserProfile(userId: string, supabaseClient?: any): Promise<UserProfile | null> {
   // Si un client est fourni (pour Server Components), l'utiliser
   // Sinon, utiliser le client par défaut (pour Client Components)
@@ -261,6 +373,21 @@ export async function getUserProfile(userId: string, supabaseClient?: any): Prom
   return data ? convertProfileFromSupabase(data) : null
 }
 
+/**
+ * Crée un nouveau profil utilisateur
+ * 
+ * Appelé automatiquement après l'inscription pour créer le profil
+ * avec le plan "découverte" par défaut.
+ * 
+ * @param userId - L'ID de l'utilisateur (auth.users.id)
+ * @param email - L'email de l'utilisateur
+ * @param name - Nom optionnel de l'utilisateur
+ * @returns Promise<UserProfile> - Le profil créé
+ * @throws {Error} Si la création échoue
+ * 
+ * @example
+ * const profile = await createUserProfile(user.id, 'test@example.com', 'Jean Dupont')
+ */
 export async function createUserProfile(userId: string, email: string, name?: string): Promise<UserProfile> {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -417,6 +544,21 @@ export interface Locataire {
   updatedAt: string
 }
 
+/**
+ * Récupère le locataire associé à un bien
+ * 
+ * Un bien peut avoir au maximum un locataire actif.
+ * 
+ * @param bienId - L'ID du bien
+ * @param supabaseClient - Client Supabase optionnel
+ * @returns Promise<Locataire | null> - Le locataire ou null si aucun
+ * 
+ * @example
+ * const locataire = await getLocataire('bien-uuid-123')
+ * if (locataire) {
+ *   console.log(`Locataire: ${locataire.prenom} ${locataire.nom}`)
+ * }
+ */
 export async function getLocataire(bienId: string, supabaseClient?: any): Promise<Locataire | null> {
   const supabase = supabaseClient || createClient()
   
@@ -448,6 +590,27 @@ export async function getLocataire(bienId: string, supabaseClient?: any): Promis
   }
 }
 
+/**
+ * Crée ou met à jour le locataire d'un bien (upsert)
+ * 
+ * Si un locataire existe déjà pour ce bien, il est mis à jour.
+ * Sinon, un nouveau locataire est créé.
+ * 
+ * @param bienId - L'ID du bien
+ * @param locataireData - Les données du locataire
+ * @param supabaseClient - Client Supabase optionnel
+ * @returns Promise<Locataire> - Le locataire créé ou mis à jour
+ * @throws {Error} Si l'opération échoue
+ * 
+ * @example
+ * const locataire = await upsertLocataire('bien-uuid-123', {
+ *   nom: 'Martin',
+ *   prenom: 'Jean',
+ *   email: 'jean.martin@example.com',
+ *   montantAPL: 200,
+ *   modePaiement: 'virement'
+ * })
+ */
 export async function upsertLocataire(bienId: string, locataireData: Partial<Locataire>, supabaseClient?: any): Promise<Locataire> {
   const supabase = supabaseClient || createClient()
   
@@ -509,6 +672,22 @@ export interface Loyer {
   updatedAt: string
 }
 
+/**
+ * Récupère tous les loyers d'un bien pour une année donnée
+ * 
+ * Les loyers sont triés par mois (0 = Janvier, 11 = Décembre).
+ * 
+ * @param bienId - L'ID du bien
+ * @param annee - L'année (ex: 2024)
+ * @param supabaseClient - Client Supabase optionnel
+ * @returns Promise<Loyer[]> - Liste des loyers de l'année
+ * 
+ * @example
+ * const loyers = await getLoyers('bien-uuid-123', 2024)
+ * const totalPercu = loyers
+ *   .filter(l => l.payeLocataire)
+ *   .reduce((sum, l) => sum + l.montantLocataire, 0)
+ */
 export async function getLoyers(bienId: string, annee: number, supabaseClient?: any): Promise<Loyer[]> {
   const supabase = supabaseClient || createClient()
   
@@ -542,6 +721,32 @@ export async function getLoyers(bienId: string, annee: number, supabaseClient?: 
   }))
 }
 
+/**
+ * Crée ou met à jour un loyer pour un mois donné (upsert)
+ * 
+ * La clé unique est la combinaison (bien_id, annee, mois).
+ * Si un loyer existe déjà pour ce mois, il est mis à jour.
+ * 
+ * @param bienId - L'ID du bien
+ * @param annee - L'année (ex: 2024)
+ * @param mois - Le mois (0-11, où 0 = Janvier)
+ * @param paiement - Les informations de paiement
+ * @param paiement.montantLocataire - Montant payé par le locataire
+ * @param paiement.montantAPL - Montant de l'APL
+ * @param paiement.payeLocataire - Si le locataire a payé
+ * @param paiement.payeAPL - Si l'APL a été versée
+ * @param supabaseClient - Client Supabase optionnel
+ * @returns Promise<Loyer> - Le loyer créé ou mis à jour
+ * @throws {Error} Si l'opération échoue
+ * 
+ * @example
+ * const loyer = await upsertLoyer('bien-uuid-123', 2024, 0, {
+ *   montantLocataire: 1000,
+ *   montantAPL: 200,
+ *   payeLocataire: true,
+ *   payeAPL: true
+ * })
+ */
 export async function upsertLoyer(
   bienId: string, 
   annee: number, 
@@ -726,6 +931,44 @@ export interface QuittanceDB {
   updatedAt: string
 }
 
+/**
+ * Crée une nouvelle quittance de loyer
+ * 
+ * Une quittance est un document attestant du paiement d'un loyer.
+ * Elle est générée après réception du paiement complet.
+ * 
+ * @param data - Les données de la quittance
+ * @param data.bienId - L'ID du bien concerné
+ * @param data.mois - Le mois (1-12)
+ * @param data.annee - L'année
+ * @param data.locataireNom - Nom du locataire
+ * @param data.locatairePrenom - Prénom du locataire
+ * @param data.locataireEmail - Email du locataire (optionnel)
+ * @param data.montantLocataire - Montant payé par le locataire
+ * @param data.montantAPL - Montant de l'APL
+ * @param data.montantTotal - Montant total (locataire + APL)
+ * @param data.datePayeLocataire - Date de paiement (format YYYY-MM-DD)
+ * @param data.datePayeAPL - Date de versement APL (optionnel)
+ * @param data.modePaiement - Mode de paiement (virement, chèque, espèces, prélèvement)
+ * @returns Promise<QuittanceDB> - La quittance créée
+ * @throws {Error} Si une quittance existe déjà pour ce mois (code: unique_quittance_bien_mois_annee)
+ * 
+ * @example
+ * const quittance = await createQuittance({
+ *   bienId: 'bien-uuid-123',
+ *   mois: 1,
+ *   annee: 2024,
+ *   locataireNom: 'Martin',
+ *   locatairePrenom: 'Jean',
+ *   locataireEmail: 'jean@example.com',
+ *   montantLocataire: 1000,
+ *   montantAPL: 200,
+ *   montantTotal: 1200,
+ *   datePayeLocataire: '2024-01-05',
+ *   datePayeAPL: '2024-01-10',
+ *   modePaiement: 'virement'
+ * })
+ */
 export async function createQuittance(
   data: {
     bienId: string
@@ -775,6 +1018,19 @@ export async function createQuittance(
   return convertQuittanceFromSupabase(quittance)
 }
 
+/**
+ * Récupère toutes les quittances d'un bien
+ * 
+ * Les quittances sont triées par date (plus récentes en premier).
+ * 
+ * @param bienId - L'ID du bien
+ * @returns Promise<QuittanceDB[]> - Liste des quittances
+ * @throws {Error} Si la requête échoue
+ * 
+ * @example
+ * const quittances = await getQuittancesByBien('bien-uuid-123')
+ * console.log(`${quittances.length} quittances générées`)
+ */
 export async function getQuittancesByBien(bienId: string): Promise<QuittanceDB[]> {
   const supabase = createClient()
   
