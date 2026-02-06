@@ -278,7 +278,7 @@ describe('database', () => {
       expect(mockClient.from).toHaveBeenCalledWith('profiles')
       expect(mockClient.eq).toHaveBeenCalledWith('id', 'user-456')
       expect(result?.email).toBe('test@example.com')
-      expect(result?.plan).toBe('decouverte')
+      expect(result?.plan).toBe('gratuit')
     })
 
     it('devrait retourner null si profil non trouvé', async () => {
@@ -306,7 +306,7 @@ describe('database', () => {
         expect.objectContaining({
           id: 'new-user',
           email: 'new@example.com',
-          plan_type: 'decouverte',
+          plan_type: 'gratuit',
         })
       )
       expect(result).toBeDefined()

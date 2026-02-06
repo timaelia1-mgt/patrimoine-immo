@@ -2,11 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import dynamic from "next/dynamic"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
 import { getUserProfile, getBiens } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
+import type { PlanType } from "@/lib/stripe"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { AlertCircle, Plus } from "lucide-react"
 
 // Lazy-load du modal pour réduire le bundle initial
 const UpgradeModal = dynamic(
@@ -17,45 +23,29 @@ const UpgradeModal = dynamic(
 interface DashboardClientProps {
   biens: any[]
   stats: any
+  planType: PlanType
+  maxBiens: number | null
 }
 
-export function DashboardClient({ biens, stats }: DashboardClientProps) {
+export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
-  const [userPlan, setUserPlan] = useState<'decouverte' | 'essentiel' | 'premium'>('decouverte')
-  const [biensCount, setBiensCount] = useState(0)
-  const [maxBiens, setMaxBiens] = useState<number | null>(null)
+  const [userPlan, setUserPlan] = useState<PlanType>(planType)
+  const [biensCount, setBiensCount] = useState(biens.length)
+  const [currentMaxBiens, setCurrentMaxBiens] = useState<number | null>(maxBiens)
 
-  // Vérifier la limite de biens
+  // Synchroniser avec les props serveur
   useEffect(() => {
-    const checkLimit = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) return
-      
-      try {
-        const profile = await getUserProfile(user.id)
-        
-        const plan = (profile?.plan || 'decouverte') as 'decouverte' | 'essentiel' | 'premium'
-        const count = biens.length // Utiliser les biens passés en props
-        const max = PLANS[plan].maxBiens
-        
-        setUserPlan(plan)
-        setBiensCount(count)
-        setMaxBiens(max)
-      } catch (error) {
-        console.error('Erreur lors de la vérification de la limite:', error)
-      }
-    }
-    
-    checkLimit()
-  }, [biens.length]) // Re-vérifier quand le nombre de biens change
+    setUserPlan(planType)
+    setBiensCount(biens.length)
+    setCurrentMaxBiens(maxBiens)
+  }, [planType, biens.length, maxBiens])
 
   // Vérifier si on peut créer un bien
-  const canCreateBien = maxBiens === null || biensCount < maxBiens
+  const canCreateBien = currentMaxBiens === null || biensCount < currentMaxBiens
+  const remainingBiens = currentMaxBiens === null ? null : Math.max(0, currentMaxBiens - biensCount)
 
   // Vérifier si on doit ouvrir le dialog depuis l'URL
   useEffect(() => {
@@ -105,18 +95,91 @@ export function DashboardClient({ biens, stats }: DashboardClientProps) {
 
   return (
     <>
+      {/* Indicateurs de limite de biens */}
+      {biens.length > 0 && (
+        <div className="px-8 pb-4">
+          <div className="max-w-7xl mx-auto space-y-4">
+            {/* Header avec badge de limite et bouton ajouter */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {currentMaxBiens !== null && (
+                  <Badge 
+                    variant={remainingBiens !== null && remainingBiens <= 0 ? 'destructive' : 'secondary'}
+                    className="text-sm px-3 py-1"
+                  >
+                    {biensCount} / {currentMaxBiens} biens
+                  </Badge>
+                )}
+                {currentMaxBiens === null && (
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {biensCount} biens (illimité)
+                  </Badge>
+                )}
+              </div>
+              
+              <Button
+                onClick={() => {
+                  if (canCreateBien) {
+                    setDialogOpen(true)
+                  } else {
+                    setUpgradeModalOpen(true)
+                  }
+                }}
+                disabled={false}
+                className={
+                  canCreateBien
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg'
+                    : 'bg-slate-700 text-slate-400 cursor-pointer hover:bg-slate-600'
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {canCreateBien ? 'Ajouter un bien' : 'Limite atteinte'}
+              </Button>
+            </div>
+
+            {/* Alerte si proche de la limite */}
+            {currentMaxBiens !== null && remainingBiens !== null && remainingBiens > 0 && remainingBiens <= 2 && (
+              <Alert className="bg-amber-500/10 border-amber-500/30">
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertTitle className="text-amber-400">Limite presque atteinte</AlertTitle>
+                <AlertDescription className="text-slate-300">
+                  Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[userPlan].name}.{' '}
+                  <Button variant="link" className="p-0 h-auto text-amber-400 hover:text-amber-300" asChild>
+                    <Link href="/abonnement">Passer à un plan supérieur</Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Alerte si limite atteinte */}
+            {currentMaxBiens !== null && remainingBiens !== null && remainingBiens <= 0 && (
+              <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Limite atteinte</AlertTitle>
+                <AlertDescription>
+                  Vous avez atteint la limite de {currentMaxBiens} bien{currentMaxBiens > 1 ? 's' : ''} de votre plan {PLANS[userPlan].name}.{' '}
+                  <Button variant="link" className="p-0 h-auto text-red-300 hover:text-red-200 underline" asChild>
+                    <Link href="/abonnement">Passer à un plan supérieur</Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </div>
+      )}
+
       <BienFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSuccess={handleSuccess}
       />
-      {maxBiens !== null && (
+      {currentMaxBiens !== null && (
         <UpgradeModal
           open={upgradeModalOpen}
           onClose={() => setUpgradeModalOpen(false)}
           currentPlan={PLANS[userPlan].name}
           currentCount={biensCount}
-          maxBiens={maxBiens}
+          maxBiens={currentMaxBiens}
         />
       )}
     </>

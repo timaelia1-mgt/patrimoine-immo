@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
-  plan_type TEXT DEFAULT 'decouverte' CHECK (plan_type IN ('decouverte', 'essentiel', 'premium')),
+  plan_type TEXT DEFAULT 'gratuit' CHECK (plan_type IN ('gratuit', 'essentiel', 'premium')),
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
   currency TEXT DEFAULT 'EUR',
@@ -453,6 +453,48 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 # Déclencher un événement test
 stripe trigger checkout.session.completed
 ```
+
+### Activer le Customer Portal
+
+Le Customer Portal permet aux utilisateurs de gérer leur abonnement (factures, carte bancaire, annulation).
+
+1. Allez dans **Settings → Billing → Customer Portal**
+2. Cliquez sur **Activate test link** (pour tester)
+3. Configurez les options :
+   - ✅ **Invoice history** : Voir l'historique des factures
+   - ✅ **Update payment method** : Mettre à jour la carte
+   - ✅ **Cancel subscription** : Annuler l'abonnement
+   - ❌ **Update subscription** : Désactivé (upgrade via l'app)
+4. Cliquez sur **Save changes**
+5. En production, activez **Activate live link**
+
+**Fonctionnalités du Customer Portal :**
+- Voir et télécharger les factures
+- Mettre à jour les informations de paiement
+- Annuler l'abonnement
+- Télécharger les reçus fiscaux
+
+### ✅ Checklist finale Stripe
+
+Avant de passer en production, vérifiez :
+
+- [ ] Produits créés dans Stripe Dashboard (Essentiel et Premium)
+- [ ] Prix configurés correctement (9.99€ et 19.99€/mois)
+- [ ] Price IDs ajoutés dans les variables d'environnement Vercel
+- [ ] Webhook configuré avec tous les événements :
+  - `checkout.session.completed`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `invoice.payment_failed`
+  - `invoice.payment_succeeded`
+- [ ] Webhook testé et fonctionnel
+- [ ] Customer Portal activé et configuré
+- [ ] Mode test → mode production dans Stripe Dashboard
+- [ ] Clés API changées de test (`sk_test_`) à live (`sk_live_`)
+- [ ] Test d'un paiement réel en production
+- [ ] Vérification des emails Stripe (confirmations, factures)
+- [ ] Taxe TVA configurée si nécessaire (Settings → Tax)
+- [ ] Politique de remboursement définie
 
 ---
 

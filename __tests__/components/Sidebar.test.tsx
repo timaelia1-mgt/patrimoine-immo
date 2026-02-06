@@ -65,7 +65,7 @@ describe('Sidebar', () => {
     vi.clearAllMocks()
     mockPathname = '/dashboard'
     mockGetBiens.mockResolvedValue([])
-    mockGetUserProfile.mockResolvedValue({ plan: 'decouverte' })
+    mockGetUserProfile.mockResolvedValue({ plan: 'gratuit' })
     
     // Mock window.location
     Object.defineProperty(window, 'location', {
@@ -246,7 +246,7 @@ describe('Sidebar', () => {
 
     it('devrait être un lien vers /dashboard?add=true si limite non atteinte', async () => {
       mockGetBiens.mockResolvedValueOnce([])
-      mockGetUserProfile.mockResolvedValueOnce({ plan: 'decouverte' })
+      mockGetUserProfile.mockResolvedValueOnce({ plan: 'gratuit' })
       
       render(<Sidebar />)
       

@@ -1,9 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/database'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { PLANS } from '@/lib/stripe'
-import { UpgradeButton } from '@/components/abonnement/UpgradeButton'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { PLANS, PlanType } from '@/lib/stripe'
+import { ManageSubscriptionButton } from '@/components/abonnement/ManageSubscriptionButton'
+import { CheckoutFeedback } from '@/components/abonnement/CheckoutFeedback'
+import { PlansSection } from '@/components/abonnement/PlansSection'
+import { ComparisonTable } from '@/components/abonnement/ComparisonTable'
+import { FAQ } from '@/components/abonnement/FAQ'
 
 // Désactiver le cache
 export const dynamic = 'force-dynamic'
@@ -23,160 +27,117 @@ export default async function AbonnementPage() {
       redirect('/login')
     }
 
-    // Debug logs
-    console.log('[AbonnementPage] user.id:', user.id)
-    console.log('[AbonnementPage] user:', { id: user.id, email: user.email })
-
-  const currentPlan = profile.plan || 'decouverte'
-  const planDetails = PLANS[currentPlan as keyof typeof PLANS]
+    const currentPlan = (profile.plan || 'gratuit') as PlanType
+    const planDetails = PLANS[currentPlan]
 
   return (
-    <div className="container max-w-4xl mx-auto p-6 space-y-6">
+    <div className="container max-w-6xl mx-auto p-6 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mon abonnement</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
-          Gérez votre plan et votre facturation
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mon abonnement</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            Gérez votre plan et votre facturation
+          </p>
+        </div>
+        
+        {/* Bouton gérer abonnement - visible seulement si abonné */}
+        <ManageSubscriptionButton 
+          hasActiveSubscription={!!profile.stripeCustomerId}
+        />
       </div>
 
-      {/* Plan actuel */}
-      <Card>
+      {/* Messages de feedback après checkout */}
+      <CheckoutFeedback />
+
+      {/* Plan actuel - Résumé */}
+      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-2 border-slate-200 dark:border-slate-700">
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl">Plan {planDetails.name}</CardTitle>
-              <CardDescription className="text-lg mt-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Votre plan actuel</p>
+              <CardTitle className="text-3xl flex items-center gap-3">
+                <span className={`
+                  ${currentPlan === 'premium' ? 'text-purple-600 dark:text-purple-400' : ''}
+                  ${currentPlan === 'essentiel' ? 'text-indigo-600 dark:text-indigo-400' : ''}
+                  ${currentPlan === 'gratuit' ? 'text-green-600 dark:text-green-400' : ''}
+                `}>
+                  {planDetails.name}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  currentPlan === 'premium' 
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                    : currentPlan === 'essentiel'
+                    ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white'
+                    : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                }`}>
+                  {currentPlan === 'premium' ? '💎' : currentPlan === 'essentiel' ? '⭐' : '🆓'}
+                </span>
+              </CardTitle>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold">
                 {planDetails.price === 0 ? (
-                  <span className="text-emerald-600 font-semibold">Gratuit</span>
+                  <span className="text-green-600 dark:text-green-400">Gratuit</span>
                 ) : (
-                  <span className="text-slate-900 dark:text-white font-semibold">
-                    {planDetails.price}€<span className="text-sm text-slate-500">/mois</span>
-                  </span>
+                  <>
+                    <span>{planDetails.price}€</span>
+                    <span className="text-base font-normal text-slate-500">/mois</span>
+                  </>
                 )}
-              </CardDescription>
-            </div>
-            
-            {/* Badge du plan */}
-            <div className={`px-4 py-2 rounded-full font-semibold text-sm ${
-              currentPlan === 'premium' 
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                : currentPlan === 'essentiel'
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                : 'bg-slate-200 text-slate-700'
-            }`}>
-              {currentPlan === 'premium' ? '💎 Premium' 
-                : currentPlan === 'essentiel' ? '⭐ Essentiel' 
-                : '🆓 Découverte'}
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {planDetails.maxBiens === null ? '♾️ Biens illimités' : `📦 ${planDetails.maxBiens} biens max`}
+              </p>
             </div>
           </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Fonctionnalités incluses */}
-          <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Fonctionnalités incluses :</h3>
-            <ul className="space-y-2">
-              {planDetails.features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
-                  <span className="text-emerald-500 mt-0.5">✓</span>
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Limite de biens */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600 dark:text-slate-400">Limite de biens :</span>
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {planDetails.maxBiens === null ? 'Illimité' : `${planDetails.maxBiens} biens maximum`}
-              </span>
-            </div>
-          </div>
-
-          {/* Boutons d'action */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-            {currentPlan === 'decouverte' && (
-              <div className="space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Passez à un plan supérieur pour débloquer plus de fonctionnalités
-                </p>
-                <div className="flex flex-col gap-3">
-                  <UpgradeButton 
-                    targetPlan="essentiel" 
-                    userId={user.id}
-                  />
-                  <UpgradeButton 
-                    targetPlan="premium" 
-                    userId={user.id}
-                  />
-                </div>
-              </div>
-            )}
-
-            {currentPlan === 'essentiel' && (
-              <div className="space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Passez au Premium pour des biens illimités
-                </p>
-                <UpgradeButton 
-                  targetPlan="premium" 
-                  userId={user.id}
-                />
-              </div>
-            )}
-
-            {currentPlan === 'premium' && (
-              <div className="text-center py-4">
-                <p className="text-emerald-600 font-semibold">
-                  🎉 Vous avez le meilleur plan ! Profitez de toutes les fonctionnalités.
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Comparaison des plans */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparaison des plans</CardTitle>
-          <CardDescription>Trouvez le plan qui vous convient</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(PLANS).map(([key, plan]) => (
-              <div 
-                key={key}
-                className={`p-4 rounded-lg border-2 ${
-                  key === currentPlan 
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950' 
-                    : 'border-slate-200 dark:border-slate-700'
-                }`}
-              >
-                <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
-                <p className="text-2xl font-bold mb-3">
-                  {plan.price === 0 ? 'Gratuit' : `${plan.price}€/mois`}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                  {plan.maxBiens === null ? 'Biens illimités' : `${plan.maxBiens} biens max`}
-                </p>
-                {key === currentPlan && (
-                  <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                    ✓ Plan actuel
-                  </div>
-                )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {planDetails.features.slice(0, 4).map((feature, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span className="text-green-500">✓</span>
+                <span className="truncate">{feature}</span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Section titre des plans */}
+      <div className="text-center pt-8">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+          Choisissez votre plan
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400">
+          Sélectionnez le plan qui correspond le mieux à vos besoins
+        </p>
+      </div>
+
+      {/* Grille des plans */}
+      <PlansSection currentPlan={currentPlan} userId={user.id} />
+
+      {/* Tableau de comparaison */}
+      <ComparisonTable />
+
+      {/* FAQ */}
+      <FAQ />
+
+      {/* Footer */}
+      <div className="text-center pt-8 pb-4 border-t border-slate-200 dark:border-slate-700">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Des questions ? Contactez-nous à{' '}
+          <a href="mailto:support@patrimo.app" className="text-indigo-600 hover:underline">
+            support@patrimo.app
+          </a>
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+          Paiements sécurisés par Stripe • Annulation possible à tout moment
+        </p>
+      </div>
     </div>
   )
-  } catch (error) {
-    console.error('Abonnement error:', error)
+  } catch {
     redirect('/login')
   }
 }

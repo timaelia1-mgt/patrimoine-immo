@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { PLANS } from '@/lib/stripe'
 
 interface UpgradeButtonProps {
@@ -15,48 +17,35 @@ export function UpgradeButton({ targetPlan, userId }: UpgradeButtonProps) {
   const plan = PLANS[targetPlan]
 
   const handleUpgrade = async () => {
-    console.log('[UpgradeButton] START')
-    console.log('[UpgradeButton] targetPlan:', targetPlan)
-    console.log('[UpgradeButton] userId:', userId)
-    console.log('[UpgradeButton] PLANS:', PLANS)
-    console.log('[UpgradeButton] plan:', plan)
-    console.log('[UpgradeButton] plan.priceId:', plan?.priceId)
-    console.log('[UpgradeButton] Env NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL:', process.env.NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL)
-    console.log('[UpgradeButton] Env NEXT_PUBLIC_STRIPE_PRICE_PREMIUM:', process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM)
-    
+    if (!plan.priceId) {
+      toast.error('Configuration de plan invalide')
+      return
+    }
+
     setLoading(true)
     try {
-      const requestBody = {
-        priceId: plan.priceId,
-        userId,
-      }
-      console.log('[UpgradeButton] Request body:', requestBody)
-      
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          priceId: plan.priceId,
+          userId,
+        }),
       })
 
-      console.log('[UpgradeButton] Response status:', response.status)
-      const result = await response.json()
-      console.log('[UpgradeButton] Response data:', result)
+      const data = await response.json()
 
-      const { url, error } = result
-
-      if (error) {
-        console.error('[UpgradeButton] Erreur:', error)
-        alert(error)
-        return
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Erreur lors de la création de la session')
       }
 
       // Redirection vers Stripe Checkout
-      if (url) {
-        window.location.href = url
+      if (data.url) {
+        window.location.href = data.url
       }
-    } catch (err) {
-      console.error('[UpgradeButton] Erreur catch:', err)
-      alert('Erreur lors de la création de la session de paiement')
+    } catch (error: unknown) {
+      const err = error as Error
+      toast.error(err.message || 'Erreur lors de la création de la session de paiement')
     } finally {
       setLoading(false)
     }
@@ -72,10 +61,14 @@ export function UpgradeButton({ targetPlan, userId }: UpgradeButtonProps) {
           : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
       } text-white`}
     >
-      {loading 
-        ? 'Chargement...' 
-        : `Passer à ${plan.name} (${plan.price}€/mois)`
-      }
+      {loading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Chargement...
+        </>
+      ) : (
+        `Passer à ${plan.name} (${plan.price}€/mois)`
+      )}
     </Button>
   )
 }

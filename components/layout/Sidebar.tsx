@@ -34,7 +34,7 @@ export function Sidebar() {
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
   const [canCreateBien, setCanCreateBien] = useState(true)
-  const [userPlan, setUserPlan] = useState<'decouverte' | 'essentiel' | 'premium'>('decouverte')
+  const [userPlan, setUserPlan] = useState<'gratuit' | 'essentiel' | 'premium'>('gratuit')
   const [biensCount, setBiensCount] = useState(0)
   const [maxBiens, setMaxBiens] = useState<number | null>(null)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
@@ -83,7 +83,7 @@ export function Sidebar() {
       setBiensCount(biensData.length)
       
       // Traiter le profile
-      const plan = (profileData?.plan || 'decouverte') as 'decouverte' | 'essentiel' | 'premium'
+      const plan = (profileData?.plan || 'gratuit') as 'gratuit' | 'essentiel' | 'premium'
       const max = PLANS[plan].maxBiens
       
       setUserPlan(plan)

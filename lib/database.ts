@@ -1,6 +1,6 @@
 import { createClient } from "./supabase/client"
 import type { PlanType } from "./stripe"
-import { PLANS } from "./stripe"
+import { PLANS, canAddBien, getPlanMaxBiens } from "./stripe"
 import { logger } from "./logger"
 
 // Types
@@ -44,6 +44,8 @@ export interface Bien {
   updatedAt: string
 }
 
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' | 'payment_failed' | 'trialing' | null
+
 export interface UserProfile {
   id: string
   userId: string
@@ -55,6 +57,10 @@ export interface UserProfile {
   paymentDelayDays?: number
   emailAlertsEnabled?: boolean
   appNotificationsEnabled?: boolean
+  // Champs Stripe
+  stripeCustomerId?: string | null
+  stripeSubscriptionId?: string | null
+  subscriptionStatus?: SubscriptionStatus
   createdAt: string
   updatedAt: string
 }
@@ -166,12 +172,12 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
   const profile = await getUserProfile(userId, supabase)
   const existingBiens = await getBiens(userId, supabase)
   
-  const plan = profile?.plan || 'decouverte'
-  const maxBiens = PLANS[plan as keyof typeof PLANS].maxBiens
+  const planType = (profile?.plan || 'gratuit') as PlanType
   const currentCount = existingBiens?.length || 0
   
-  if (maxBiens !== null && currentCount >= maxBiens) {
-    const planName = PLANS[plan as keyof typeof PLANS].name
+  if (!canAddBien(planType, currentCount)) {
+    const maxBiens = getPlanMaxBiens(planType)
+    const planName = PLANS[planType].name
     throw new Error(`Limite de ${maxBiens} biens atteinte pour le plan ${planName}. Passez au plan supérieur pour en créer plus.`)
   }
 
@@ -351,7 +357,7 @@ export async function deleteBien(bienId: string): Promise<void> {
  * @example
  * const profile = await getUserProfile(user.id)
  * if (profile) {
- *   console.log(`Plan: ${profile.plan}`) // 'decouverte' | 'essentiel' | 'premium'
+ *   console.log(`Plan: ${profile.plan}`) // 'gratuit' | 'essentiel' | 'premium'
  * }
  */
 export async function getUserProfile(userId: string, supabaseClient?: any): Promise<UserProfile | null> {
@@ -395,7 +401,7 @@ export async function createUserProfile(userId: string, email: string, name?: st
     .insert({
       id: userId,
       email: email,
-      plan_type: "decouverte"
+      plan_type: "gratuit"
     })
     .select()
     .maybeSingle()
@@ -515,12 +521,16 @@ function convertProfileFromSupabase(data: any): UserProfile {
     userId: data.id, // Le userId est l'id dans la table profiles
     email: data.email || "",
     name: data.name || null, // Peut ne pas exister
-    plan: (data.plan_type || data.plan || "decouverte") as PlanType, // Support plan_type et plan pour compatibilité
+    plan: (data.plan_type || data.plan || "gratuit") as PlanType, // Support plan_type et plan pour compatibilité
     currency: data.currency || undefined,
     rentPaymentDay: data.rent_payment_day || data.rentPaymentDay || undefined,
     paymentDelayDays: data.payment_delay_days || data.paymentDelayDays || undefined,
     emailAlertsEnabled: data.email_alerts_enabled !== undefined ? data.email_alerts_enabled : (data.emailAlertsEnabled !== undefined ? data.emailAlertsEnabled : undefined),
     appNotificationsEnabled: data.app_notifications_enabled !== undefined ? data.app_notifications_enabled : (data.appNotificationsEnabled !== undefined ? data.appNotificationsEnabled : undefined),
+    // Champs Stripe
+    stripeCustomerId: data.stripe_customer_id || null,
+    stripeSubscriptionId: data.stripe_subscription_id || null,
+    subscriptionStatus: data.subscription_status || null,
     createdAt: data.created_at || data.createdAt || new Date().toISOString(),
     updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
   }

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getBiens } from '@/lib/database'
+import { getBiens, getUserProfile } from '@/lib/database'
 import { logger } from '@/lib/logger'
 import { calculateChargesMensuelles } from '@/lib/calculations'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
@@ -21,6 +21,8 @@ import {
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
 import { PatrimoineChart } from '@/components/dashboard/PatrimoineChart'
 import { ExportExcelButton } from '@/components/dashboard/ExportExcelButton'
+import { PLANS } from '@/lib/stripe'
+import type { PlanType } from '@/lib/stripe'
 
 // Désactiver le cache
 export const dynamic = 'force-dynamic'
@@ -79,6 +81,11 @@ export default async function DashboardPage() {
     // Passer le client Supabase serveur à getBiens
     const biens = await getBiens(user.id, supabase)
     const stats = calculateStats(biens)
+    
+    // Récupérer le profil pour les limites de plan
+    const profile = await getUserProfile(user.id, supabase)
+    const planType = (profile?.plan || 'gratuit') as PlanType
+    const maxBiens = PLANS[planType].maxBiens
 
     return (
       <Suspense fallback={<DashboardSkeleton />}>
@@ -391,7 +398,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <DashboardClient biens={biens} stats={stats} />
+        <DashboardClient biens={biens} stats={stats} planType={planType} maxBiens={maxBiens} />
         </div>
       </Suspense>
     )

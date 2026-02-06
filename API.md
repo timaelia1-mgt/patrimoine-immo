@@ -182,6 +182,67 @@ Récupérer le profil de l'utilisateur connecté.
 
 ## 🏠 Biens
 
+### POST /api/biens
+
+Créer un nouveau bien immobilier.
+
+**Body** :
+```json
+{
+  "nom": "Appartement Paris 15e",
+  "adresse": "10 rue de la Paix",
+  "ville": "Paris",
+  "codePostal": "75015",
+  "typeFinancement": "CREDIT",
+  "loyerMensuel": 1200,
+  "taxeFonciere": 800,
+  "chargesCopro": 50,
+  "assurance": 30,
+  "fraisGestion": 50,
+  "autresCharges": 20,
+  "montantCredit": 200000,
+  "tauxCredit": 3.5,
+  "dureeCredit": 240,
+  "mensualiteCredit": 1150,
+  "dateDebutCredit": "2023-01-15"
+}
+```
+
+**Champs obligatoires** : `nom`
+
+**Réponse (201)** :
+```json
+{
+  "bien": {
+    "id": "uuid-bien-id",
+    "nom": "Appartement Paris 15e",
+    "...": "..."
+  }
+}
+```
+
+**Erreurs** :
+
+| Code | Erreur | Description |
+|------|--------|-------------|
+| `401` | `Non authentifié` | Pas de session active |
+| `403` | **Limite de biens atteinte** | Votre plan ne permet pas d'ajouter plus de biens |
+| `404` | `Profil non trouvé` | Profil inexistant |
+| `500` | `Erreur serveur` | Erreur base de données |
+
+**Réponse 403 (Limite atteinte)** :
+```json
+{
+  "error": "Limite de biens atteinte",
+  "message": "Votre plan gratuit permet jusqu'à 2 biens. Passez à un plan supérieur pour ajouter plus de biens.",
+  "currentCount": 2,
+  "maxCount": 2,
+  "planType": "gratuit"
+}
+```
+
+---
+
 ### GET /api/biens/[id]
 
 Récupérer un bien immobilier par son ID.
@@ -693,9 +754,21 @@ Studio Lyon,5 rue Y,69001,Lyon,comptant,80000,500,200
 | `400` | `Le fichier est trop volumineux (max 5MB)` | Trop gros |
 | `400` | `Le fichier CSV est vide` | Aucune donnée |
 | `400` | `Maximum 50 biens par import` | Trop de lignes |
-| `400` | `Limite du plan atteinte` | Plan insuffisant |
 | `400` | `Aucun bien valide trouvé` | Tous sans nom |
 | `401` | `Non authentifié` | Pas de session active |
+| `403` | **Import bloqué** | Limite du plan dépassée |
+
+**Réponse 403 (Import bloqué)** :
+```json
+{
+  "error": "Import bloqué",
+  "message": "Vous essayez d'importer 5 bien(s), mais votre plan gratuit ne permet que 2 bien(s) au total. Vous avez déjà 1 bien(s).",
+  "currentCount": 1,
+  "importCount": 5,
+  "maxCount": 2,
+  "planType": "gratuit"
+}
+```
 
 ---
 
@@ -731,6 +804,38 @@ Créer une session de paiement Stripe Checkout.
 
 ---
 
+### POST /api/create-portal-session
+
+Créer une session Customer Portal Stripe pour gérer l'abonnement.
+
+**Authentification** : Session Supabase (cookie automatique)
+
+**Réponse (200)** :
+```json
+{
+  "url": "https://billing.stripe.com/p/session/..."
+}
+```
+
+> L'utilisateur doit être redirigé vers cette URL pour accéder au portail de gestion.
+
+**Fonctionnalités du portail** :
+- Voir l'historique des factures
+- Mettre à jour la carte bancaire
+- Annuler l'abonnement
+- Télécharger les reçus
+
+**Erreurs** :
+
+| Code | Erreur | Description |
+|------|--------|-------------|
+| `401` | `Non authentifié` | Pas de session active |
+| `400` | `Aucun abonnement Stripe trouvé` | Utilisateur sans abonnement payant |
+| `404` | `Profil non trouvé` | Profil inexistant |
+| `500` | Erreur Stripe | Problème avec Stripe |
+
+---
+
 ### POST /api/webhooks/stripe
 
 Webhook Stripe pour recevoir les événements de paiement.
@@ -746,7 +851,9 @@ Webhook Stripe pour recevoir les événements de paiement.
 |-----------|--------|
 | `checkout.session.completed` | Met à jour le plan utilisateur après paiement réussi |
 | `customer.subscription.updated` | Met à jour le plan si changement d'abonnement |
-| `customer.subscription.deleted` | Rétrograde vers plan "découverte" |
+| `customer.subscription.deleted` | Rétrograde vers plan "gratuit" |
+| `invoice.payment_failed` | Met à jour le statut, rétrograde après 3 échecs |
+| `invoice.payment_succeeded` | Restaure le statut "active" si était en échec |
 
 **Réponse (200)** :
 ```json

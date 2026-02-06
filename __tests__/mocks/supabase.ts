@@ -164,7 +164,7 @@ export const mockProfileData = {
   id: 'user-456',
   email: 'test@example.com',
   name: 'Jean Dupont',
-  plan_type: 'decouverte',
+  plan_type: 'gratuit',
   currency: 'EUR',
   rent_payment_day: 5,
   payment_delay_days: 10,

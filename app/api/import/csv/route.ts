@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/database'
-import { PLANS } from '@/lib/stripe'
+import { PLANS, getPlanMaxBiens, isValidPlanType } from '@/lib/stripe'
+import type { PlanType } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
 // Papa est importé dynamiquement pour réduire le bundle initial
 
@@ -48,8 +49,8 @@ export async function POST(request: NextRequest) {
     
     // 2. VÉRIFIER LE PLAN ET LA LIMITE DE BIENS
     const profile = await getUserProfile(user.id, supabase)
-    const plan = profile?.plan || 'decouverte'
-    const maxBiens = PLANS[plan as keyof typeof PLANS]?.maxBiens
+    const planType: PlanType = isValidPlanType(profile?.plan || '') ? profile!.plan as PlanType : 'gratuit'
+    const maxBiens = getPlanMaxBiens(planType)
     
     // Récupérer le nombre de biens actuels
     const { count: currentBiensCount } = await supabase
@@ -132,14 +133,26 @@ export async function POST(request: NextRequest) {
     }
     
     // Vérifier la limite du plan
-    if (maxBiens !== null && (currentBiensCount || 0) + rows.length > maxBiens) {
-      const restants = maxBiens - (currentBiensCount || 0)
+    const totalAfterImport = (currentBiensCount || 0) + rows.length
+    if (maxBiens !== null && totalAfterImport > maxBiens) {
+      const restants = Math.max(0, maxBiens - (currentBiensCount || 0))
+      logger.warn('[API import-csv] Import bloqué - limite du plan', {
+        userId: user.id,
+        planType,
+        currentBiens: currentBiensCount,
+        importCount: rows.length,
+        maxBiens,
+      })
       return NextResponse.json(
-        { 
-          error: `Limite du plan ${plan} atteinte. Vous pouvez importer maximum ${restants} bien(s) supplémentaire(s).`,
-          limit: restants
+        {
+          error: 'Import bloqué',
+          message: `Vous essayez d'importer ${rows.length} bien(s), mais votre plan ${planType} ne permet que ${maxBiens} bien(s) au total. Vous avez déjà ${currentBiensCount || 0} bien(s). Il vous reste ${restants} emplacement(s) disponible(s).`,
+          currentCount: currentBiensCount || 0,
+          importCount: rows.length,
+          maxCount: maxBiens,
+          planType,
         },
-        { status: 400 }
+        { status: 403 }
       )
     }
     
