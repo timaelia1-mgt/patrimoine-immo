@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/calculations"
 
@@ -11,7 +12,7 @@ interface LoyersStatistiquesProps {
   caTotal: number
 }
 
-export function LoyersStatistiques({
+export const LoyersStatistiques = memo(function LoyersStatistiques({
   moisLocatairePayes,
   moisAPLPayes,
   montantAPL,
@@ -65,4 +66,4 @@ export function LoyersStatistiques({
       </CardContent>
     </Card>
   )
-}
+})

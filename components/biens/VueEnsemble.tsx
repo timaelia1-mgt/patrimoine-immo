@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
 
@@ -8,15 +9,18 @@ interface VueEnsembleProps {
 }
 
 export function VueEnsemble({ bien }: VueEnsembleProps) {
-  const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
-  const totalCharges = calculateChargesMensuelles(bien)
-  const loyerNet = loyerMensuel - totalCharges
-  
-  const mensualiteCredit = bien.typeFinancement === "CREDIT" 
-    ? parseFloat(bien.mensualiteCredit?.toString() || "0")
-    : 0
-  
-  const cashFlow = loyerNet - mensualiteCredit
+  // Calculs mémorisés - ne se refont QUE si `bien` change
+  const { loyerMensuel, totalCharges, loyerNet, mensualiteCredit, cashFlow } = useMemo(() => {
+    const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
+    const totalCharges = calculateChargesMensuelles(bien)
+    const loyerNet = loyerMensuel - totalCharges
+    const mensualiteCredit = bien.typeFinancement === "CREDIT" 
+      ? parseFloat(bien.mensualiteCredit?.toString() || "0")
+      : 0
+    const cashFlow = loyerNet - mensualiteCredit
+    
+    return { loyerMensuel, totalCharges, loyerNet, mensualiteCredit, cashFlow }
+  }, [bien])
 
   return (
     <div className="space-y-6">

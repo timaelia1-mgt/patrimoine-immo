@@ -1,4 +1,6 @@
-export function DashboardSkeleton() {
+import { memo } from 'react'
+
+export const DashboardSkeleton = memo(function DashboardSkeleton() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Hero Section Skeleton */}
@@ -52,4 +54,4 @@ export function DashboardSkeleton() {
       </div>
     </div>
   )
-}
+})

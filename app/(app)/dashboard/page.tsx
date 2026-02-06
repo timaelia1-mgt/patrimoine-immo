@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
 import { PatrimoineChart } from '@/components/dashboard/PatrimoineChart'
+import { ExportExcelButton } from '@/components/dashboard/ExportExcelButton'
 
 // Désactiver le cache
 export const dynamic = 'force-dynamic'
@@ -222,6 +223,11 @@ export default async function DashboardPage() {
                 </Card>
               </div>
             </div>
+
+            {/* Section Export Excel */}
+            {biens.length > 0 && (
+              <ExportExcelButton nombreBiens={biens.length} />
+            )}
 
             {/* Section Mes Biens */}
             {biens.length > 0 && (

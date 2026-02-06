@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/calculations"
 
@@ -15,7 +16,7 @@ interface LoyersHeaderProps {
   loyerMensuel: number
 }
 
-export function LoyersHeader({
+export const LoyersHeader = memo(function LoyersHeader({
   caTotal,
   caPrevuTotal,
   caLocataire,
@@ -89,4 +90,4 @@ export function LoyersHeader({
       </Card>
     </div>
   )
-}
+})

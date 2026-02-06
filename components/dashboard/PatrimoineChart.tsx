@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { AlertTriangle } from 'lucide-react'
@@ -188,7 +188,7 @@ function calculatePatrimoineEvolution(biens: any[]) {
   return dataPoints
 }
 
-export function PatrimoineChart({ biens }: PatrimoineChartProps) {
+export const PatrimoineChart = memo(function PatrimoineChart({ biens }: PatrimoineChartProps) {
   // Mémoïser le calcul du patrimoine pour éviter les recalculs inutiles
   // Le calcul ne se refait que si les biens changent
   const { data, hasError } = useMemo(() => {
@@ -436,4 +436,4 @@ export function PatrimoineChart({ biens }: PatrimoineChartProps) {
       </Card>
     </div>
   )
-}
+})

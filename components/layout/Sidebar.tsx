@@ -4,11 +4,17 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import dynamic from "next/dynamic"
 import { useAuth } from "@/lib/auth-context"
 import { getBiens, getUserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
-import { UpgradeModal } from "@/components/modals/UpgradeModal"
+
+// Lazy-load du modal pour réduire le bundle initial
+const UpgradeModal = dynamic(
+  () => import("@/components/modals/UpgradeModal").then(mod => ({ default: mod.UpgradeModal })),
+  { ssr: false }
+)
 
 // Événement personnalisé pour rafraîchir la sidebar
 export const REFRESH_SIDEBAR_EVENT = 'refresh-sidebar'
@@ -65,19 +71,24 @@ export function Sidebar() {
     try {
       console.log("[Sidebar] Récupération des biens pour user:", user.id)
       setLoading(true)
-      const data = await getBiens(user.id)
-      console.log("[Sidebar] Biens récupérés:", data.length, data)
-      setBiens(data)
-      setBiensCount(data.length)
       
-      // Vérifier la limite selon le plan
-      const profile = await getUserProfile(user.id)
-      const plan = (profile?.plan || 'decouverte') as 'decouverte' | 'essentiel' | 'premium'
+      // Appels parallèles pour un chargement plus rapide (~100ms économisés)
+      const [biensData, profileData] = await Promise.all([
+        getBiens(user.id),
+        getUserProfile(user.id)
+      ])
+      
+      console.log("[Sidebar] Biens récupérés:", biensData.length, biensData)
+      setBiens(biensData)
+      setBiensCount(biensData.length)
+      
+      // Traiter le profile
+      const plan = (profileData?.plan || 'decouverte') as 'decouverte' | 'essentiel' | 'premium'
       const max = PLANS[plan].maxBiens
       
       setUserPlan(plan)
       setMaxBiens(max)
-      setCanCreateBien(max === null || data.length < max)
+      setCanCreateBien(max === null || biensData.length < max)
     } catch (error) {
       console.error("[Sidebar] Erreur lors de la récupération des biens:", error)
       setBiens([])

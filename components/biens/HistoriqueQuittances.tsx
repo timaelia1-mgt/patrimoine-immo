@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { logger } from '@/lib/logger'
 import { toast } from 'sonner'
-import { generateQuittancePDF, QuittanceData } from '@/lib/generateQuittance'
+import type { QuittanceData } from '@/lib/generateQuittance'
 
 interface Quittance {
   id: string
@@ -78,9 +78,12 @@ export function HistoriqueQuittances({
     }
   }
 
-  const handleRegenererPDF = (quittance: Quittance) => {
+  const handleRegenererPDF = async (quittance: Quittance) => {
     try {
       setDownloadingId(quittance.id)
+      
+      // Import dynamique de jsPDF pour réduire le bundle initial (~200KB)
+      const { generateQuittancePDF } = await import('@/lib/generateQuittance')
       
       const quittanceData: QuittanceData = {
         bienId: quittance.bien_id,

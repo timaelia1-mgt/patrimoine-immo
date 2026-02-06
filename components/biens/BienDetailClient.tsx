@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,18 +12,91 @@ import { formatCurrency, calculerStatutBien, calculateChargesMensuelles } from "
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { VueEnsemble } from "@/components/biens/VueEnsemble"
-import { Loyers } from "@/components/biens/Loyers"
-import { Charges } from "@/components/biens/Charges"
-import { Financement } from "@/components/biens/Financement"
-import { Documents } from "@/components/biens/Documents"
-import { Investissement } from "@/components/biens/Investissement"
-import { Historique } from "@/components/biens/Historique"
-import { Rentabilite } from "@/components/biens/Rentabilite"
-import { Locataire } from "@/components/biens/Locataire"
-import { FinancementForm, InvestissementForm, HistoriqueForm, ChargesForm, RentabiliteForm, LocataireForm } from "@/components/biens/EnrichissementForms"
-import { HistoriqueQuittances } from "@/components/biens/HistoriqueQuittances"
 import { updateBien, deleteBien, type Bien } from "@/lib/database"
+
+// Composant de chargement réutilisable
+const TabLoading = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+  </div>
+)
+
+// Lazy-load de TOUS les onglets pour réduire le bundle initial (~200 KB)
+const VueEnsemble = dynamic(
+  () => import("@/components/biens/VueEnsemble").then(mod => ({ default: mod.VueEnsemble })),
+  { loading: () => <TabLoading /> }
+)
+
+const Loyers = dynamic(
+  () => import("@/components/biens/Loyers").then(mod => ({ default: mod.Loyers })),
+  { loading: () => <TabLoading /> }
+)
+
+const Charges = dynamic(
+  () => import("@/components/biens/Charges").then(mod => ({ default: mod.Charges })),
+  { loading: () => <TabLoading /> }
+)
+
+const Financement = dynamic(
+  () => import("@/components/biens/Financement").then(mod => ({ default: mod.Financement })),
+  { loading: () => <TabLoading /> }
+)
+
+const Documents = dynamic(
+  () => import("@/components/biens/Documents").then(mod => ({ default: mod.Documents })),
+  { loading: () => <TabLoading /> }
+)
+
+const Investissement = dynamic(
+  () => import("@/components/biens/Investissement").then(mod => ({ default: mod.Investissement })),
+  { loading: () => <TabLoading /> }
+)
+
+const Historique = dynamic(
+  () => import("@/components/biens/Historique").then(mod => ({ default: mod.Historique })),
+  { loading: () => <TabLoading /> }
+)
+
+const Rentabilite = dynamic(
+  () => import("@/components/biens/Rentabilite").then(mod => ({ default: mod.Rentabilite })),
+  { loading: () => <TabLoading /> }
+)
+
+const Locataire = dynamic(
+  () => import("@/components/biens/Locataire").then(mod => ({ default: mod.Locataire })),
+  { loading: () => <TabLoading /> }
+)
+
+const HistoriqueQuittances = dynamic(
+  () => import("@/components/biens/HistoriqueQuittances").then(mod => ({ default: mod.HistoriqueQuittances })),
+  { loading: () => <TabLoading /> }
+)
+
+// Lazy-load des formulaires d'enrichissement pour réduire le bundle initial
+const FinancementForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.FinancementForm })),
+  { ssr: false }
+)
+const InvestissementForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.InvestissementForm })),
+  { ssr: false }
+)
+const HistoriqueForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.HistoriqueForm })),
+  { ssr: false }
+)
+const ChargesForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.ChargesForm })),
+  { ssr: false }
+)
+const RentabiliteForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.RentabiliteForm })),
+  { ssr: false }
+)
+const LocataireForm = dynamic(
+  () => import("@/components/biens/EnrichissementForms").then(mod => ({ default: mod.LocataireForm })),
+  { ssr: false }
+)
 
 interface BienDetailClientProps {
   bien: Bien

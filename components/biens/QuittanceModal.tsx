@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { generateQuittancePDF, QuittanceData } from '@/lib/generateQuittance'
+import type { QuittanceData } from '@/lib/generateQuittance'
 import { logger } from '@/lib/logger'
 import { toast } from 'sonner'
 
@@ -77,6 +77,9 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
     setLoadingDownload(true)
     
     try {
+      // Import dynamique de jsPDF pour réduire le bundle initial (~200KB)
+      const { generateQuittancePDF } = await import('@/lib/generateQuittance')
+      
       const quittanceData: QuittanceData = {
         ...data,
         datePayeLocataire,
@@ -164,6 +167,9 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
     setLoading(true)
 
     try {
+      // Import dynamique de jsPDF pour réduire le bundle initial (~200KB)
+      const { generateQuittancePDF } = await import('@/lib/generateQuittance')
+      
       const quittanceData: QuittanceData = {
         ...data,
         datePayeLocataire,

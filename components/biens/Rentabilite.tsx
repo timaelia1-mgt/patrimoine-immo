@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency, calculateChargesMensuelles, calculateTRIBien } from "@/lib/calculations"
 import { CashFlowChart } from './rentabilite/CashFlowChart'
@@ -10,73 +11,112 @@ interface RentabiliteProps {
 }
 
 export function Rentabilite({ bien }: RentabiliteProps) {
-  const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
-  const totalCharges = calculateChargesMensuelles(bien)
-  
-  const mensualiteCredit = bien.typeFinancement === "CREDIT" 
-    ? parseFloat(bien.mensualiteCredit?.toString() || "0")
-    : 0
-  
-  const cashFlowMensuel = loyerMensuel - totalCharges - mensualiteCredit
+  // Tous les calculs mémorisés - ne se refont QUE si `bien` change
+  const calculatedValues = useMemo(() => {
+    // Calculs de base
+    const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
+    const totalCharges = calculateChargesMensuelles(bien)
+    const mensualiteCredit = bien.typeFinancement === "CREDIT" 
+      ? parseFloat(bien.mensualiteCredit?.toString() || "0")
+      : 0
+    const cashFlowMensuel = loyerMensuel - totalCharges - mensualiteCredit
 
-  // Calculer la durée réelle de possession
-  const calculerDureePossession = () => {
-    if (!bien.dateAcquisition) return 0
-    
-    const dateAcquisition = new Date(bien.dateAcquisition)
-    const dateDebut = bien.dateMiseEnLocation 
-      ? new Date(bien.dateMiseEnLocation) 
-      : dateAcquisition
-    const maintenant = new Date()
-    
-    const diffMs = maintenant.getTime() - dateDebut.getTime()
-    const moisPossession = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44))
-    
-    return Math.max(0, moisPossession)
-  }
+    // Calcul durée de possession
+    const calculerDureePossession = () => {
+      if (!bien.dateAcquisition) return 0
+      const dateAcquisition = new Date(bien.dateAcquisition)
+      const dateDebut = bien.dateMiseEnLocation 
+        ? new Date(bien.dateMiseEnLocation) 
+        : dateAcquisition
+      const maintenant = new Date()
+      const diffMs = maintenant.getTime() - dateDebut.getTime()
+      const moisPossession = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44))
+      return Math.max(0, moisPossession)
+    }
+    const moisPossession = calculerDureePossession()
 
-  const moisPossession = calculerDureePossession()
-  const revenusCumules = (bien.revenusAnterieursOverride ?? null) !== null
-    ? bien.revenusAnterieursOverride!
-    : loyerMensuel * moisPossession
+    // Revenus et charges cumulés
+    const revenusCumules = (bien.revenusAnterieursOverride ?? null) !== null
+      ? bien.revenusAnterieursOverride!
+      : loyerMensuel * moisPossession
+    const chargesCumulees = (bien.chargesAnterieuresOverride ?? null) !== null
+      ? bien.chargesAnterieuresOverride!
+      : (totalCharges + mensualiteCredit) * moisPossession
+    const bilanNet = revenusCumules - chargesCumulees
 
-  const chargesCumulees = (bien.chargesAnterieuresOverride ?? null) !== null
-    ? bien.chargesAnterieuresOverride!
-    : (totalCharges + mensualiteCredit) * moisPossession
+    // Calculs d'investissement
+    const prixAchat = parseFloat(bien.prixAchat?.toString() || "0")
+    const fraisNotaire = parseFloat(bien.fraisNotaire?.toString() || "0")
+    const travauxInitiaux = parseFloat(bien.travauxInitiaux?.toString() || "0")
+    const autresFrais = parseFloat(bien.autresFrais?.toString() || "0")
+    const investissementTotal = prixAchat + fraisNotaire + travauxInitiaux + autresFrais
 
-  const bilanNet = revenusCumules - chargesCumulees
+    // Calculs de rentabilité
+    const loyerAnnuel = loyerMensuel * 12
+    const rentabiliteBrute = prixAchat > 0 ? (loyerAnnuel / prixAchat) * 100 : 0
+    const chargesAnnuelles = totalCharges * 12
+    const loyerNetAnnuel = loyerAnnuel - chargesAnnuelles
+    const rentabiliteNette = investissementTotal > 0 ? (loyerNetAnnuel / investissementTotal) * 100 : 0
 
-  // Calculs de rentabilité
-  const prixAchat = parseFloat(bien.prixAchat?.toString() || "0")
-  const fraisNotaire = parseFloat(bien.fraisNotaire?.toString() || "0")
-  const travauxInitiaux = parseFloat(bien.travauxInitiaux?.toString() || "0")
-  const autresFrais = parseFloat(bien.autresFrais?.toString() || "0")
-  const investissementTotal = prixAchat + fraisNotaire + travauxInitiaux + autresFrais
+    // Cash-flow annuel
+    const mensualitesAnnuelles = mensualiteCredit * 12
+    const cashFlowAnnuel = loyerNetAnnuel - mensualitesAnnuelles
 
-  // Rentabilité brute annuelle (loyer annuel / prix d'achat)
-  const loyerAnnuel = loyerMensuel * 12
-  const rentabiliteBrute = prixAchat > 0 ? (loyerAnnuel / prixAchat) * 100 : 0
+    // ROI
+    const roi = investissementTotal > 0 ? (bilanNet / investissementTotal) * 100 : 0
 
-  // Rentabilité nette annuelle ((loyer - charges) annuel / investissement total)
-  const chargesAnnuelles = totalCharges * 12
-  const loyerNetAnnuel = loyerAnnuel - chargesAnnuelles
-  const rentabiliteNette = investissementTotal > 0 ? (loyerNetAnnuel / investissementTotal) * 100 : 0
+    // TRI
+    const tri = calculateTRIBien(bien, loyerMensuel, totalCharges, mensualiteCredit, moisPossession)
 
-  // Cash-flow annuel
-  const mensualitesAnnuelles = mensualiteCredit * 12
-  const cashFlowAnnuel = loyerNetAnnuel - mensualitesAnnuelles
+    // Données pour les graphiques
+    const chargesBreakdown = {
+      taxeFonciere: parseFloat(bien.taxeFonciere?.toString() || "0"),
+      chargesCopro: parseFloat(bien.chargesCopro?.toString() || "0"),
+      assurance: parseFloat(bien.assurance?.toString() || "0"),
+      fraisGestion: parseFloat(bien.fraisGestion?.toString() || "0"),
+      autresCharges: parseFloat(bien.autresCharges?.toString() || "0"),
+    }
 
-  // ROI si le bien était revendu maintenant au prix d'achat
-  const roi = investissementTotal > 0 ? (bilanNet / investissementTotal) * 100 : 0
+    return {
+      loyerMensuel,
+      totalCharges,
+      mensualiteCredit,
+      cashFlowMensuel,
+      moisPossession,
+      revenusCumules,
+      chargesCumulees,
+      bilanNet,
+      prixAchat,
+      investissementTotal,
+      loyerAnnuel,
+      rentabiliteBrute,
+      chargesAnnuelles,
+      rentabiliteNette,
+      cashFlowAnnuel,
+      roi,
+      tri,
+      chargesBreakdown,
+    }
+  }, [bien]) // Ne recalcule QUE si bien change
 
-  // Calculer le TRI
-  const tri = calculateTRIBien(
-    bien,
+  // Destructuration pour utilisation dans le JSX
+  const {
     loyerMensuel,
     totalCharges,
     mensualiteCredit,
-    moisPossession
-  )
+    moisPossession,
+    revenusCumules,
+    chargesCumulees,
+    bilanNet,
+    prixAchat,
+    investissementTotal,
+    rentabiliteBrute,
+    rentabiliteNette,
+    cashFlowAnnuel,
+    roi,
+    tri,
+    chargesBreakdown,
+  } = calculatedValues
 
   return (
     <div className="space-y-6">
@@ -223,11 +263,11 @@ export function Rentabilite({ bien }: RentabiliteProps) {
         />
         
         <ChargesBreakdown
-          taxeFonciere={parseFloat(bien.taxeFonciere?.toString() || "0")}
-          chargesCopro={parseFloat(bien.chargesCopro?.toString() || "0")}
-          assurance={parseFloat(bien.assurance?.toString() || "0")}
-          fraisGestion={parseFloat(bien.fraisGestion?.toString() || "0")}
-          autresCharges={parseFloat(bien.autresCharges?.toString() || "0")}
+          taxeFonciere={chargesBreakdown.taxeFonciere}
+          chargesCopro={chargesBreakdown.chargesCopro}
+          assurance={chargesBreakdown.assurance}
+          fraisGestion={chargesBreakdown.fraisGestion}
+          autresCharges={chargesBreakdown.autresCharges}
           mensualiteCredit={mensualiteCredit}
         />
       </div>

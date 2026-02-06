@@ -2,11 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
-import { UpgradeModal } from "@/components/modals/UpgradeModal"
 import { getUserProfile, getBiens } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
+
+// Lazy-load du modal pour réduire le bundle initial
+const UpgradeModal = dynamic(
+  () => import("@/components/modals/UpgradeModal").then(mod => ({ default: mod.UpgradeModal })),
+  { ssr: false }
+)
 
 interface DashboardClientProps {
   biens: any[]

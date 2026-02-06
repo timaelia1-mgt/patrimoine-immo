@@ -10,6 +10,7 @@ import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
 import { updateUserProfile, type UserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
+import { DataManagementSection } from "./DataManagementSection"
 
 interface ParametresClientProps {
   profile: UserProfile | null
@@ -378,6 +379,9 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
           {loading ? "Enregistrement..." : "Enregistrer tous les paramètres"}
         </Button>
       </div>
+
+      {/* SECTION 4 : Gestion des données */}
+      <DataManagementSection />
 
       <Card>
         <CardHeader>
