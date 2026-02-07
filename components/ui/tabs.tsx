@@ -13,56 +13,72 @@ const TabsContext = React.createContext<TabsContextType>({
   onValueChange: () => {},
 })
 
-interface TabsProps {
+export function Tabs({
+  defaultValue,
+  value: controlledValue,
+  onValueChange,
+  children,
+  className,
+}: {
   defaultValue?: string
   value?: string
   onValueChange?: (value: string) => void
-  className?: string
   children: React.ReactNode
-}
-
-export function Tabs({ defaultValue, value: controlledValue, onValueChange, className, children }: TabsProps) {
+  className?: string
+}) {
   const [internalValue, setInternalValue] = React.useState(defaultValue || "")
+  const value = controlledValue ?? internalValue
   
-  // Utiliser la valeur contrôlée si fournie, sinon utiliser l'état interne
-  const value = controlledValue !== undefined ? controlledValue : internalValue
-  
-  const handleValueChange = (newValue: string) => {
-    if (onValueChange) {
-      onValueChange(newValue)
-    } else {
-      setInternalValue(newValue)
-    }
-  }
+  const handleValueChange = React.useCallback(
+    (newValue: string) => {
+      if (controlledValue === undefined) {
+        setInternalValue(newValue)
+      }
+      onValueChange?.(newValue)
+    },
+    [controlledValue, onValueChange]
+  )
 
   return (
     <TabsContext.Provider value={{ value, onValueChange: handleValueChange }}>
-      <div className={className}>{children}</div>
+      <div className={cn("w-full", className)}>{children}</div>
     </TabsContext.Provider>
   )
 }
 
-export function TabsList({ className, children }: { className?: string; children: React.ReactNode }) {
+export function TabsList({ 
+  className, 
+  children 
+}: { 
+  className?: string
+  children: React.ReactNode 
+}) {
   return (
     <div
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 p-1 text-slate-500 gap-1 border-b border-slate-200 dark:border-slate-700",
+        "inline-flex items-center justify-start w-full gap-1 p-1.5",
+        "bg-gradient-to-br from-slate-900/50 to-slate-950/50 backdrop-blur-sm",
+        "border-b border-slate-800/50 relative",
         className
       )}
     >
       {children}
+      {/* Subtle gradient line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
     </div>
   )
 }
 
-export function TabsTrigger({ 
-  value: triggerValue, 
-  children, 
-  className 
-}: { 
+export function TabsTrigger({
+  value: triggerValue,
+  children,
+  className,
+  disabled = false,
+}: {
   value: string
   children: React.ReactNode
   className?: string
+  disabled?: boolean
 }) {
   const { value, onValueChange } = React.useContext(TabsContext)
   const isActive = value === triggerValue
@@ -70,33 +86,58 @@ export function TabsTrigger({
   return (
     <button
       type="button"
+      disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5",
-        "text-sm font-medium transition-all",
-        isActive 
-          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border-b-2 border-sky-500" 
-          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
+        "relative inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5",
+        "text-sm font-medium tracking-tight transition-all duration-300",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20",
+        "disabled:pointer-events-none disabled:opacity-50",
+        isActive
+          ? "text-amber-400 shadow-lg shadow-amber-500/10"
+          : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50",
         className
       )}
-      onClick={() => onValueChange(triggerValue)}
+      onClick={() => !disabled && onValueChange(triggerValue)}
     >
-      {children}
+      {/* Background gradient for active tab */}
+      {isActive && (
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 animate-in fade-in duration-300" />
+      )}
+      
+      {/* Content */}
+      <span className="relative z-10">{children}</span>
+      
+      {/* Active indicator - animated border bottom */}
+      {isActive && (
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-12 bg-gradient-to-r from-amber-500 to-amber-600 rounded-full animate-in slide-in-from-bottom-2 duration-300" />
+      )}
     </button>
   )
 }
 
-export function TabsContent({ 
-  value: contentValue, 
+export function TabsContent({
+  value: contentValue,
   children,
-  className
-}: { 
+  className,
+}: {
   value: string
   children: React.ReactNode
   className?: string
 }) {
   const { value } = React.useContext(TabsContext)
   
-  if (value !== contentValue) return null
-  
-  return <div className={cn("mt-2", className)}>{children}</div>
+  if (value !== contentValue) {
+    return null
+  }
+
+  return (
+    <div
+      className={cn(
+        "mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500",
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
 }
