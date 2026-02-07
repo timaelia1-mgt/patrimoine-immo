@@ -349,15 +349,6 @@ export function Locataire({ bien }: LocataireProps) {
         </Card>
       )}
 
-      {/* Note technique */}
-      <Card className="border-blue-500 bg-blue-50">
-        <CardContent className="pt-6">
-          <p className="text-sm text-blue-900">
-            ℹ️ <strong>Note :</strong> Les informations locataire sont actuellement stockées temporairement. 
-            La table Locataire en base de données sera créée prochainement pour une sauvegarde permanente.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   )
 }
