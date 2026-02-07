@@ -4,7 +4,8 @@ import { getUserProfile } from '@/lib/database'
 import { PLANS, getPlanMaxBiens, isValidPlanType } from '@/lib/stripe'
 import type { PlanType } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 // Papa est importé dynamiquement pour réduire le bundle initial
 
 interface CSVRow {

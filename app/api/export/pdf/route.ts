@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getBiens, getUserProfile } from '@/lib/database'
 import { logger } from '@/lib/logger'
 import { generateRapportAnnuelPDF } from '@/lib/generateRapportAnnuel'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function GET() {
   try {

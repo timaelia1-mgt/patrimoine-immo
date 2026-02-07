@@ -3,7 +3,8 @@
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { useEffect } from 'react'
-import { trackEvent, ANALYTICS_EVENTS } from './client'
+import { trackEvent } from './client'
+import { ANALYTICS_EVENTS } from './events'
 import { useWebVitals } from './web-vitals'
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {

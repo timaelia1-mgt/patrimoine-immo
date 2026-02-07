@@ -12,7 +12,8 @@ import type {
   SubscriptionStatus,
   ErrorResponse 
 } from '@/lib/types/stripe'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 import { logger } from '@/lib/logger'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!

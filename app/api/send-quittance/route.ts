@@ -3,7 +3,8 @@ import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 import { getBien } from '@/lib/database'
 import { logger } from '@/lib/logger'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {

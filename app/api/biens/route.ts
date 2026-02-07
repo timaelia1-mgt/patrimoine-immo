@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { canAddBien, getPlanMaxBiens, isValidPlanType } from '@/lib/stripe'
 import type { PlanType } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {

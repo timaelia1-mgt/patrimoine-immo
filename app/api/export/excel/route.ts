@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getBiens, getUserProfile } from '@/lib/database'
 import { logger } from '@/lib/logger'
-import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { trackServerEvent } from '@/lib/analytics/server'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 // XLSX est importé dynamiquement pour réduire le bundle initial
 
 export async function GET() {
