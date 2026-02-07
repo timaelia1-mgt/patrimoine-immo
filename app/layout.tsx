@@ -3,6 +3,8 @@ import { Inter, Plus_Jakarta_Sans, DM_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/lib/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
+import { PostHogProvider } from "@/lib/analytics"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({
@@ -36,12 +38,16 @@ export default function RootLayout({
   return (
     <html lang="fr" className="dark">
       <body className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <PostHogProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                {children}
+                <Toaster />
+              </AuthProvider>
+            </ThemeProvider>
+          </PostHogProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

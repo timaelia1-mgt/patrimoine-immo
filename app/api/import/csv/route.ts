@@ -4,6 +4,7 @@ import { getUserProfile } from '@/lib/database'
 import { PLANS, getPlanMaxBiens, isValidPlanType } from '@/lib/stripe'
 import type { PlanType } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 // Papa est importé dynamiquement pour réduire le bundle initial
 
 interface CSVRow {
@@ -136,6 +137,15 @@ export async function POST(request: NextRequest) {
     const totalAfterImport = (currentBiensCount || 0) + rows.length
     if (maxBiens !== null && totalAfterImport > maxBiens) {
       const restants = Math.max(0, maxBiens - (currentBiensCount || 0))
+
+      // Track tentative d'import bloquée
+      trackServerEvent(user.id, ANALYTICS_EVENTS.BIEN_LIMIT_REACHED, {
+        planType,
+        currentCount: currentBiensCount || 0,
+        maxCount: maxBiens,
+        attemptedImport: rows.length,
+      })
+
       logger.warn('[API import-csv] Import bloqué - limite du plan', {
         userId: user.id,
         planType,
@@ -282,7 +292,14 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    logger.info('[API import-csv] Import réussi', {
+    // Track import CSV réussi
+    trackServerEvent(user.id, ANALYTICS_EVENTS.IMPORT_CSV, {
+      count: insertedBiens?.length || 0,
+      planType,
+      totalBiensAfter: (currentBiensCount || 0) + (insertedBiens?.length || 0),
+    })
+
+    logger.info('[API import-csv] Import réussi et tracké', {
       userId: user.id,
       nbBiens: insertedBiens?.length || 0,
       nbWarnings: errors.length

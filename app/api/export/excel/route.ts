@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBiens } from '@/lib/database'
+import { getBiens, getUserProfile } from '@/lib/database'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 // XLSX est importé dynamiquement pour réduire le bundle initial
 
 export async function GET() {
@@ -173,9 +174,17 @@ export async function GET() {
     // 5. GÉNÉRER LE BUFFER EXCEL
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
     
-    logger.info('[API export-excel] Export réussi', {
+    // 5b. TRACK EXPORT EXCEL
+    const profile = await getUserProfile(user.id, supabase)
+
+    trackServerEvent(user.id, ANALYTICS_EVENTS.EXPORT_EXCEL, {
+      bienCount: biens.length,
+      planType: profile?.plan || 'gratuit',
+    })
+
+    logger.info('[API export-excel] Export réussi et tracké', {
       userId: user.id,
-      nbBiens: biens.length
+      nbBiens: biens.length,
     })
     
     // 6. RETOURNER LE FICHIER

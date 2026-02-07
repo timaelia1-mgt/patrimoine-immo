@@ -4,13 +4,16 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { 
   isSupportedWebhookEvent, 
-  mapPriceIdToPlan 
+  mapPriceIdToPlan,
+  getPlanLimits,
 } from '@/lib/types/stripe'
 import type { 
   StripeWebhookEvent,
   SubscriptionStatus,
   ErrorResponse 
 } from '@/lib/types/stripe'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { logger } from '@/lib/logger'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -37,7 +40,7 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
     const signature = headersList.get('stripe-signature')
 
     if (!signature) {
-      console.error('[Webhook] No signature provided')
+      logger.error('[Stripe Webhook] No signature provided')
       return NextResponse.json({ error: 'No signature' }, { status: 400 })
     }
 
@@ -47,15 +50,15 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     } catch (err: unknown) {
       const error = err as Error
-      console.error('[Webhook] Signature verification failed:', error.message)
+      logger.error('[Stripe Webhook] Signature verification failed', { error: error.message })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
-    console.log('[Webhook] Event received:', event.type, event.id)
+    logger.info('[Stripe Webhook] Event received', { type: event.type, id: event.id })
 
     // Type guard pour événements supportés
     if (!isSupportedWebhookEvent(event.type)) {
-      console.log('[Webhook] Unhandled event type:', event.type)
+      logger.info('[Stripe Webhook] Unhandled event type', { type: event.type })
       return NextResponse.json({ received: true, ignored: true })
     }
 
@@ -66,13 +69,13 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
     switch (eventType) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        console.log('[Webhook] Checkout completed:', session.id)
+        logger.info('[Stripe Webhook] Checkout completed', { sessionId: session.id })
 
         // Récupérer l'userId depuis les metadata
         const userId = session.client_reference_id || session.metadata?.userId
 
         if (!userId) {
-          console.error('[Webhook] No userId found in session')
+          logger.error('[Stripe Webhook] No userId found in session')
           return NextResponse.json({ error: 'No userId' }, { status: 400 })
         }
 
@@ -81,25 +84,28 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
         const customerId = session.customer as string
 
         if (!subscriptionId) {
-          console.error('[Webhook] No subscription found')
+          logger.error('[Stripe Webhook] No subscription found')
           return NextResponse.json({ error: 'No subscription' }, { status: 400 })
         }
 
         // Récupérer les détails de la subscription pour connaître le plan
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         const priceId = subscription.items.data[0]?.price.id
+        const amount = subscription.items.data[0]?.price.unit_amount || 0
 
         // Déterminer le plan selon le priceId avec type guard
         const planType = mapPriceIdToPlan(priceId) || 'essentiel'
+        const limiteBiens = getPlanLimits(planType)
         const subscriptionStatus: SubscriptionStatus = 'active'
 
-        console.log('[Webhook] Updating user:', userId, 'to plan:', planType)
+        logger.info('[Stripe Webhook] Updating user to plan', { userId, planType })
 
         // Mettre à jour le profil dans Supabase
         const { error } = await supabaseAdmin
           .from('profiles')
           .update({
             plan_type: planType,
+            limite_biens: limiteBiens,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             subscription_status: subscriptionStatus,
@@ -107,65 +113,100 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
           .eq('id', userId)
 
         if (error) {
-          console.error('[Webhook] Error updating profile:', error)
+          logger.error('[Stripe Webhook] Error updating profile', { error })
           return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        console.log('[Webhook] Profile updated successfully')
+        // Track payment succeeded
+        trackServerEvent(userId, ANALYTICS_EVENTS.PAYMENT_SUCCEEDED, {
+          planType,
+          amount: amount / 100,
+          priceId,
+          customerId,
+          subscriptionId,
+        })
+
+        logger.info('[Stripe Webhook] Payment succeeded tracké', {
+          userId,
+          planType,
+          amount: amount / 100,
+        })
+
         break
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log('[Webhook] Subscription updated:', subscription.id)
+        logger.info('[Stripe Webhook] Subscription updated', { subscriptionId: subscription.id })
 
         // Trouver l'utilisateur par stripe_customer_id
         const { data: profile, error: fetchError } = await supabaseAdmin
           .from('profiles')
-          .select('id')
+          .select('id, plan_type')
           .eq('stripe_customer_id', subscription.customer as string)
           .single()
 
         if (fetchError || !profile) {
-          console.error('[Webhook] Profile not found for customer:', subscription.customer)
+          logger.error('[Stripe Webhook] Profile not found', { customer: subscription.customer })
           return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
         }
 
         // Déterminer le nouveau plan avec type guard
         const priceId = subscription.items.data[0]?.price.id
-        const planType = mapPriceIdToPlan(priceId) || 'essentiel'
+        const newPlanType = mapPriceIdToPlan(priceId) || 'essentiel'
+        const oldPlanType = profile.plan_type || 'gratuit'
 
         // Mettre à jour le plan
         const { error } = await supabaseAdmin
           .from('profiles')
-          .update({ plan_type: planType })
+          .update({
+            plan_type: newPlanType,
+            limite_biens: getPlanLimits(newPlanType),
+            subscription_status: subscription.status as SubscriptionStatus,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', profile.id)
 
         if (error) {
-          console.error('[Webhook] Error updating plan:', error)
+          logger.error('[Stripe Webhook] Error updating plan', { error })
           return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        console.log('[Webhook] Plan updated successfully')
+        // Track plan upgraded (seulement si changement de plan)
+        if (oldPlanType !== newPlanType) {
+          trackServerEvent(profile.id, ANALYTICS_EVENTS.PLAN_UPGRADED, {
+            fromPlan: oldPlanType,
+            toPlan: newPlanType,
+            amount: (subscription.items.data[0]?.price.unit_amount || 0) / 100,
+          })
+
+          logger.info('[Stripe Webhook] Plan upgraded tracké', {
+            userId: profile.id,
+            fromPlan: oldPlanType,
+            toPlan: newPlanType,
+          })
+        }
+
         break
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log('[Webhook] Subscription cancelled:', subscription.id)
+        logger.info('[Stripe Webhook] Subscription cancelled', { subscriptionId: subscription.id })
 
         // Trouver l'utilisateur
         const { data: profile, error: fetchError } = await supabaseAdmin
           .from('profiles')
-          .select('id')
+          .select('id, plan_type')
           .eq('stripe_customer_id', subscription.customer as string)
           .single()
 
         if (fetchError || !profile) {
-          console.error('[Webhook] Profile not found')
+          logger.error('[Stripe Webhook] Profile not found', { customer: subscription.customer })
           return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
         }
 
+        const oldPlanType = profile.plan_type || 'gratuit'
         const canceledStatus: SubscriptionStatus = 'canceled'
 
         // Rétrograder au plan gratuit
@@ -173,17 +214,30 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
           .from('profiles')
           .update({
             plan_type: 'gratuit',
+            limite_biens: 2,
             stripe_subscription_id: null,
             subscription_status: canceledStatus,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', profile.id)
 
         if (error) {
-          console.error('[Webhook] Error downgrading plan:', error)
+          logger.error('[Stripe Webhook] Error downgrading plan', { error })
           return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        console.log('[Webhook] User downgraded to Gratuit')
+        // Track subscription canceled
+        trackServerEvent(profile.id, ANALYTICS_EVENTS.SUBSCRIPTION_CANCELED, {
+          fromPlan: oldPlanType,
+          toPlan: 'gratuit',
+          cancellationReason: subscription.cancellation_details?.reason || 'unknown',
+        })
+
+        logger.info('[Stripe Webhook] Subscription canceled trackée', {
+          userId: profile.id,
+          fromPlan: oldPlanType,
+        })
+
         break
       }
 
@@ -191,53 +245,62 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
         const invoice = event.data.object as Stripe.Invoice
         const customerId = invoice.customer as string
         
-        console.log('[Webhook] Payment failed for customer:', customerId)
+        logger.info('[Stripe Webhook] Payment failed', { customerId })
 
         if (!customerId) {
-          console.error('[Webhook] No customer ID in invoice')
+          logger.error('[Stripe Webhook] No customer ID in invoice')
           break
         }
 
         // Récupérer l'utilisateur par customer_id
         const { data: profile, error: profileError } = await supabaseAdmin
           .from('profiles')
-          .select('id, email')
+          .select('id, email, plan_type')
           .eq('stripe_customer_id', customerId)
           .single()
 
         if (profileError || !profile) {
-          console.error('[Webhook] Profile not found for customer:', customerId)
+          logger.error('[Stripe Webhook] Profile not found', { customerId })
           break
         }
 
         const attemptCount = invoice.attempt_count ?? 0
 
-        console.warn('[Webhook] Payment failed:', {
+        // Track payment failed
+        trackServerEvent(profile.id, ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          planType: profile.plan_type || 'unknown',
+          amount: (invoice.amount_due || 0) / 100,
+          attemptCount,
+          invoiceId: invoice.id,
+        })
+
+        logger.warn('[Stripe Webhook] Payment failed tracké', {
           userId: profile.id,
           email: profile.email,
-          invoiceId: invoice.id,
-          amountDue: invoice.amount_due,
           attemptCount,
+          amountDue: invoice.amount_due,
         })
 
         const failedStatus: SubscriptionStatus = 'payment_failed'
 
         // Si c'est le 3ème échec ou plus, rétrograder vers gratuit
         if (attemptCount >= 3) {
-          console.error('[Webhook] 3+ payment failures - Downgrading user:', profile.id)
+          logger.error('[Stripe Webhook] 3+ payment failures - Downgrading', { userId: profile.id })
 
           const { error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({
               plan_type: 'gratuit',
+              limite_biens: 2,
               subscription_status: failedStatus,
+              updated_at: new Date().toISOString(),
             })
             .eq('id', profile.id)
 
           if (updateError) {
-            console.error('[Webhook] Error downgrading user:', updateError)
+            logger.error('[Stripe Webhook] Error downgrading user', { updateError })
           } else {
-            console.log('[Webhook] User downgraded due to payment failure:', profile.id)
+            logger.info('[Stripe Webhook] User downgraded due to payment failure', { userId: profile.id })
           }
         } else {
           // Mettre à jour le statut sans rétrograder encore
@@ -245,11 +308,12 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
             .from('profiles')
             .update({
               subscription_status: failedStatus,
+              updated_at: new Date().toISOString(),
             })
             .eq('id', profile.id)
 
           if (updateError) {
-            console.error('[Webhook] Error updating subscription status:', updateError)
+            logger.error('[Stripe Webhook] Error updating subscription status', { updateError })
           }
         }
 
@@ -260,21 +324,20 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
         const invoice = event.data.object as Stripe.Invoice
         const customerId = invoice.customer as string
 
-        console.log('[Webhook] Payment succeeded for customer:', customerId)
+        logger.info('[Stripe Webhook] Payment succeeded', { customerId })
 
         if (!customerId) break
 
         // Récupérer l'utilisateur
         const { data: profile } = await supabaseAdmin
           .from('profiles')
-          .select('id, email, subscription_status')
+          .select('id, email, subscription_status, plan_type')
           .eq('stripe_customer_id', customerId)
           .single()
 
         if (profile) {
-          console.log('[Webhook] Payment confirmed:', {
+          logger.info('[Stripe Webhook] Payment confirmed', {
             userId: profile.id,
-            email: profile.email,
             invoiceId: invoice.id,
             amount: invoice.amount_paid,
           })
@@ -287,11 +350,12 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
               .from('profiles')
               .update({
                 subscription_status: activeStatus,
+                updated_at: new Date().toISOString(),
               })
               .eq('id', profile.id)
 
             if (!error) {
-              console.log('[Webhook] Subscription status restored to active:', profile.id)
+              logger.info('[Stripe Webhook] Subscription status restored to active', { userId: profile.id })
             }
           }
         }
@@ -303,7 +367,7 @@ export async function POST(req: Request): Promise<NextResponse<WebhookResponse |
     return NextResponse.json({ received: true })
   } catch (err: unknown) {
     const error = err as Error
-    console.error('[Webhook] Error:', error.message)
+    logger.error('[Stripe Webhook] Error', { error: error.message })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

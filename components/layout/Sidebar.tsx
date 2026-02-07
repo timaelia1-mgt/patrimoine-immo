@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getBiens, getUserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
+import { trackEvent, resetUser, ANALYTICS_EVENTS } from "@/lib/analytics"
 
 // Lazy-load du modal pour réduire le bundle initial
 const UpgradeModal = dynamic(
@@ -41,7 +42,9 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     try {
-      console.log("[Sidebar] Déconnexion en cours...")
+      // Track logout AVANT de reset
+      trackEvent(ANALYTICS_EVENTS.LOGOUT)
+
       const supabase = createClient()
       const { error } = await supabase.auth.signOut()
       
@@ -50,12 +53,15 @@ export function Sidebar() {
         throw error
       }
       
-      console.log("[Sidebar] Déconnexion réussie, redirection...")
+      // Reset PostHog identity
+      resetUser()
       
       // Redirection complète pour forcer le rechargement de la session
       window.location.href = '/login'
     } catch (error) {
       console.error("[Sidebar] Erreur lors de la déconnexion:", error)
+      // Reset PostHog même en cas d'erreur
+      resetUser()
       // Redirection même en cas d'erreur pour permettre à l'utilisateur de se reconnecter
       window.location.href = '/login'
     }

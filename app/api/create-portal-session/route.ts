@@ -6,6 +6,8 @@ import type {
   ErrorResponse,
   CreatePortalParams 
 } from '@/lib/types/stripe'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { logger } from '@/lib/logger'
 
 export async function POST(_request: NextRequest): Promise<NextResponse<SessionResponse | ErrorResponse>> {
   try {
@@ -29,7 +31,7 @@ export async function POST(_request: NextRequest): Promise<NextResponse<SessionR
     // Récupérer le profil avec customer_id
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_customer_id, email')
+      .select('stripe_customer_id, email, plan_type')
       .eq('id', user.id)
       .single()
 
@@ -55,6 +57,17 @@ export async function POST(_request: NextRequest): Promise<NextResponse<SessionR
 
     // Créer la session du Customer Portal
     const portalSession = await stripe.billingPortal.sessions.create(params)
+
+    // Track portal opened
+    trackServerEvent(user.id, ANALYTICS_EVENTS.PORTAL_OPENED, {
+      planType: profile.plan_type || 'gratuit',
+      customerId: profile.stripe_customer_id!,
+    })
+
+    logger.info('[Create Portal] Session créée et trackée', {
+      userId: user.id,
+      customerId: profile.stripe_customer_id,
+    })
 
     return NextResponse.json({ 
       url: portalSession.url,

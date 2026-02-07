@@ -563,6 +563,10 @@ RESEND_FROM_EMAIL=noreply@votre-app.com
 
 # ========== APPLICATION ==========
 NEXT_PUBLIC_APP_URL=https://votre-app.vercel.app
+
+# ========== ANALYTICS (PostHog - optionnel) ==========
+NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxx
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 ```
 
 > ⚠️ **Important** : 
@@ -588,7 +592,43 @@ NEXT_PUBLIC_APP_URL=https://votre-app.vercel.app
 
 ---
 
-## 5️⃣ Vérifications post-déploiement
+## 5️⃣ Configuration Analytics (PostHog - optionnel)
+
+### Créer un compte PostHog
+
+1. Allez sur [posthog.com](https://posthog.com) et créez un compte
+2. Créez un nouveau projet
+3. Choisissez la région **EU** (conformité RGPD)
+4. Récupérez les credentials :
+
+| Variable | Où la trouver | Usage |
+|----------|---------------|-------|
+| `NEXT_PUBLIC_POSTHOG_KEY` | Project Settings → API keys | Client & Serveur |
+| `NEXT_PUBLIC_POSTHOG_HOST` | Toujours `https://eu.i.posthog.com` | Host EU |
+
+### Configuration
+
+L'analytics est **optionnel** : l'app fonctionne sans PostHog. Si la clé API n'est pas définie, aucun tracking ne sera effectué.
+
+**Fonctionnalités activées :**
+- ✅ Pageviews automatiques
+- ✅ Identification des utilisateurs connectés
+- ✅ Événements custom (création bien, paiements, exports...)
+- ✅ Persistence localStorage (pas de cookies)
+- ❌ Session replay désactivé (privacy)
+- ❌ Autocapture désactivé (tracking manuel uniquement)
+
+### Plan gratuit PostHog
+
+Le plan gratuit inclut :
+- **1 million d'événements/mois** (largement suffisant en early stage)
+- Funnels, rétention, dashboards
+- Feature flags
+- Pas de carte bancaire requise
+
+---
+
+## 6️⃣ Vérifications post-déploiement
 
 ### ✅ Checklist de vérification
 

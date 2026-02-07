@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,6 +58,19 @@ export async function POST(request: NextRequest) {
         { error: 'Erreur lors de l\'inscription' },
         { status: 500 }
       )
+    }
+
+    // Track signup event
+    if (data.user) {
+      trackServerEvent(data.user.id, ANALYTICS_EVENTS.SIGNUP, {
+        email,
+        plan_type: 'gratuit',
+        created_at: new Date().toISOString(),
+      })
+      logger.info('[Signup] Utilisateur créé et event tracké', {
+        userId: data.user.id,
+        email,
+      })
     }
 
     return NextResponse.json({ 

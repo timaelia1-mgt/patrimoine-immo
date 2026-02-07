@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import type { QuittanceData } from '@/lib/generateQuittance'
 import { logger } from '@/lib/logger'
 import { toast } from 'sonner'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 interface QuittanceModalProps {
   isOpen: boolean
@@ -89,10 +90,18 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
       const doc = generateQuittancePDF(quittanceData)
       doc.save(`Quittance_${MOIS_NOMS[data.mois - 1]}_${data.annee}_${data.bienNom.replace(/\s+/g, '_')}.pdf`)
 
-      logger.info('[QuittanceModal] PDF téléchargé', {
+      // Track quittance generated
+      trackEvent(ANALYTICS_EVENTS.QUITTANCE_GENERATED, {
+        mois: data.mois,
+        annee: data.annee,
+        montantTotal: data.montantLocataire + data.montantAPL,
+        bienId: data.bienId,
+      })
+
+      logger.info('[QuittanceModal] PDF téléchargé et tracké', {
         bienId: data.bienId,
         mois: data.mois,
-        annee: data.annee
+        annee: data.annee,
       })
 
       // Sauvegarder en DB (silencieux si erreur)
@@ -178,6 +187,14 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
 
       const doc = generateQuittancePDF(quittanceData)
 
+      // Track quittance generated (avant envoi email)
+      trackEvent(ANALYTICS_EVENTS.QUITTANCE_GENERATED, {
+        mois: data.mois,
+        annee: data.annee,
+        montantTotal: data.montantLocataire + data.montantAPL,
+        bienId: data.bienId,
+      })
+
       // Convertir le PDF en base64
       const pdfBase64 = doc.output('datauristring').split(',')[1]
 
@@ -185,7 +202,7 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
         bienId: data.bienId,
         locataireEmail,
         mois: data.mois,
-        annee: data.annee
+        annee: data.annee,
       })
 
       const response = await fetch('/api/send-quittance', {

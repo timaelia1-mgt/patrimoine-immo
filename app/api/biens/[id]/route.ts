@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getBien, updateBien } from '@/lib/database'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function GET(
   request: NextRequest,
@@ -83,6 +84,12 @@ export async function PUT(
     
     // Mettre à jour le bien
     await updateBien(id, body)
+
+    // Track bien updated
+    trackServerEvent(user.id, ANALYTICS_EVENTS.BIEN_UPDATED, {
+      bienId: id,
+      fieldsUpdated: Object.keys(body),
+    })
     
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

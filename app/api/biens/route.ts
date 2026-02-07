@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { canAddBien, getPlanMaxBiens, isValidPlanType } from '@/lib/stripe'
 import type { PlanType } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,14 @@ export async function POST(request: NextRequest) {
     // Vérifier la limite avec la fonction utilitaire
     if (!canAddBien(planType, currentBiensCount)) {
       const maxBiens = getPlanMaxBiens(planType)
+
+      // Track limite atteinte
+      trackServerEvent(user.id, ANALYTICS_EVENTS.BIEN_LIMIT_REACHED, {
+        planType,
+        currentCount: currentBiensCount,
+        maxCount: maxBiens!,
+      })
+
       logger.warn('[Create Bien] Limite atteinte', {
         userId: user.id,
         planType,
@@ -107,7 +116,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.info('[Create Bien] Bien créé avec succès', {
+    // Track bien created
+    trackServerEvent(user.id, ANALYTICS_EVENTS.BIEN_CREATED, {
+      planType,
+      bienCount: currentBiensCount + 1,
+      financement: typeFinancement,
+    })
+
+    logger.info('[Create Bien] Bien créé et event tracké', {
       userId: user.id,
       bienId: bien.id,
       planType,

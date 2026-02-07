@@ -27,6 +27,9 @@ export interface QuittanceData {
   modePaiement: string // virement, cheque, especes, prelevement
   montantLocataire: number
   montantAPL: number
+
+  // Tracking
+  userId?: string
 }
 
 const MOIS_NOMS = [

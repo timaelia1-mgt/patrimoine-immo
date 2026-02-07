@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 import { getBien } from '@/lib/database'
 import { logger } from '@/lib/logger'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -209,10 +210,19 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    logger.info('[API send-quittance] Email envoyé avec succès', {
+    // Track quittance sent
+    trackServerEvent(user.id, ANALYTICS_EVENTS.QUITTANCE_SENT, {
+      email: locataireEmail,
+      mois,
+      annee,
+      bienId,
+    })
+
+    logger.info('[API send-quittance] Email envoyé et tracké', {
       userId: user.id,
       bienId,
-      emailId: data?.id
+      emailId: data?.id,
+      locataireEmail,
     })
 
     // Sauvegarder la quittance en DB

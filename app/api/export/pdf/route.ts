@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getBiens, getUserProfile } from '@/lib/database'
 import { logger } from '@/lib/logger'
 import { generateRapportAnnuelPDF } from '@/lib/generateRapportAnnuel'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export async function GET() {
   try {
@@ -108,10 +109,17 @@ export async function GET() {
     const doc = generateRapportAnnuelPDF(rapportData)
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
     
-    logger.info('[API export-pdf] Export réussi', {
+    // Track export PDF
+    trackServerEvent(user.id, ANALYTICS_EVENTS.EXPORT_PDF, {
+      bienCount: biens.length,
+      annee: new Date().getFullYear(),
+      planType: profile?.plan || 'gratuit',
+    })
+
+    logger.info('[API export-pdf] Export réussi et tracké', {
       userId: user.id,
       nbBiens: biens.length,
-      patrimoineTotal: stats.patrimoineTotal
+      patrimoineTotal: stats.patrimoineTotal,
     })
     
     // 7. RETOURNER LE FICHIER

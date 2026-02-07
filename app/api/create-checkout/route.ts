@@ -5,6 +5,9 @@ import type {
   SessionResponse,
   ErrorResponse,
 } from '@/lib/types/stripe'
+import { mapPriceIdToPlan } from '@/lib/types/stripe'
+import { trackServerEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse<SessionResponse | ErrorResponse>> {
   try {
@@ -39,6 +42,22 @@ export async function POST(request: NextRequest): Promise<NextResponse<SessionRe
       metadata: {
         userId,
       },
+    })
+
+    // Track checkout started
+    const planType = mapPriceIdToPlan(priceId) || 'unknown'
+
+    trackServerEvent(userId, ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+      planType,
+      priceId,
+      sessionId: session.id,
+    })
+
+    logger.info('[Create Checkout] Session créée et trackée', {
+      sessionId: session.id,
+      userId,
+      priceId,
+      planType,
     })
 
     return NextResponse.json({ 

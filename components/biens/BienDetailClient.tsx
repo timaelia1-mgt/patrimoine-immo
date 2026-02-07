@@ -13,6 +13,7 @@ import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { updateBien, deleteBien, type Bien } from "@/lib/database"
+import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics"
 
 // Composant de chargement réutilisable
 const TabLoading = () => (
@@ -186,6 +187,12 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
 
     try {
       await deleteBien(bien.id)
+
+      // Track bien deleted
+      trackEvent(ANALYTICS_EVENTS.BIEN_DELETED, {
+        bienId: bien.id,
+      })
+
       toast.success("Bien supprimé avec succès")
       router.push("/dashboard")
     } catch (error: unknown) {
