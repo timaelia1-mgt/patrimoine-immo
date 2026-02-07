@@ -244,7 +244,7 @@ export function Sidebar() {
           {biensExpanded && (
             <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
               {loading ? (
-                <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+                <div role="status" className="flex items-center justify-center py-8 text-slate-500 text-sm">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-700 border-t-amber-500" />
                 </div>
               ) : filteredBiens.length === 0 ? (

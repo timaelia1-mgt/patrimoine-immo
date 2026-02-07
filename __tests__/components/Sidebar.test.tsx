@@ -87,11 +87,11 @@ describe('Sidebar', () => {
       })
     })
 
-    it('devrait afficher le sous-titre "Gestion immobilière"', async () => {
+    it('devrait afficher le sous-titre "Gestion Premium"', async () => {
       render(<Sidebar />)
       
       await waitFor(() => {
-        expect(screen.getByText('Gestion immobilière')).toBeInTheDocument()
+        expect(screen.getByText('Gestion Premium')).toBeInTheDocument()
       })
     })
   })
@@ -315,13 +315,13 @@ describe('Sidebar', () => {
       })
     })
 
-    it('devrait afficher "Chargement..." pendant le chargement', async () => {
+    it('devrait afficher un spinner pendant le chargement', async () => {
       // Simuler un chargement lent
       mockGetBiens.mockImplementationOnce(() => new Promise(resolve => setTimeout(() => resolve([]), 1000)))
       
       render(<Sidebar />)
       
-      expect(screen.getByText('Chargement...')).toBeInTheDocument()
+      expect(screen.getByRole('status')).toBeInTheDocument()
     })
   })
 })
