@@ -107,9 +107,9 @@ export function Sidebar() {
   useEffect(() => {
     console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
     
-    // Attendre que l'authentification soit chargée
-    if (authLoading) {
-      console.log("[Sidebar] Auth en cours de chargement, attente...")
+    // On skip uniquement si auth loading ET qu'on n'a pas encore de user
+    if (authLoading && !user?.id) {
+      console.log("[Sidebar] authLoading with no user, skipping fetch")
       return
     }
 

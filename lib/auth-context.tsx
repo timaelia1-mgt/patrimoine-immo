@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, createProfileIfNeeded, loading])
+  }, [supabase, createProfileIfNeeded])
 
   const signOut = useCallback(async () => {
     try {
