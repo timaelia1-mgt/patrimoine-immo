@@ -1,12 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
-import { getUserProfile, getBiens } from "@/lib/database"
-import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
 import type { PlanType } from "@/lib/stripe"
 import { Badge } from "@/components/ui/badge"
@@ -32,20 +30,17 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
-  const [userPlan, setUserPlan] = useState<PlanType>(planType)
-  const [biensCount, setBiensCount] = useState(biens.length)
-  const [currentMaxBiens, setCurrentMaxBiens] = useState<number | null>(maxBiens)
 
-  // Synchroniser avec les props serveur
-  useEffect(() => {
-    setUserPlan(planType)
-    setBiensCount(biens.length)
-    setCurrentMaxBiens(maxBiens)
-  }, [planType, biens.length, maxBiens])
-
-  // Vérifier si on peut créer un bien
-  const canCreateBien = currentMaxBiens === null || biensCount < currentMaxBiens
-  const remainingBiens = currentMaxBiens === null ? null : Math.max(0, currentMaxBiens - biensCount)
+  // Valeurs dérivées des props serveur (pas besoin de useState + useEffect)
+  const currentBiens = biens.length
+  const canCreateBien = useMemo(
+    () => maxBiens === null || currentBiens < maxBiens,
+    [maxBiens, currentBiens]
+  )
+  const remainingBiens = useMemo(
+    () => maxBiens === null ? null : Math.max(0, maxBiens - currentBiens),
+    [maxBiens, currentBiens]
+  )
 
   // Vérifier si on doit ouvrir le dialog depuis l'URL
   useEffect(() => {
@@ -102,17 +97,17 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
             {/* Header avec badge de limite et bouton ajouter */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {currentMaxBiens !== null && (
+                {maxBiens !== null && (
                   <Badge 
                     variant={remainingBiens !== null && remainingBiens <= 0 ? 'destructive' : 'secondary'}
                     className="text-sm px-3 py-1"
                   >
-                    {biensCount} / {currentMaxBiens} biens
+                    {currentBiens} / {maxBiens} biens
                   </Badge>
                 )}
-                {currentMaxBiens === null && (
+                {maxBiens === null && (
                   <Badge variant="secondary" className="text-sm px-3 py-1">
-                    {biensCount} biens (illimité)
+                    {currentBiens} biens (illimité)
                   </Badge>
                 )}
               </div>
@@ -138,12 +133,12 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
             </div>
 
             {/* Alerte si proche de la limite */}
-            {currentMaxBiens !== null && remainingBiens !== null && remainingBiens > 0 && remainingBiens <= 2 && (
+            {maxBiens !== null && remainingBiens !== null && remainingBiens > 0 && remainingBiens <= 2 && (
               <Alert className="bg-amber-500/10 border-amber-500/30">
                 <AlertCircle className="h-4 w-4 text-amber-500" />
                 <AlertTitle className="text-amber-400">Limite presque atteinte</AlertTitle>
                 <AlertDescription className="text-slate-300">
-                  Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[userPlan].name}.{' '}
+                  Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[planType].name}.{' '}
                   <Button variant="link" className="p-0 h-auto text-amber-400 hover:text-amber-300" asChild>
                     <Link href="/abonnement">Passer à un plan supérieur</Link>
                   </Button>
@@ -152,12 +147,12 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
             )}
 
             {/* Alerte si limite atteinte */}
-            {currentMaxBiens !== null && remainingBiens !== null && remainingBiens <= 0 && (
+            {maxBiens !== null && remainingBiens !== null && remainingBiens <= 0 && (
               <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Limite atteinte</AlertTitle>
                 <AlertDescription>
-                  Vous avez atteint la limite de {currentMaxBiens} bien{currentMaxBiens > 1 ? 's' : ''} de votre plan {PLANS[userPlan].name}.{' '}
+                  Vous avez atteint la limite de {maxBiens} bien{maxBiens > 1 ? 's' : ''} de votre plan {PLANS[planType].name}.{' '}
                   <Button variant="link" className="p-0 h-auto text-red-300 hover:text-red-200 underline" asChild>
                     <Link href="/abonnement">Passer à un plan supérieur</Link>
                   </Button>
@@ -173,13 +168,13 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
         onOpenChange={setDialogOpen}
         onSuccess={handleSuccess}
       />
-      {currentMaxBiens !== null && (
+      {maxBiens !== null && (
         <UpgradeModal
           open={upgradeModalOpen}
           onClose={() => setUpgradeModalOpen(false)}
-          currentPlan={PLANS[userPlan].name}
-          currentCount={biensCount}
-          maxBiens={currentMaxBiens}
+          currentPlan={PLANS[planType].name}
+          currentCount={currentBiens}
+          maxBiens={maxBiens}
         />
       )}
     </>
