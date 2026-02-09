@@ -204,7 +204,12 @@ export async function POST(request: NextRequest) {
     })
     
     if (error) {
-      logger.error('[API send-quittance] Erreur Resend', error)
+      logger.error('[API send-quittance] Erreur Resend détaillée:', {
+        message: error?.message,
+        name: error?.name,
+        statusCode: (error as any)?.statusCode,
+        full: error
+      })
       return NextResponse.json(
         { error: 'Erreur lors de l\'envoi de l\'email' },
         { status: 500 }
@@ -232,6 +237,7 @@ export async function POST(request: NextRequest) {
       
       await createQuittance({
         bienId,
+        userId: user.id,
         mois,
         annee,
         locataireNom,
@@ -245,7 +251,7 @@ export async function POST(request: NextRequest) {
         modePaiement: body.modePaiement || 'virement',
         emailEnvoye: true,
         dateEnvoiEmail: new Date().toISOString(),
-      })
+      }, supabase)
       
       logger.info('[API send-quittance] Quittance sauvegardée en DB', {
         userId: user.id,

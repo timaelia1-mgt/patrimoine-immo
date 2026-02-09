@@ -983,6 +983,7 @@ export interface QuittanceDB {
 export async function createQuittance(
   data: {
     bienId: string
+    userId: string
     mois: number
     annee: number
     locataireNom: string
@@ -996,13 +997,16 @@ export async function createQuittance(
     modePaiement: string
     emailEnvoye?: boolean
     dateEnvoiEmail?: string | null
-  }
+  },
+  supabaseClient?: any
 ): Promise<QuittanceDB> {
-  const supabase = createClient()
+  // Utiliser le client serveur si fourni, sinon fallback sur le client navigateur
+  const supabase = supabaseClient || createClient()
   
   const { data: quittance, error } = await supabase
     .from('quittances')
     .insert({
+      user_id: data.userId,
       bien_id: data.bienId,
       mois: data.mois,
       annee: data.annee,
@@ -1042,8 +1046,8 @@ export async function createQuittance(
  * const quittances = await getQuittancesByBien('bien-uuid-123')
  * console.log(`${quittances.length} quittances générées`)
  */
-export async function getQuittancesByBien(bienId: string): Promise<QuittanceDB[]> {
-  const supabase = createClient()
+export async function getQuittancesByBien(bienId: string, supabaseClient?: any): Promise<QuittanceDB[]> {
+  const supabase = supabaseClient || createClient()
   
   const { data: quittances, error } = await supabase
     .from('quittances')
@@ -1060,8 +1064,8 @@ export async function getQuittancesByBien(bienId: string): Promise<QuittanceDB[]
   return (quittances || []).map(convertQuittanceFromSupabase)
 }
 
-export async function getQuittancesByUser(userId: string): Promise<QuittanceDB[]> {
-  const supabase = createClient()
+export async function getQuittancesByUser(userId: string, supabaseClient?: any): Promise<QuittanceDB[]> {
+  const supabase = supabaseClient || createClient()
   
   const { data: quittances, error } = await supabase
     .from('quittances')
@@ -1085,8 +1089,8 @@ export async function getQuittancesByUser(userId: string): Promise<QuittanceDB[]
   return (quittances || []).map(convertQuittanceFromSupabase)
 }
 
-export async function getQuittance(bienId: string, mois: number, annee: number): Promise<QuittanceDB | null> {
-  const supabase = createClient()
+export async function getQuittance(bienId: string, mois: number, annee: number, supabaseClient?: any): Promise<QuittanceDB | null> {
+  const supabase = supabaseClient || createClient()
   
   const { data: quittance, error } = await supabase
     .from('quittances')
@@ -1108,9 +1112,10 @@ export async function getQuittance(bienId: string, mois: number, annee: number):
 export async function updateQuittanceEmailStatus(
   quittanceId: string,
   emailEnvoye: boolean,
-  dateEnvoiEmail?: string
+  dateEnvoiEmail?: string,
+  supabaseClient?: any
 ): Promise<void> {
-  const supabase = createClient()
+  const supabase = supabaseClient || createClient()
   
   const { error } = await supabase
     .from('quittances')

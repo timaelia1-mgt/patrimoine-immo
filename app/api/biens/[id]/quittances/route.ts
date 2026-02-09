@@ -37,8 +37,8 @@ export async function GET(
       )
     }
     
-    // Récupérer les quittances du bien
-    const quittances = await getQuittancesByBien(id)
+    // Récupérer les quittances du bien (passer le client serveur pour RLS)
+    const quittances = await getQuittancesByBien(id, supabase)
     
     return NextResponse.json({ quittances })
   } catch (error: unknown) {
@@ -157,9 +157,10 @@ export async function POST(
       )
     }
     
-    // Créer la quittance
+    // Créer la quittance (passer le client serveur + userId pour RLS)
     const quittance = await createQuittance({
       bienId,
+      userId: user.id,
       mois,
       annee,
       locataireNom,
@@ -173,7 +174,7 @@ export async function POST(
       modePaiement: modePaiement || 'virement',
       emailEnvoye: emailEnvoye || false,
       dateEnvoiEmail: dateEnvoiEmail || null,
-    })
+    }, supabase)
     
     logger.info('[API createQuittance] Quittance créée', {
       userId: user.id,
