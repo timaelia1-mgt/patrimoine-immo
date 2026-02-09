@@ -288,17 +288,17 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Loyer</span>
-            <span className="text-white font-medium">{data.montantLocataire.toFixed(2)} €</span>
+            <span className="text-white font-medium">{(data.montantLocataire ?? 0).toFixed(2)} €</span>
           </div>
           {data.montantAPL > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">APL</span>
-              <span className="text-white font-medium">{data.montantAPL.toFixed(2)} €</span>
+              <span className="text-white font-medium">{(data.montantAPL ?? 0).toFixed(2)} €</span>
             </div>
           )}
           <div className="border-t border-slate-600 pt-2 flex justify-between text-sm">
             <span className="text-slate-300 font-semibold">Total</span>
-            <span className="text-emerald-400 font-bold">{(data.montantLocataire + data.montantAPL).toFixed(2)} €</span>
+            <span className="text-emerald-400 font-bold">{((data.montantLocataire ?? 0) + (data.montantAPL ?? 0)).toFixed(2)} €</span>
           </div>
         </div>
 

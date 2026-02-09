@@ -139,7 +139,7 @@ export function Rentabilite({ bien }: RentabiliteProps) {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-blue-600">
-              {rentabiliteBrute.toFixed(2)}%
+              {(rentabiliteBrute ?? 0).toFixed(2)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Loyer annuel / Prix d&apos;achat
@@ -158,7 +158,7 @@ export function Rentabilite({ bien }: RentabiliteProps) {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-green-600">
-              {rentabiliteNette.toFixed(2)}%
+              {(rentabiliteNette ?? 0).toFixed(2)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               (Loyer - Charges) annuel / Investissement total
@@ -198,7 +198,7 @@ export function Rentabilite({ bien }: RentabiliteProps) {
             <p className={`text-2xl font-bold ${
               roi > 0 ? "text-green-600" : "text-red-600"
             }`}>
-              {roi > 0 ? "+" : ""}{roi.toFixed(1)}%
+              {roi > 0 ? "+" : ""}{(roi ?? 0).toFixed(1)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Bilan net / Investissement total
@@ -230,7 +230,7 @@ export function Rentabilite({ bien }: RentabiliteProps) {
                 <p className={`text-2xl font-bold ${
                   tri > 0 ? "text-green-600" : "text-red-600"
                 }`}>
-                  {tri > 0 ? "+" : ""}{tri.toFixed(1)}%
+                  {tri > 0 ? "+" : ""}{(tri ?? 0).toFixed(1)}%
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Taux de rendement interne

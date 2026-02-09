@@ -207,15 +207,19 @@ export function HistoriqueQuittances({
                   </div>
                   <div>
                     <span className="font-medium">Montant :</span>{' '}
-                    {quittance.montant_total.toFixed(2)} €
+                    {(quittance.montant_total ?? 0).toFixed(2)} €
                   </div>
                   <div>
                     <span className="font-medium">Payé le :</span>{' '}
-                    {format(new Date(quittance.date_paye_locataire), 'dd/MM/yyyy', { locale: fr })}
+                    {quittance.date_paye_locataire
+                      ? format(new Date(quittance.date_paye_locataire), 'dd/MM/yyyy', { locale: fr })
+                      : 'Non renseigné'}
                   </div>
                   <div>
                     <span className="font-medium">Généré le :</span>{' '}
-                    {format(new Date(quittance.created_at), 'dd/MM/yyyy', { locale: fr })}
+                    {quittance.created_at
+                      ? format(new Date(quittance.created_at), 'dd/MM/yyyy', { locale: fr })
+                      : '-'}
                   </div>
                 </div>
                 
