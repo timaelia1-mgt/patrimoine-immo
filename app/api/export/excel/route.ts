@@ -114,14 +114,6 @@ export async function GET() {
         'Date début crédit': bien.dateDebutCredit 
           ? new Date(bien.dateDebutCredit).toLocaleDateString('fr-FR') 
           : '',
-        
-        // Enrichissement
-        'Enrichi Financement': bien.enrichissementFinancement ? 'Oui' : 'Non',
-        'Enrichi Investissement': bien.enrichissementInvestissement ? 'Oui' : 'Non',
-        'Enrichi Historique': bien.enrichissementHistorique ? 'Oui' : 'Non',
-        'Enrichi Charges': bien.enrichissementCharges ? 'Oui' : 'Non',
-        'Enrichi Rentabilité': bien.enrichissementRentabilite ? 'Oui' : 'Non',
-        'Enrichi Locataire': bien.enrichissementLocataire ? 'Oui' : 'Non',
       }
     })
     
@@ -163,12 +155,6 @@ export async function GET() {
       { wch: 18 }, // Date acquisition
       { wch: 22 }, // Date location
       { wch: 20 }, // Date crédit
-      { wch: 18 }, // Enrichi Financement
-      { wch: 20 }, // Enrichi Investissement
-      { wch: 18 }, // Enrichi Historique
-      { wch: 18 }, // Enrichi Charges
-      { wch: 18 }, // Enrichi Rentabilité
-      { wch: 18 }, // Enrichi Locataire
     ]
     worksheet['!cols'] = colWidths
     

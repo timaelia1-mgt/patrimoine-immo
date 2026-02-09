@@ -844,8 +844,13 @@ export async function getInvestissementsSecondaires(
     .order('date', { ascending: false })
   
   if (error) {
-    logger.error('[getInvestissementsSecondaires] Erreur:', error)
-    throw new Error('Impossible de récupérer les investissements secondaires')
+    logger.error('[getInvestissementsSecondaires] Erreur détaillée:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    throw new Error(`Impossible de récupérer les investissements secondaires: ${error.message || error.code || 'erreur inconnue'}`)
   }
   
   return (data || []).map((inv) => ({
@@ -884,8 +889,13 @@ export async function createInvestissementSecondaire(
     .single()
   
   if (error) {
-    logger.error('[createInvestissementSecondaire] Erreur:', error)
-    throw new Error('Impossible de créer l\'investissement secondaire')
+    logger.error('[createInvestissementSecondaire] Erreur détaillée:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    throw new Error(`Impossible de créer l'investissement secondaire: ${error.message || error.code || 'erreur inconnue'}`)
   }
   
   return {
@@ -913,8 +923,13 @@ export async function deleteInvestissementSecondaire(
     .eq('id', id)
   
   if (error) {
-    logger.error('[deleteInvestissementSecondaire] Erreur:', error)
-    throw new Error('Impossible de supprimer l\'investissement secondaire')
+    logger.error('[deleteInvestissementSecondaire] Erreur détaillée:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    throw new Error(`Impossible de supprimer l'investissement secondaire: ${error.message || error.code || 'erreur inconnue'}`)
   }
 }
 

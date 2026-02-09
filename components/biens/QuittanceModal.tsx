@@ -169,7 +169,7 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
     }
     
     if (!locataireEmail) {
-      toast.error('Email du locataire non configuré. Ajoutez-le dans l\'enrichissement Locataire.')
+      toast.error('Email du locataire non configuré. Ajoutez-le dans l\'onglet Locataire.')
       return
     }
 
