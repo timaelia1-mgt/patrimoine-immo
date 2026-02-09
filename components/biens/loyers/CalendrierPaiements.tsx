@@ -15,7 +15,10 @@ interface CalendrierPaiementsProps {
   onOpenQuittance: (index: number) => void
 }
 
-const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
+const MOIS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+]
 
 export function CalendrierPaiements({
   paiements,
@@ -28,113 +31,101 @@ export function CalendrierPaiements({
   onOpenQuittance,
 }: CalendrierPaiementsProps) {
   return (
-    <Card>
+    <Card className="border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Suivi des paiements {anneeActuelle}</CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-green-500 text-green-700">
-              Locataire
+          <CardTitle className="text-slate-200">Suivi des paiements {anneeActuelle}</CardTitle>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="border-emerald-500/50 text-emerald-400 bg-emerald-500/10">
+              ✓ Locataire
             </Badge>
-            {montantAPL > 0 && (
-              <Badge variant="outline" className="border-purple-500 text-purple-700">
-                APL
-              </Badge>
-            )}
+            <Badge variant="outline" className="border-purple-500/50 text-purple-400 bg-purple-500/10">
+              ✓ APL
+            </Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-4">
-          {moisNoms.map((mois, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 12 }).map((_, index) => {
+            const estMoisActuel = index === moisActuel
             const paiement = paiements[index]
-            const isMoisActuel = index === moisActuel
-            const isFutur = index > moisActuel
-            
+
             return (
               <div
                 key={index}
                 className={`
-                  relative p-4 rounded-lg border-2 transition-all
-                  ${isMoisActuel ? 'ring-2 ring-blue-500' : 'border-gray-200'}
-                  ${isFutur ? 'opacity-50' : ''}
+                  relative rounded-xl p-4 transition-all duration-300
+                  ${estMoisActuel 
+                    ? "ring-2 ring-amber-500 border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-amber-600/5" 
+                    : "border border-slate-700 bg-slate-800/50"
+                  }
                 `}
               >
-                {isMoisActuel && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-20">
-                    <span className="text-white text-xs font-bold">•</span>
-                  </div>
-                )}
-                
-                <div className="text-center mb-3">
-                  <p className="font-semibold text-lg mb-1">{mois}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isFutur ? 'À venir' : anneeActuelle.toString()}
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  {/* Bouton Locataire */}
-                  <div className="relative">
-                    <button
-                      onClick={() => !isFutur && onToggleLocataire(index)}
-                      disabled={isFutur}
-                      className={`
-                        w-full p-2 rounded border-2 text-sm font-medium transition-all
-                        ${paiement.locataire
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-red-500 bg-red-50 text-red-700'
-                        }
-                        ${isFutur ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}
-                      `}
-                    >
-                      {paiement.locataire ? '✓' : '✗'} Locataire
-                      <div className="text-xs mt-1 font-semibold">
-                        {formatCurrency(loyerNetLocataire)}
-                      </div>
-                    </button>
-                    
-                    {/* Bouton Quittance */}
-                    {paiement.locataire && !isFutur && (
-                      <button
-                        onClick={() => onOpenQuittance(index)}
-                        className="absolute -bottom-1 -right-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2 py-1 rounded shadow-lg transition-colors z-10"
-                        title="Générer quittance"
-                      >
-                        📄 Quittance
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Bouton APL */}
-                  {montantAPL > 0 && (
-                    <button
-                      onClick={() => !isFutur && onToggleAPL(index)}
-                      disabled={isFutur}
-                      className={`
-                        w-full p-2 rounded border-2 text-sm font-medium transition-all
-                        ${paiement.apl
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-orange-500 bg-orange-50 text-orange-700'
-                        }
-                        ${isFutur ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105'}
-                      `}
-                    >
-                      {paiement.apl ? '✓' : '✗'} APL
-                      <div className="text-xs mt-1 font-semibold">
-                        {formatCurrency(montantAPL)}
-                      </div>
-                    </button>
+                {/* Mois + pastille actuel */}
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="text-sm font-semibold text-slate-300">
+                    {MOIS[index]}
+                  </h4>
+                  {estMoisActuel && (
+                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                   )}
                 </div>
+
+                {/* Bouton Locataire */}
+                <button
+                  onClick={() => onToggleLocataire(index)}
+                  className={`
+                    w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                    ${paiement?.locataire
+                      ? "border border-emerald-500 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                      : "border border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                    }
+                  `}
+                >
+                  {paiement?.locataire ? "✓" : "✗"} Locataire
+                  <div className="text-xs mt-1 opacity-80">
+                    {formatCurrency(loyerNetLocataire)}
+                  </div>
+                </button>
+
+                {/* Bouton Quittance (si payé) */}
+                {paiement?.locataire && (
+                  <button
+                    onClick={() => onOpenQuittance(index)}
+                    className="absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-500 text-white transition-all duration-300 shadow-lg shadow-amber-500/20"
+                  >
+                    📄 Quittance
+                  </button>
+                )}
+
+                {/* Bouton APL (conditionnel) */}
+                {montantAPL > 0 && (
+                  <button
+                    onClick={() => onToggleAPL(index)}
+                    className={`
+                      w-full mt-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                      ${paiement?.apl
+                        ? "border border-purple-500 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
+                        : "border border-orange-500/50 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20"
+                      }
+                    `}
+                  >
+                    {paiement?.apl ? "✓" : "✗"} APL
+                    <div className="text-xs mt-1 opacity-80">
+                      {formatCurrency(montantAPL)}
+                    </div>
+                  </button>
+                )}
               </div>
             )
           })}
         </div>
-        
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-900">
-            💡 <strong>Astuce :</strong> Cliquez sur "Locataire" ou "APL" pour marquer chaque paiement indépendamment. 
+
+        {/* Encart astuce */}
+        <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <p className="text-sm text-amber-200">
+            💡 <strong>Astuce :</strong> Cliquez sur &quot;Locataire&quot; ou &quot;APL&quot; pour marquer chaque paiement indépendamment. 
             Le CA annuel se calcule automatiquement.
           </p>
         </div>

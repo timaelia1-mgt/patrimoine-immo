@@ -19,48 +19,53 @@ export const LoyersStatistiques = memo(function LoyersStatistiques({
   caPrevuTotal,
   caTotal,
 }: LoyersStatistiquesProps) {
+  const progressionLocataire = (moisLocatairePayes / 12) * 100
+  const progressionAPL = montantAPL > 0 ? (moisAPLPayes / 12) * 100 : 0
+  const resteAPercevoir = caPrevuTotal - caTotal
+
   return (
-    <Card>
+    <Card className="border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl">
       <CardHeader>
-        <CardTitle>Statistiques détaillées</CardTitle>
+        <CardTitle className="text-slate-200">Statistiques détaillées</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Barre Locataire */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-slate-300">Paiements Locataire</span>
+            <span className="text-sm font-bold text-emerald-400">{moisLocatairePayes}/12 mois</span>
+          </div>
+          <div className="relative w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500 ease-out shadow-lg shadow-emerald-500/30"
+              style={{ width: `${progressionLocataire}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Barre APL (conditionnel) */}
+        {montantAPL > 0 && (
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-muted-foreground">Paiements Locataire</span>
-              <span className="text-sm font-medium">{moisLocatairePayes}/12 mois</span>
+              <span className="text-sm font-medium text-slate-300">Paiements APL</span>
+              <span className="text-sm font-bold text-purple-400">{moisAPLPayes}/12 mois</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full transition-all"
-                style={{ width: `${(moisLocatairePayes / 12) * 100}%` }}
+            <div className="relative w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500 ease-out shadow-lg shadow-purple-500/30"
+                style={{ width: `${progressionAPL}%` }}
               />
             </div>
           </div>
-          
-          {montantAPL > 0 && (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">Paiements APL</span>
-                <span className="text-sm font-medium">{moisAPLPayes}/12 mois</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-purple-600 h-2 rounded-full transition-all"
-                  style={{ width: `${(moisAPLPayes / 12) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-          
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Reste à percevoir</span>
-              <span className="text-lg font-bold text-orange-600">
-                {formatCurrency(caPrevuTotal - caTotal)}
-              </span>
-            </div>
+        )}
+
+        {/* Reste à percevoir */}
+        <div className="pt-4 border-t border-slate-700">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-400">Reste à percevoir</span>
+            <span className="text-lg font-bold text-amber-400">
+              {formatCurrency(resteAPercevoir)}
+            </span>
           </div>
         </div>
       </CardContent>
