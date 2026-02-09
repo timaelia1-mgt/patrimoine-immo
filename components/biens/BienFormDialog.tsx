@@ -21,6 +21,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [modeCharges, setModeCharges] = useState<'mensuel' | 'annuel'>('mensuel')
   const [formData, setFormData] = useState({
     nom: "",
     adresse: "",
@@ -59,6 +60,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         tauxCredit: "",
         dureeCredit: "",
       })
+      setModeCharges('mensuel')
     }
   }, [open])
 
@@ -128,6 +130,9 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     setIsSubmitting(true)
     setLoading(true)
 
+    // Convertir en mensuel si l'utilisateur a saisi en annuel
+    const diviseur = modeCharges === 'annuel' ? 12 : 1
+    
     const data: any = {
       nom: formData.nom.trim(),
       adresse: formData.adresse.trim(),
@@ -135,11 +140,11 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       codePostal: formData.codePostal.trim(),
       loyerMensuel: parseFloat(formData.loyerMensuel),
       typeFinancement: formData.typeFinancement,
-      taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) : 0,
-      chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) : 0,
-      assurance: formData.assurance ? parseFloat(formData.assurance) : 0,
-      fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) : 0,
-      autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) : 0,
+      taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) / diviseur : 0,
+      chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) / diviseur : 0,
+      assurance: formData.assurance ? parseFloat(formData.assurance) / diviseur : 0,
+      fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) / diviseur : 0,
+      autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) / diviseur : 0,
       chargesMensuelles: 0,
     }
 
@@ -305,15 +310,42 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Charges mensuelles (optionnel)
+                  Charges (optionnel)
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Peut être complété plus tard</p>
+              </div>
+
+              {/* Toggle mensuel/annuel */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Saisie :</span>
+                <button
+                  type="button"
+                  onClick={() => setModeCharges('mensuel')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                    modeCharges === 'mensuel'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Par mois
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModeCharges('annuel')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                    modeCharges === 'annuel'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Par an
+                </button>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="taxeFonciere" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Taxe foncière (€/an)
+                    Taxe foncière ({modeCharges === 'mensuel' ? '€/mois' : '€/an'})
                   </Label>
                   <Input
                     id="taxeFonciere"
@@ -322,16 +354,13 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     min="0"
                     value={formData.taxeFonciere || ""}
                     onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
-                    placeholder="Ex: 1800"
+                    placeholder={modeCharges === 'mensuel' ? 'Ex: 150' : 'Ex: 1800'}
                     disabled={loading}
                   />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Montant annuel (sera converti en mensuel automatiquement)
-                  </p>
                 </div>
                 <div>
                   <Label htmlFor="chargesCopro" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Charges copro (€/mois)
+                    Charges copro ({modeCharges === 'mensuel' ? '€/mois' : '€/an'})
                   </Label>
                   <Input
                     id="chargesCopro"
@@ -340,7 +369,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     min="0"
                     value={formData.chargesCopro || ""}
                     onChange={(e) => setFormData({ ...formData, chargesCopro: e.target.value })}
-                    placeholder="Ex: 200"
+                    placeholder={modeCharges === 'mensuel' ? 'Ex: 200' : 'Ex: 2400'}
                     disabled={loading}
                   />
                 </div>
@@ -349,7 +378,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <Label htmlFor="assurance" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Assurance PNO (€/mois)
+                    Assurance PNO ({modeCharges === 'mensuel' ? '€/mois' : '€/an'})
                   </Label>
                   <Input
                     id="assurance"
@@ -358,13 +387,13 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     min="0"
                     value={formData.assurance || ""}
                     onChange={(e) => setFormData({ ...formData, assurance: e.target.value })}
-                    placeholder="Ex: 30"
+                    placeholder={modeCharges === 'mensuel' ? 'Ex: 30' : 'Ex: 360'}
                     disabled={loading}
                   />
                 </div>
                 <div>
                   <Label htmlFor="fraisGestion" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                    Frais de gestion (€/mois)
+                    Frais de gestion ({modeCharges === 'mensuel' ? '€/mois' : '€/an'})
                   </Label>
                   <Input
                     id="fraisGestion"
@@ -373,7 +402,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     min="0"
                     value={formData.fraisGestion || ""}
                     onChange={(e) => setFormData({ ...formData, fraisGestion: e.target.value })}
-                    placeholder="Ex: 80"
+                    placeholder={modeCharges === 'mensuel' ? 'Ex: 80' : 'Ex: 960'}
                     disabled={loading}
                   />
                 </div>
@@ -381,7 +410,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
 
               <div className="mt-4">
                 <Label htmlFor="autresCharges" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                  Autres charges (€/mois)
+                  Autres charges ({modeCharges === 'mensuel' ? '€/mois' : '€/an'})
                 </Label>
                 <Input
                   id="autresCharges"
@@ -390,10 +419,16 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                   min="0"
                   value={formData.autresCharges || ""}
                   onChange={(e) => setFormData({ ...formData, autresCharges: e.target.value })}
-                  placeholder="Ex: 50"
+                  placeholder={modeCharges === 'mensuel' ? 'Ex: 50' : 'Ex: 600'}
                   disabled={loading}
                 />
               </div>
+
+              {modeCharges === 'annuel' && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  💡 Les montants annuels seront automatiquement convertis en mensuel pour le stockage.
+                </p>
+              )}
             </div>
           </div>
 

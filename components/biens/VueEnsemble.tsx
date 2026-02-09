@@ -1,9 +1,9 @@
 "use client"
 
 import { useMemo } from "react"
-import { Wallet, TrendingUp, DollarSign, PiggyBank } from "lucide-react"
+import { Wallet, TrendingUp, DollarSign, PiggyBank, CreditCard } from "lucide-react"
 import { KPICard } from "@/components/biens/KPICard"
-import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
+import { formatCurrency, calculateChargesMensuelles, calculerCashFlow, calculerLoyerNet } from "@/lib/calculations"
 import type { Bien } from "@/lib/database"
 
 interface VueEnsembleProps {
@@ -11,18 +11,16 @@ interface VueEnsembleProps {
 }
 
 export function VueEnsemble({ bien }: VueEnsembleProps) {
-  // Calcul du cash-flow (loyer - charges)
-  const cashFlow = useMemo(() => {
-    const loyer = bien.loyerMensuel || 0
-    const charges = calculateChargesMensuelles(bien)
-    return loyer - charges
-  }, [bien])
+  // Cash-flow = Loyer - Charges - Mensualité crédit (via la fonction centralisée)
+  const cashFlow = useMemo(() => calculerCashFlow(bien), [bien])
 
-  // Calcul du loyer net (après charges mais pas de crédit)
-  const loyerNet = useMemo(() => {
-    const loyer = bien.loyerMensuel || 0
-    const charges = calculateChargesMensuelles(bien)
-    return loyer - charges
+  // Loyer net = Loyer - Charges (avant crédit)
+  const loyerNet = useMemo(() => calculerLoyerNet(bien), [bien])
+
+  // Mensualité crédit (si financement par crédit)
+  const mensualiteCredit = useMemo(() => {
+    if (bien.typeFinancement === "CASH" || bien.typeFinancement === "comptant") return 0
+    return parseFloat(bien.mensualiteCredit?.toString() || "0") || 0
   }, [bien])
 
   // Déterminer la variante du cash-flow
@@ -41,36 +39,48 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
           Vue financière mensuelle
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${mensualiteCredit > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
           {/* Loyer mensuel */}
           <KPICard
             icon={Wallet}
             label="Loyer mensuel"
             value={formatCurrency(bien.loyerMensuel || 0)}
-            subtext="Charges comprises"
+            subtext="Loyer brut perçu"
             variant="amber"
             delay={0}
           />
 
-          {/* Loyer net (après charges) */}
+          {/* Loyer net (après charges, avant crédit) */}
           <KPICard
             icon={PiggyBank}
             label="Loyer net"
             value={formatCurrency(loyerNet)}
-            subtext="Après charges"
+            subtext="Après charges, avant crédit"
             variant="purple"
             delay={100}
           />
 
-          {/* Cash-flow */}
+          {/* Mensualité crédit (conditionnel) */}
+          {mensualiteCredit > 0 && (
+            <KPICard
+              icon={CreditCard}
+              label="Mensualité crédit"
+              value={formatCurrency(mensualiteCredit)}
+              subtext="Remboursement mensuel"
+              variant="red"
+              delay={150}
+            />
+          )}
+
+          {/* Cash-flow = Loyer - Charges - Crédit */}
           <KPICard
             icon={TrendingUp}
             label="Cash-flow"
             value={formatCurrency(cashFlow)}
-            subtext={cashFlow >= 0 ? "Positif" : "Négatif"}
+            subtext={mensualiteCredit > 0 ? "Après charges et crédit" : "Après charges"}
             badge={cashFlow > 0 ? "+✓" : cashFlow < 0 ? "−✗" : "="}
             variant={cashFlowVariant}
-            delay={200}
+            delay={mensualiteCredit > 0 ? 200 : 200}
           />
 
           {/* Charges mensuelles */}
@@ -80,7 +90,7 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
             value={formatCurrency(calculateChargesMensuelles(bien))}
             subtext="Par mois"
             variant="slate"
-            delay={300}
+            delay={mensualiteCredit > 0 ? 300 : 300}
           />
         </div>
       </div>
@@ -95,8 +105,10 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
             <div>
               <h4 className="font-semibold text-red-400 mb-1">Cash-flow négatif</h4>
               <p className="text-sm text-red-300/80">
-                Vos charges mensuelles ({formatCurrency(calculateChargesMensuelles(bien))}) dépassent votre loyer ({formatCurrency(bien.loyerMensuel || 0)}). 
-                Vous devez compléter de votre poche chaque mois.
+                {mensualiteCredit > 0
+                  ? `Vos charges (${formatCurrency(calculateChargesMensuelles(bien))}) + crédit (${formatCurrency(mensualiteCredit)}) dépassent votre loyer (${formatCurrency(bien.loyerMensuel || 0)}). Effort d'épargne : ${formatCurrency(Math.abs(cashFlow))}/mois.`
+                  : `Vos charges mensuelles (${formatCurrency(calculateChargesMensuelles(bien))}) dépassent votre loyer (${formatCurrency(bien.loyerMensuel || 0)}). Vous devez compléter de votre poche chaque mois.`
+                }
               </p>
             </div>
           </div>
@@ -113,7 +125,7 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
             <div>
               <h4 className="font-semibold text-emerald-400 mb-1">Cash-flow positif</h4>
               <p className="text-sm text-emerald-300/80">
-                Votre bien génère un revenu net de {formatCurrency(cashFlow)} par mois après déduction de toutes les charges.
+                Votre bien génère un revenu net de {formatCurrency(cashFlow)} par mois après déduction de toutes les charges{mensualiteCredit > 0 ? " et du crédit" : ""}.
               </p>
             </div>
           </div>

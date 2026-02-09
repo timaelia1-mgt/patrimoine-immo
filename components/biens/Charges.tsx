@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { KPICard } from "@/components/biens/KPICard"
 import { formatCurrency, calculateChargesMensuelles } from "@/lib/calculations"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 interface ChargesProps {
   bien: any
@@ -19,8 +20,9 @@ export function Charges({ bien }: ChargesProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [affichage, setAffichage] = useState<"mensuel" | "annuel">("mensuel")
 
-  // États du formulaire
+  // États du formulaire (toujours stocké en mensuel)
   const [formData, setFormData] = useState({
     taxeFonciere: bien.taxeFonciere?.toString() || "0",
     chargesCopro: bien.chargesCopro?.toString() || "0",
@@ -28,6 +30,8 @@ export function Charges({ bien }: ChargesProps) {
     fraisGestion: bien.fraisGestion?.toString() || "0",
     autresCharges: bien.autresCharges?.toString() || "0",
   })
+
+  const multiplicateur = affichage === "annuel" ? 12 : 1
 
   // Calcul du total (formulaire en temps réel ou bien actuel)
   const totalChargesForm =
@@ -38,19 +42,43 @@ export function Charges({ bien }: ChargesProps) {
     parseFloat(formData.autresCharges || "0")
 
   const totalChargesBien = calculateChargesMensuelles(bien)
-  const totalCharges = editing ? totalChargesForm : totalChargesBien
+  const totalChargesMensuel = editing ? totalChargesForm : totalChargesBien
+  const totalChargesAffiche = totalChargesMensuel * multiplicateur
 
   // Valeurs individuelles pour les KPICard
-  const taxeFonciere = editing ? parseFloat(formData.taxeFonciere || "0") : (bien.taxeFonciere || 0)
-  const chargesCopro = editing ? parseFloat(formData.chargesCopro || "0") : (bien.chargesCopro || 0)
-  const assurance = editing ? parseFloat(formData.assurance || "0") : (bien.assurance || 0)
-  const fraisGestion = editing ? parseFloat(formData.fraisGestion || "0") : (bien.fraisGestion || 0)
-  const autresCharges = editing ? parseFloat(formData.autresCharges || "0") : (bien.autresCharges || 0)
+  const taxeFonciere = (editing ? parseFloat(formData.taxeFonciere || "0") : (bien.taxeFonciere || 0)) * multiplicateur
+  const chargesCopro = (editing ? parseFloat(formData.chargesCopro || "0") : (bien.chargesCopro || 0)) * multiplicateur
+  const assurance = (editing ? parseFloat(formData.assurance || "0") : (bien.assurance || 0)) * multiplicateur
+  const fraisGestion = (editing ? parseFloat(formData.fraisGestion || "0") : (bien.fraisGestion || 0)) * multiplicateur
+  const autresCharges = (editing ? parseFloat(formData.autresCharges || "0") : (bien.autresCharges || 0)) * multiplicateur
+
+  const labelPeriode = affichage === "mensuel" ? "Par mois" : "Par an"
+  const labelUnite = affichage === "mensuel" ? "€/mois" : "€/an"
+
+  // Lecture de la valeur d'un champ pour l'input (affichage annuel = ×12)
+  const getInputValue = (fieldMensuel: string) => {
+    const mensuel = parseFloat(fieldMensuel || "0")
+    if (affichage === "annuel") {
+      const annuel = mensuel * 12
+      // Éviter les décimales parasites (ex: 0.833... * 12 = 9.999...)
+      return parseFloat(annuel.toFixed(2)).toString()
+    }
+    return fieldMensuel
+  }
+
+  // Écriture d'une valeur d'input (reconvertir en mensuel si annuel)
+  const setInputValue = (field: keyof typeof formData, value: string) => {
+    const mensuel = affichage === "annuel"
+      ? (parseFloat(value || "0") / 12).toString()
+      : value
+    setFormData({ ...formData, [field]: mensuel })
+  }
 
   const handleSave = async () => {
     try {
       setSaving(true)
 
+      // La sauvegarde est TOUJOURS en mensuel (formData est en mensuel)
       const response = await fetch(`/api/biens/${bien.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -60,7 +88,7 @@ export function Charges({ bien }: ChargesProps) {
           assurance: parseFloat(formData.assurance || "0"),
           fraisGestion: parseFloat(formData.fraisGestion || "0"),
           autresCharges: parseFloat(formData.autresCharges || "0"),
-          chargesMensuelles: totalCharges,
+          chargesMensuelles: totalChargesMensuel,
         }),
       })
 
@@ -88,19 +116,52 @@ export function Charges({ bien }: ChargesProps) {
     setEditing(false)
   }
 
+  // Composant toggle réutilisé en lecture et édition
+  const ToggleAffichage = () => (
+    <div className="inline-flex rounded-lg border border-slate-700 p-0.5 bg-slate-800/50">
+      <button
+        type="button"
+        onClick={() => setAffichage("mensuel")}
+        className={cn(
+          "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
+          affichage === "mensuel"
+            ? "bg-amber-600 text-white shadow-sm shadow-amber-500/30"
+            : "text-slate-400 hover:text-slate-300"
+        )}
+      >
+        Par mois
+      </button>
+      <button
+        type="button"
+        onClick={() => setAffichage("annuel")}
+        className={cn(
+          "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
+          affichage === "annuel"
+            ? "bg-amber-600 text-white shadow-sm shadow-amber-500/30"
+            : "text-slate-400 hover:text-slate-300"
+        )}
+      >
+        Par an
+      </button>
+    </div>
+  )
+
   return (
     <div className="space-y-6">
-      {/* Total des charges mensuel (grand KPI) */}
+      {/* Total des charges (grand KPI) */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-amber-500" />
-          Total des charges mensuelles
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-amber-500" />
+            Total des charges {affichage === "mensuel" ? "mensuelles" : "annuelles"}
+          </h3>
+          <ToggleAffichage />
+        </div>
 
         <KPICard
           icon={Calculator}
-          label="Charges mensuelles totales"
-          value={formatCurrency(totalCharges)}
+          label={`Charges ${affichage === "mensuel" ? "mensuelles" : "annuelles"} totales`}
+          value={formatCurrency(totalChargesAffiche)}
           subtext="Toutes charges confondues"
           variant="amber"
           size="lg"
@@ -123,56 +184,51 @@ export function Charges({ bien }: ChargesProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Taxe foncière */}
               <KPICard
                 icon={Landmark}
                 label="Taxe foncière"
                 value={formatCurrency(taxeFonciere)}
-                subtext="Par mois"
+                subtext={labelPeriode}
                 variant="red"
                 size="sm"
                 delay={0}
               />
 
-              {/* Charges copro */}
               <KPICard
                 icon={Building2}
                 label="Charges copro"
                 value={formatCurrency(chargesCopro)}
-                subtext="Par mois"
+                subtext={labelPeriode}
                 variant="orange"
                 size="sm"
                 delay={100}
               />
 
-              {/* Assurance */}
               <KPICard
                 icon={Shield}
                 label="Assurance"
                 value={formatCurrency(assurance)}
-                subtext="Par mois"
+                subtext={labelPeriode}
                 variant="sky"
                 size="sm"
                 delay={200}
               />
 
-              {/* Frais de gestion */}
               <KPICard
                 icon={Briefcase}
                 label="Frais de gestion"
                 value={formatCurrency(fraisGestion)}
-                subtext="Par mois"
+                subtext={labelPeriode}
                 variant="purple"
                 size="sm"
                 delay={300}
               />
 
-              {/* Autres charges */}
               <KPICard
                 icon={Receipt}
                 label="Autres charges"
                 value={formatCurrency(autresCharges)}
-                subtext="Par mois"
+                subtext={labelPeriode}
                 variant="slate"
                 size="sm"
                 delay={400}
@@ -186,21 +242,26 @@ export function Charges({ bien }: ChargesProps) {
       {editing && (
         <Card className="border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-slate-200">Modifier les charges mensuelles</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-slate-200">
+                Modifier les charges {affichage === "mensuel" ? "mensuelles" : "annuelles"}
+              </CardTitle>
+              <ToggleAffichage />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Taxe foncière */}
               <div>
                 <Label htmlFor="taxeFonciere" className="text-slate-300">
-                  Taxe foncière (€/mois)
+                  Taxe foncière ({labelUnite})
                 </Label>
                 <Input
                   id="taxeFonciere"
                   type="number"
                   step="0.01"
-                  value={formData.taxeFonciere}
-                  onChange={(e) => setFormData({ ...formData, taxeFonciere: e.target.value })}
+                  value={getInputValue(formData.taxeFonciere)}
+                  onChange={(e) => setInputValue("taxeFonciere", e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200"
                 />
               </div>
@@ -208,14 +269,14 @@ export function Charges({ bien }: ChargesProps) {
               {/* Charges copro */}
               <div>
                 <Label htmlFor="chargesCopro" className="text-slate-300">
-                  Charges copro (€/mois)
+                  Charges copro ({labelUnite})
                 </Label>
                 <Input
                   id="chargesCopro"
                   type="number"
                   step="0.01"
-                  value={formData.chargesCopro}
-                  onChange={(e) => setFormData({ ...formData, chargesCopro: e.target.value })}
+                  value={getInputValue(formData.chargesCopro)}
+                  onChange={(e) => setInputValue("chargesCopro", e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200"
                 />
               </div>
@@ -223,14 +284,14 @@ export function Charges({ bien }: ChargesProps) {
               {/* Assurance */}
               <div>
                 <Label htmlFor="assurance" className="text-slate-300">
-                  Assurance (€/mois)
+                  Assurance ({labelUnite})
                 </Label>
                 <Input
                   id="assurance"
                   type="number"
                   step="0.01"
-                  value={formData.assurance}
-                  onChange={(e) => setFormData({ ...formData, assurance: e.target.value })}
+                  value={getInputValue(formData.assurance)}
+                  onChange={(e) => setInputValue("assurance", e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200"
                 />
               </div>
@@ -238,14 +299,14 @@ export function Charges({ bien }: ChargesProps) {
               {/* Frais de gestion */}
               <div>
                 <Label htmlFor="fraisGestion" className="text-slate-300">
-                  Frais de gestion (€/mois)
+                  Frais de gestion ({labelUnite})
                 </Label>
                 <Input
                   id="fraisGestion"
                   type="number"
                   step="0.01"
-                  value={formData.fraisGestion}
-                  onChange={(e) => setFormData({ ...formData, fraisGestion: e.target.value })}
+                  value={getInputValue(formData.fraisGestion)}
+                  onChange={(e) => setInputValue("fraisGestion", e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200"
                 />
               </div>
@@ -253,14 +314,14 @@ export function Charges({ bien }: ChargesProps) {
               {/* Autres charges */}
               <div className="md:col-span-2">
                 <Label htmlFor="autresCharges" className="text-slate-300">
-                  Autres charges (€/mois)
+                  Autres charges ({labelUnite})
                 </Label>
                 <Input
                   id="autresCharges"
                   type="number"
                   step="0.01"
-                  value={formData.autresCharges}
-                  onChange={(e) => setFormData({ ...formData, autresCharges: e.target.value })}
+                  value={getInputValue(formData.autresCharges)}
+                  onChange={(e) => setInputValue("autresCharges", e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200"
                 />
               </div>
@@ -269,9 +330,11 @@ export function Charges({ bien }: ChargesProps) {
             {/* Total en temps réel */}
             <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mt-6">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-slate-300">Total des charges mensuelles</span>
+                <span className="text-sm font-medium text-slate-300">
+                  Total des charges {affichage === "mensuel" ? "mensuelles" : "annuelles"}
+                </span>
                 <span className="text-3xl font-bold text-amber-400">
-                  {formatCurrency(totalCharges)}
+                  {formatCurrency(totalChargesAffiche)}
                 </span>
               </div>
             </div>

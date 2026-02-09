@@ -281,14 +281,12 @@ export function calculateChargesMensuelles(bien: {
   fraisGestion?: number | null
   autresCharges?: number | null
 }): number {
-  const taxeFonciereAnnuelle = parseFloat(bien.taxeFonciere?.toString() || "0") || 0
+  // Toutes les charges sont stockées en mensuel dans la BDD
+  const taxeFonciereMensuelle = parseFloat(bien.taxeFonciere?.toString() || "0") || 0
   const chargesCoproMensuelles = parseFloat(bien.chargesCopro?.toString() || "0") || 0
   const assuranceMensuelle = parseFloat(bien.assurance?.toString() || "0") || 0
   const fraisGestionMensuels = parseFloat(bien.fraisGestion?.toString() || "0") || 0
   const autresChargesMensuelles = parseFloat(bien.autresCharges?.toString() || "0") || 0
-  
-  // Taxe foncière est annuelle, on divise par 12
-  const taxeFonciereMensuelle = taxeFonciereAnnuelle / 12
   
   const total = taxeFonciereMensuelle + 
                 chargesCoproMensuelles + 
