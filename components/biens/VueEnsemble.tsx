@@ -19,7 +19,7 @@ export function VueEnsemble({ bien }: VueEnsembleProps) {
 
   // Mensualité crédit (si financement par crédit)
   const mensualiteCredit = useMemo(() => {
-    if (bien.typeFinancement === "CASH" || bien.typeFinancement === "comptant") return 0
+    if (bien.typeFinancement === "CASH") return 0
     return parseFloat(bien.mensualiteCredit?.toString() || "0") || 0
   }, [bien])
 
