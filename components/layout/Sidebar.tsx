@@ -42,31 +42,48 @@ export function Sidebar() {
       return
     }
 
+    // Fonction interne avec retry
+    const fetchWithTimeout = async (retryCount = 0): Promise<[any, any]> => {
+      try {
+        console.log(
+          '[Sidebar] Récupération des biens pour user:', 
+          user.id, 
+          retryCount > 0 ? `(tentative ${retryCount + 1}/2)` : ''
+        )
+        setLoading(true)
+
+        // Timeout de 20 secondes
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout Supabase après 20s')), 20000)
+        )
+
+        const [biensData, profileData] = await Promise.all([
+          Promise.race([getBiens(user.id), timeoutPromise]),
+          Promise.race([getUserProfile(user.id), timeoutPromise]),
+        ])
+
+        return [biensData, profileData]
+      } catch (error: any) {
+        // Si timeout ET première tentative → retry après 2s
+        if (error?.message?.includes('Timeout') && retryCount === 0) {
+          console.log('[Sidebar] ⚠️ Timeout détecté, retry dans 2s...')
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          return fetchWithTimeout(1) // Retry une fois
+        }
+        throw error // Pas de retry ou déjà retry
+      }
+    }
+
     try {
-      console.log('[Sidebar] Récupération des biens pour user:', user.id)
-      setLoading(true)
-
-      // Récupérer les biens ET le profil en parallèle
-      // Timeout de sécurité (10 secondes max) pour éviter hang infini
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout Supabase après 10s')), 10000)
-      )
-
-      const [biensData, profileData] = await Promise.all([
-        Promise.race([getBiens(user.id), timeoutPromise]),
-        Promise.race([getUserProfile(user.id), timeoutPromise]),
-      ])
-
+      const [biensData, profileData] = await fetchWithTimeout()
+      
       console.log('[Sidebar] Biens récupérés:', biensData?.length || 0)
-
-      if (biensData) {
-        setBiens(biensData)
-      }
-      if (profileData) {
-        setProfile(profileData)
-      }
-    } catch (error) {
-      console.error('[Sidebar] Erreur lors de la récupération des biens:', error)
+      
+      if (biensData) setBiens(biensData)
+      if (profileData) setProfile(profileData)
+    } catch (error: unknown) {
+      const err = error as Error
+      console.error('[Sidebar] Erreur après retry:', err.message)
       setBiens([])
     } finally {
       setLoading(false)
