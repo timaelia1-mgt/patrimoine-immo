@@ -47,9 +47,14 @@ export function Sidebar() {
       setLoading(true)
 
       // Récupérer les biens ET le profil en parallèle
+      // Timeout de sécurité (10 secondes max) pour éviter hang infini
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout Supabase après 10s')), 10000)
+      )
+
       const [biensData, profileData] = await Promise.all([
-        getBiens(user.id),
-        getUserProfile(user.id)
+        Promise.race([getBiens(user.id), timeoutPromise]),
+        Promise.race([getUserProfile(user.id), timeoutPromise]),
       ])
 
       console.log('[Sidebar] Biens récupérés:', biensData?.length || 0)
