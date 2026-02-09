@@ -83,8 +83,8 @@ export async function PUT(
       )
     }
     
-    // Mettre à jour le bien
-    await updateBien(id, body)
+    // Mettre à jour le bien (passer le client serveur pour RLS)
+    await updateBien(id, body, supabase)
 
     // Track bien updated
     trackServerEvent(user.id, ANALYTICS_EVENTS.BIEN_UPDATED, {

@@ -246,7 +246,7 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
  *   chargesCopro: 100
  * })
  */
-export async function updateBien(bienId: string, updates: Partial<Bien>): Promise<Bien> {
+export async function updateBien(bienId: string, updates: Partial<Bien>, supabaseClient?: any): Promise<Bien> {
   // Convertir les clés camelCase en snake_case pour Supabase
   const updatesSnakeCase: any = {}
   
@@ -293,7 +293,8 @@ export async function updateBien(bienId: string, updates: Partial<Bien>): Promis
     updatesSnakeCase[snakeKey] = value
   }
 
-  const supabase = createClient()
+  // Utiliser le client serveur si fourni, sinon fallback sur le client navigateur
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from("biens")
     .update(updatesSnakeCase)
