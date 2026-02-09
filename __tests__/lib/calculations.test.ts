@@ -328,7 +328,7 @@ describe('formatCurrency', () => {
 describe('calculateChargesMensuelles', () => {
   it('devrait calculer les charges mensuelles totales', () => {
     const bien = {
-      taxeFonciere: 1200, // Annuel -> 100/mois
+      taxeFonciere: 100, // Mensuel (toutes les charges sont stockées en mensuel)
       chargesCopro: 50,
       assurance: 30,
       fraisGestion: 20,
@@ -336,7 +336,7 @@ describe('calculateChargesMensuelles', () => {
     }
 
     const result = calculateChargesMensuelles(bien)
-    // 1200/12 + 50 + 30 + 20 + 10 = 100 + 110 = 210
+    // 100 + 50 + 30 + 20 + 10 = 210
     expect(result).toBe(210)
   })
 
