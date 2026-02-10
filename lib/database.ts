@@ -550,7 +550,114 @@ function convertProfileFromSupabase(data: any): UserProfile {
 }
 
 // =====================================================
-// LOCATAIRE
+// LOTS - Gestion des lots d'un bien
+// =====================================================
+
+/**
+ * Récupère tous les lots d'un bien
+ * 
+ * @param bienId - L'ID du bien
+ * @returns Promise<Lot[]> - Liste des lots du bien
+ * @throws {Error} Si la requête échoue
+ */
+export async function getLots(bienId: string): Promise<Lot[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("lots")
+    .select("*")
+    .eq("bien_id", bienId)
+    .order("numero_lot", { ascending: true })
+
+  if (error) throw error
+  
+  return (data || []).map((lot: any) => ({
+    id: lot.id,
+    bienId: lot.bien_id,
+    userId: lot.user_id,
+    numeroLot: lot.numero_lot,
+    superficie: lot.superficie,
+    loyerMensuel: parseFloat(lot.loyer_mensuel?.toString() || "0"),
+    estLotDefaut: lot.est_lot_defaut,
+    createdAt: lot.created_at,
+    updatedAt: lot.updated_at,
+  }))
+}
+
+/**
+ * Crée un nouveau lot pour un bien
+ * 
+ * @param data - Les données du lot à créer
+ * @returns Promise<Lot> - Le lot créé
+ * @throws {Error} Si l'utilisateur n'est pas authentifié ou si l'insertion échoue
+ */
+export async function createLot(data: {
+  bienId: string
+  numeroLot: string
+  superficie?: number
+  loyerMensuel: number
+}): Promise<Lot> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Non authentifié")
+
+  const { data: lot, error } = await supabase
+    .from("lots")
+    .insert({
+      bien_id: data.bienId,
+      user_id: user.id,
+      numero_lot: data.numeroLot,
+      superficie: data.superficie || null,
+      loyer_mensuel: data.loyerMensuel,
+      est_lot_defaut: false,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  
+  return {
+    id: lot.id,
+    bienId: lot.bien_id,
+    userId: lot.user_id,
+    numeroLot: lot.numero_lot,
+    superficie: lot.superficie,
+    loyerMensuel: parseFloat(lot.loyer_mensuel?.toString() || "0"),
+    estLotDefaut: lot.est_lot_defaut,
+    createdAt: lot.created_at,
+    updatedAt: lot.updated_at,
+  }
+}
+
+/**
+ * Supprime un lot (seulement si ce n'est pas le lot par défaut)
+ * 
+ * @param lotId - L'ID du lot à supprimer
+ * @throws {Error} Si le lot est le lot par défaut ou si la suppression échoue
+ */
+export async function deleteLot(lotId: string): Promise<void> {
+  const supabase = createClient()
+  
+  // Vérifier que ce n'est pas le lot par défaut
+  const { data: lot } = await supabase
+    .from("lots")
+    .select("est_lot_defaut")
+    .eq("id", lotId)
+    .single()
+
+  if (lot?.est_lot_defaut) {
+    throw new Error("Impossible de supprimer le lot par défaut")
+  }
+
+  const { error } = await supabase
+    .from("lots")
+    .delete()
+    .eq("id", lotId)
+
+  if (error) throw error
+}
+
+// =====================================================
+// LOCATAIRES - Gestion multi-locataires
 // =====================================================
 
 export interface Locataire {
@@ -569,114 +676,190 @@ export interface Locataire {
 }
 
 /**
- * Récupère le locataire associé à un bien
+ * Récupère tous les locataires d'un bien
  * 
- * Un bien peut avoir au maximum un locataire actif.
+ * Un bien peut avoir plusieurs locataires (multi-lots / colocation).
  * 
  * @param bienId - L'ID du bien
  * @param supabaseClient - Client Supabase optionnel
- * @returns Promise<Locataire | null> - Le locataire ou null si aucun
+ * @returns Promise<Locataire[]> - Liste des locataires du bien
  * 
  * @example
- * const locataire = await getLocataire('bien-uuid-123')
- * if (locataire) {
- *   console.log(`Locataire: ${locataire.prenom} ${locataire.nom}`)
- * }
+ * const locataires = await getLocataires('bien-uuid-123')
+ * console.log(`${locataires.length} locataire(s) trouvé(s)`)
  */
-export async function getLocataire(bienId: string, supabaseClient?: any): Promise<Locataire | null> {
+export async function getLocataires(bienId: string, supabaseClient?: any): Promise<Locataire[]> {
   const supabase = supabaseClient || createClient()
   
   const { data, error } = await supabase
     .from('locataires')
     .select('*')
     .eq('bien_id', bienId)
-    .maybeSingle()
+
+  if (error) throw error
   
-  if (error && error.code !== 'PGRST116') {
-    console.error('Erreur getLocataire:', error)
-    return null
-  }
-  
-  if (!data) return null
-  
-  return {
-    id: data.id,
-    bienId: data.bien_id || data.bienId,
-    lotId: data.lot_id || data.lotId || "",
-    nom: data.nom || "",
-    prenom: data.prenom || "",
-    email: data.email || null,
-    telephone: data.telephone || null,
-    dateEntree: data.date_entree || data.dateEntree || null,
-    montantAPL: parseFloat(data.montant_apl?.toString() || data.montantAPL?.toString() || "0"),
-    modePaiement: data.mode_paiement || data.modePaiement || "virement",
-    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
-    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
-  }
+  return (data || []).map((loc: any) => ({
+    id: loc.id,
+    bienId: loc.bien_id,
+    lotId: loc.lot_id,
+    nom: loc.nom,
+    prenom: loc.prenom,
+    email: loc.email,
+    telephone: loc.telephone,
+    dateEntree: loc.date_entree,
+    montantAPL: parseFloat(loc.montant_apl?.toString() || "0"),
+    modePaiement: loc.mode_paiement,
+    createdAt: loc.created_at,
+    updatedAt: loc.updated_at,
+  }))
 }
 
 /**
- * Crée ou met à jour le locataire d'un bien (upsert)
+ * Rétro-compatibilité : récupère le premier locataire d'un bien
  * 
- * Si un locataire existe déjà pour ce bien, il est mis à jour.
- * Sinon, un nouveau locataire est créé.
+ * @deprecated Utiliser getLocataires() à la place
+ * @param bienId - L'ID du bien
+ * @param supabaseClient - Client Supabase optionnel
+ * @returns Promise<Locataire | null> - Le premier locataire ou null
+ */
+export async function getLocataire(bienId: string, supabaseClient?: any): Promise<Locataire | null> {
+  const locataires = await getLocataires(bienId, supabaseClient)
+  return locataires.length > 0 ? locataires[0] : null
+}
+
+/**
+ * Récupère les locataires d'un lot spécifique
+ * 
+ * @param lotId - L'ID du lot
+ * @returns Promise<Locataire[]> - Liste des locataires du lot
+ * @throws {Error} Si la requête échoue
+ */
+export async function getLocatairesByLot(lotId: string): Promise<Locataire[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('locataires')
+    .select('*')
+    .eq('lot_id', lotId)
+
+  if (error) throw error
+  
+  return (data || []).map((loc: any) => ({
+    id: loc.id,
+    bienId: loc.bien_id,
+    lotId: loc.lot_id,
+    nom: loc.nom,
+    prenom: loc.prenom,
+    email: loc.email,
+    telephone: loc.telephone,
+    dateEntree: loc.date_entree,
+    montantAPL: parseFloat(loc.montant_apl?.toString() || "0"),
+    modePaiement: loc.mode_paiement,
+    createdAt: loc.created_at,
+    updatedAt: loc.updated_at,
+  }))
+}
+
+/**
+ * Crée ou met à jour un locataire
+ * 
+ * Si data.id est fourni, c'est un UPDATE.
+ * Sinon, c'est un INSERT.
  * 
  * @param bienId - L'ID du bien
- * @param locataireData - Les données du locataire
- * @param supabaseClient - Client Supabase optionnel
- * @returns Promise<Locataire> - Le locataire créé ou mis à jour
+ * @param lotId - L'ID du lot auquel le locataire est rattaché
+ * @param data - Les données du locataire
+ * @returns Promise<void>
  * @throws {Error} Si l'opération échoue
  * 
  * @example
- * const locataire = await upsertLocataire('bien-uuid-123', {
+ * // Créer un nouveau locataire
+ * await upsertLocataire('bien-uuid-123', 'lot-uuid-456', {
  *   nom: 'Martin',
  *   prenom: 'Jean',
  *   email: 'jean.martin@example.com',
  *   montantAPL: 200,
  *   modePaiement: 'virement'
  * })
+ * 
+ * // Mettre à jour un locataire existant
+ * await upsertLocataire('bien-uuid-123', 'lot-uuid-456', {
+ *   id: 'locataire-uuid-789',
+ *   nom: 'Martin',
+ *   prenom: 'Jean',
+ *   montantAPL: 250,
+ *   modePaiement: 'virement'
+ * })
  */
-export async function upsertLocataire(bienId: string, locataireData: Partial<Locataire>, supabaseClient?: any): Promise<Locataire> {
-  const supabase = supabaseClient || createClient()
-  
-  const dataToUpsert: any = {
+export async function upsertLocataire(
+  bienId: string,
+  lotId: string,
+  data: {
+    id?: string
+    nom: string
+    prenom: string
+    email?: string | null
+    telephone?: string | null
+    dateEntree?: string | null
+    montantAPL: number
+    modePaiement: string
+  }
+): Promise<void> {
+  const supabase = createClient()
+
+  const locataireData: any = {
     bien_id: bienId,
-    nom: locataireData.nom || "",
-    prenom: locataireData.prenom || "",
-    email: locataireData.email || null,
-    telephone: locataireData.telephone || null,
-    date_entree: locataireData.dateEntree ? new Date(locataireData.dateEntree).toISOString() : null,
-    montant_apl: locataireData.montantAPL ? parseFloat(locataireData.montantAPL.toString()) : 0,
-    mode_paiement: locataireData.modePaiement || "virement",
-  }
-  
-  const { data, error } = await supabase
-    .from('locataires')
-    .upsert(dataToUpsert, {
-      onConflict: 'bien_id'
-    })
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Erreur upsertLocataire:', error)
-    throw error
-  }
-  
-  return {
-    id: data.id,
-    bienId: data.bien_id || data.bienId,
-    lotId: data.lot_id || data.lotId || "",
-    nom: data.nom || "",
-    prenom: data.prenom || "",
+    lot_id: lotId,
+    nom: data.nom,
+    prenom: data.prenom,
     email: data.email || null,
     telephone: data.telephone || null,
-    dateEntree: data.date_entree || data.dateEntree || null,
-    montantAPL: parseFloat(data.montant_apl?.toString() || data.montantAPL?.toString() || "0"),
-    modePaiement: data.mode_paiement || data.modePaiement || "virement",
-    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
-    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+    date_entree: data.dateEntree ? new Date(data.dateEntree).toISOString() : null,
+    montant_apl: data.montantAPL,
+    mode_paiement: data.modePaiement || "virement",
+    updated_at: new Date().toISOString(),
   }
+
+  if (data.id) {
+    // UPDATE
+    const { error } = await supabase
+      .from('locataires')
+      .update(locataireData)
+      .eq('id', data.id)
+
+    if (error) {
+      console.error('Erreur upsertLocataire (update):', error)
+      throw error
+    }
+  } else {
+    // INSERT
+    const { error } = await supabase
+      .from('locataires')
+      .insert({
+        ...locataireData,
+        created_at: new Date().toISOString(),
+      })
+
+    if (error) {
+      console.error('Erreur upsertLocataire (insert):', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Supprime un locataire
+ * 
+ * @param locataireId - L'ID du locataire à supprimer
+ * @throws {Error} Si la suppression échoue
+ */
+export async function deleteLocataire(locataireId: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('locataires')
+    .delete()
+    .eq('id', locataireId)
+
+  if (error) throw error
 }
 
 // =====================================================
