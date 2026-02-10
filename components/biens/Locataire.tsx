@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { KPICard } from "@/components/biens/KPICard"
 import { formatCurrency } from "@/lib/calculations"
 import { upsertLocataire } from "@/lib/database"
+import { createClient } from "@/lib/supabase/client"
 import { validateAndShowErrors, validateDatesCoherence } from "@/lib/validations"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
@@ -122,7 +123,22 @@ export function Locataire({ bien }: LocataireProps) {
     try {
       setSaving(true)
 
-      await upsertLocataire(bien.id, {
+      // Récupérer le lot par défaut du bien
+      const supabase = createClient()
+      const { data: defaultLot, error: lotError } = await supabase
+        .from("lots")
+        .select("id")
+        .eq("bien_id", bien.id)
+        .eq("est_lot_defaut", true)
+        .single()
+
+      if (lotError || !defaultLot) {
+        toast.error("Erreur : aucun lot par défaut trouvé")
+        return
+      }
+
+      // Appeler upsertLocataire avec les 3 paramètres (bienId, lotId, data)
+      await upsertLocataire(bien.id, defaultLot.id, {
         nom: formData.nom,
         prenom: formData.prenom,
         email: formData.email || null,
