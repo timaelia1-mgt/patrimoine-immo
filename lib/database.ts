@@ -686,6 +686,7 @@ export async function upsertLocataire(bienId: string, locataireData: Partial<Loc
 export interface Loyer {
   id: string
   bienId: string
+  locataireId?: string | null // NOUVEAU : loyer par locataire
   annee: number
   mois: number // 0-11
   montantLocataire: number
@@ -734,6 +735,7 @@ export async function getLoyers(bienId: string, annee: number, supabaseClient?: 
   return data.map((l: any) => ({
     id: l.id,
     bienId: l.bien_id || l.bienId,
+    locataireId: l.locataire_id || l.locataireId || null,
     annee: l.annee,
     mois: l.mois,
     montantLocataire: parseFloat(l.montant_locataire?.toString() || l.montantLocataire?.toString() || "0"),
@@ -783,7 +785,8 @@ export async function upsertLoyer(
     payeLocataire: boolean
     payeAPL: boolean
   },
-  supabaseClient?: any
+  supabaseClient?: any,
+  locataireId?: string | null
 ): Promise<Loyer> {
   const supabase = supabaseClient || createClient()
   
@@ -791,6 +794,7 @@ export async function upsertLoyer(
   
   const dataToUpsert: any = {
     bien_id: bienId,
+    locataire_id: locataireId || null,
     annee,
     mois,
     montant_locataire: paiement.montantLocataire,
@@ -804,7 +808,7 @@ export async function upsertLoyer(
   const { data, error } = await supabase
     .from('loyers')
     .upsert(dataToUpsert, {
-      onConflict: 'bien_id,annee,mois'
+      onConflict: 'bien_id,locataire_id,annee,mois'
     })
     .select()
     .single()
@@ -817,6 +821,7 @@ export async function upsertLoyer(
   return {
     id: data.id,
     bienId: data.bien_id || data.bienId,
+    locataireId: data.locataire_id || data.locataireId || null,
     annee: data.annee,
     mois: data.mois,
     montantLocataire: parseFloat(data.montant_locataire?.toString() || data.montantLocataire?.toString() || "0"),
@@ -954,6 +959,7 @@ export interface QuittanceDB {
   id: string
   userId: string
   bienId: string
+  locataireId?: string | null // NOUVEAU : quittance par locataire
   mois: number
   annee: number
   locataireNom: string
@@ -1014,6 +1020,7 @@ export async function createQuittance(
   data: {
     bienId: string
     userId: string
+    locataireId?: string | null // NOUVEAU : quittance par locataire
     mois: number
     annee: number
     locataireNom: string
@@ -1038,6 +1045,7 @@ export async function createQuittance(
     .insert({
       user_id: data.userId,
       bien_id: data.bienId,
+      locataire_id: data.locataireId || null,
       mois: data.mois,
       annee: data.annee,
       locataire_nom: data.locataireNom,
@@ -1166,6 +1174,7 @@ function convertQuittanceFromSupabase(data: any): QuittanceDB {
     id: data.id,
     userId: data.user_id,
     bienId: data.bien_id,
+    locataireId: data.locataire_id || null,
     mois: data.mois,
     annee: data.annee,
     locataireNom: data.locataire_nom,
