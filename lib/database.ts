@@ -44,6 +44,18 @@ export interface Bien {
   updatedAt: string
 }
 
+export interface Lot {
+  id: string
+  bienId: string
+  userId: string
+  numeroLot: string
+  superficie?: number | null
+  loyerMensuel: number
+  estLotDefaut: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' | 'payment_failed' | 'trialing' | null
 
 export interface UserProfile {
