@@ -53,7 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
         
-        // Créer le profil si nécessaire
+        // CRITIQUE : Mettre loading=false IMMÉDIATEMENT après setUser
+        // Les opérations async (profil, analytics) ne doivent PAS bloquer le loading
+        setLoading(false)
+        
+        // Opérations secondaires (profil + analytics) en arrière-plan
+        // Ne bloquent plus le loading state
         if (session?.user) {
           try {
             await createProfileIfNeeded(
@@ -72,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select('plan_type, name, email')
               .eq('id', session.user.id)
               .single()
+
+            if (!isMounted) return
 
             identifyUser(session.user.id, {
               email: profile?.email || session.user.email,
@@ -96,9 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           hasTrackedSession.current = false
         }
-        
-        // Toujours passer loading à false après le premier event
-        setLoading(false)
       }
     )
     

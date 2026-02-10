@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut, Search, TrendingUp, Users } from "lucide-react"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getBiens, getUserProfile } from "@/lib/database"
 import type { Bien, UserProfile } from "@/lib/database"
@@ -34,6 +34,9 @@ export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
   const [hoveredBien, setHoveredBien] = useState<string | null>(null)
 
+  // Ref pour gérer les appels concurrents (éviter les race conditions)
+  const fetchCountRef = useRef(0)
+
   // Fonction pour récupérer les biens
   const fetchBiens = useCallback(async () => {
     if (!user?.id) {
@@ -42,65 +45,61 @@ export function Sidebar() {
       return
     }
 
-    // Fonction interne avec retry
-    const fetchWithTimeout = async (retryCount = 0): Promise<[any, any]> => {
-      try {
-        console.log(
-          '[Sidebar] Récupération des biens pour user:', 
-          user.id, 
-          retryCount > 0 ? `(tentative ${retryCount + 1}/2)` : ''
-        )
-        setLoading(true)
-
-        // Timeout de 20 secondes
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout Supabase après 20s')), 20000)
-        )
-
-        const [biensData, profileData] = await Promise.all([
-          Promise.race([getBiens(user.id), timeoutPromise]),
-          Promise.race([getUserProfile(user.id), timeoutPromise]),
-        ])
-
-        return [biensData, profileData]
-      } catch (error: any) {
-        // Si timeout ET première tentative → retry après 2s
-        if (error?.message?.includes('Timeout') && retryCount === 0) {
-          console.log('[Sidebar] ⚠️ Timeout détecté, retry dans 2s...')
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          return fetchWithTimeout(1) // Retry une fois
-        }
-        throw error // Pas de retry ou déjà retry
-      }
-    }
+    // Incrémenter le compteur pour invalider les fetchs précédents
+    const currentFetchId = ++fetchCountRef.current
+    setLoading(true)
 
     try {
-      const [biensData, profileData] = await fetchWithTimeout()
-      
+      console.log('[Sidebar] Récupération des biens pour user:', user.id)
+
+      // Timeout de 10 secondes (au lieu de 20s + retry)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout Supabase après 10s')), 10000)
+      )
+
+      const [biensData, profileData] = await Promise.all([
+        Promise.race([getBiens(user.id), timeoutPromise]),
+        Promise.race([getUserProfile(user.id), timeoutPromise]),
+      ])
+
+      // Ignorer si un fetch plus récent a été lancé entre-temps
+      if (currentFetchId !== fetchCountRef.current) return
+
       console.log('[Sidebar] Biens récupérés:', biensData?.length || 0)
-      
       if (biensData) setBiens(biensData)
       if (profileData) setProfile(profileData)
     } catch (error: unknown) {
+      // Ignorer les erreurs d'un fetch obsolète
+      if (currentFetchId !== fetchCountRef.current) return
       const err = error as Error
-      console.error('[Sidebar] Erreur après retry:', err.message)
+      console.error('[Sidebar] Erreur fetch:', err.message)
       setBiens([])
     } finally {
-      setLoading(false)
+      // Ne mettre loading=false que si c'est bien le fetch le plus récent
+      if (currentFetchId === fetchCountRef.current) {
+        setLoading(false)
+      }
     }
   }, [user?.id])
 
   useEffect(() => {
     console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
 
-    // On skip uniquement si auth loading ET qu'on n'a pas encore de user
+    // Skip tant que l'auth n'est pas résolue ET qu'on n'a pas de user
     if (authLoading && !user?.id) {
       console.log("[Sidebar] authLoading with no user, skipping fetch")
       return
     }
 
-    // Charger les biens au montage et quand user change
+    // Charger les biens
     fetchBiens()
+
+    // Safety timeout : garantir que loading passe à false après 12s max
+    // (filet de sécurité si le fetch hang indéfiniment)
+    const safetyTimer = setTimeout(() => {
+      console.warn('[Sidebar] ⚠️ Safety timeout: force loading=false après 12s')
+      setLoading(false)
+    }, 12000)
 
     // Écouter les événements de refresh
     const handleRefresh = () => {
@@ -111,7 +110,10 @@ export function Sidebar() {
     }
 
     window.addEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
-    return () => window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
+    return () => {
+      clearTimeout(safetyTimer)
+      window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
+    }
   }, [user?.id, authLoading, fetchBiens])
 
   const handleSignOut = async () => {
