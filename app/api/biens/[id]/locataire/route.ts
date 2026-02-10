@@ -93,8 +93,23 @@ export async function PUT(
       )
     }
     
-    // Upsert locataire
-    await upsertLocataire(id, {
+    // Récupérer le lot par défaut du bien
+    const { data: defaultLot } = await supabase
+      .from("lots")
+      .select("id")
+      .eq("bien_id", id)
+      .eq("est_lot_defaut", true)
+      .single()
+
+    if (!defaultLot) {
+      return NextResponse.json(
+        { error: "Aucun lot par défaut trouvé" },
+        { status: 404 }
+      )
+    }
+
+    // Upsert locataire avec les 3 paramètres (bienId, lotId, data)
+    await upsertLocataire(id, defaultLot.id, {
       nom: body.nom,
       prenom: body.prenom,
       email: body.email || null,
