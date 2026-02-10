@@ -602,6 +602,7 @@ export async function getLocataire(bienId: string, supabaseClient?: any): Promis
   return {
     id: data.id,
     bienId: data.bien_id || data.bienId,
+    lotId: data.lot_id || data.lotId || "",
     nom: data.nom || "",
     prenom: data.prenom || "",
     email: data.email || null,
@@ -665,6 +666,7 @@ export async function upsertLocataire(bienId: string, locataireData: Partial<Loc
   return {
     id: data.id,
     bienId: data.bien_id || data.bienId,
+    lotId: data.lot_id || data.lotId || "",
     nom: data.nom || "",
     prenom: data.prenom || "",
     email: data.email || null,
