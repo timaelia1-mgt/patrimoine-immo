@@ -333,8 +333,8 @@ describe('database', () => {
 
   describe('getLocataire', () => {
     it('devrait récupérer le locataire d\'un bien', async () => {
-      const mockClient = createChainableMock({ data: mockLocataireData, error: null })
-      mockClient.maybeSingle = vi.fn(() => Promise.resolve({ data: mockLocataireData, error: null }))
+      // getLocataire appelle getLocataires qui retourne un tableau
+      const mockClient = createChainableMock({ data: [mockLocataireData], error: null })
       vi.mocked(createClient).mockReturnValue(mockClient)
 
       const result = await getLocataire('bien-123')
@@ -343,11 +343,11 @@ describe('database', () => {
       expect(mockClient.eq).toHaveBeenCalledWith('bien_id', 'bien-123')
       expect(result?.nom).toBe('Martin')
       expect(result?.prenom).toBe('Sophie')
+      expect(result?.lotId).toBe('lot-456')
     })
 
     it('devrait retourner null si pas de locataire', async () => {
-      const mockClient = createChainableMock({ data: null, error: null })
-      mockClient.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }))
+      const mockClient = createChainableMock({ data: [], error: null })
       vi.mocked(createClient).mockReturnValue(mockClient)
 
       const result = await getLocataire('bien-sans-locataire')
@@ -357,9 +357,8 @@ describe('database', () => {
   })
 
   describe('upsertLocataire', () => {
-    it('devrait créer ou mettre à jour un locataire', async () => {
-      const mockClient = createChainableMock({ data: mockLocataireData, error: null })
-      mockClient.single = vi.fn(() => Promise.resolve({ data: mockLocataireData, error: null }))
+    it('devrait créer un nouveau locataire (INSERT)', async () => {
+      const mockClient = createChainableMock({ data: null, error: null })
       vi.mocked(createClient).mockReturnValue(mockClient)
 
       const locataireData = {
@@ -367,13 +366,49 @@ describe('database', () => {
         prenom: 'Pierre',
         email: 'pierre@example.com',
         montantAPL: 200,
+        modePaiement: 'virement',
       }
 
-      const result = await upsertLocataire('bien-123', locataireData)
+      // 3 paramètres : bienId, lotId, data
+      await upsertLocataire('bien-123', 'lot-456', locataireData)
 
       expect(mockClient.from).toHaveBeenCalledWith('locataires')
-      expect(mockClient.upsert).toHaveBeenCalled()
-      expect(result).toBeDefined()
+      expect(mockClient.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bien_id: 'bien-123',
+          lot_id: 'lot-456',
+          nom: 'Durand',
+          prenom: 'Pierre',
+        })
+      )
+    })
+
+    it('devrait mettre à jour un locataire existant (UPDATE)', async () => {
+      const mockClient = createChainableMock({ data: null, error: null })
+      mockClient.eq = vi.fn(() => Promise.resolve({ error: null }))
+      vi.mocked(createClient).mockReturnValue(mockClient)
+
+      const locataireData = {
+        id: 'loc-789', // ID fourni = UPDATE
+        nom: 'Durand',
+        prenom: 'Pierre',
+        email: 'pierre@example.com',
+        montantAPL: 200,
+        modePaiement: 'virement',
+      }
+
+      await upsertLocataire('bien-123', 'lot-456', locataireData)
+
+      expect(mockClient.from).toHaveBeenCalledWith('locataires')
+      expect(mockClient.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bien_id: 'bien-123',
+          lot_id: 'lot-456',
+          nom: 'Durand',
+          prenom: 'Pierre',
+        })
+      )
+      expect(mockClient.eq).toHaveBeenCalledWith('id', 'loc-789')
     })
   })
 
