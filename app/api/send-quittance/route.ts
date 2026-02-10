@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     })
     
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@resend.dev',
+      from: process.env.RESEND_FROM_EMAIL || 'Patrimoine Immo <noreply@patrimo.dev>',
       to: [locataireEmail],
       subject: `Quittance de loyer - ${MOIS_NOMS[mois - 1]} ${annee} - ${bienNom}`,
       html: `
