@@ -555,7 +555,8 @@ function convertProfileFromSupabase(data: any): UserProfile {
 
 export interface Locataire {
   id: string
-  bienId: string
+  bienId: string // Garder pour compatibilité temporaire
+  lotId: string // NOUVEAU : le locataire appartient à un lot
   nom: string
   prenom: string
   email?: string | null
