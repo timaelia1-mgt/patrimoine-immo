@@ -180,6 +180,7 @@ export const mockProfileData = {
 export const mockLocataireData = {
   id: 'loc-789',
   bien_id: 'bien-123',
+  lot_id: 'lot-456',
   nom: 'Martin',
   prenom: 'Sophie',
   email: 'sophie@example.com',
