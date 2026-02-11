@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { createBien, createLot } from "@/lib/database"
 import { calculateMensualiteCredit, formatCurrency } from "@/lib/calculations"
+import { refreshSidebar } from "@/components/layout/Sidebar"
 import { Plus, Trash2 } from "lucide-react"
 
 interface BienFormDialogProps {
@@ -27,10 +28,9 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
   const [lots, setLots] = useState<Array<{
     id: string
     numeroLot: string
-    superficie: string
     loyerMensuel: string
   }>>([
-    { id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }
+    { id: crypto.randomUUID(), numeroLot: "Lot 1", loyerMensuel: "" }
   ])
   const [formData, setFormData] = useState({
     nom: "",
@@ -72,7 +72,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       })
       setModeCharges('mensuel')
       setMultipleLots(false)
-      setLots([{ id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }])
+      setLots([{ id: crypto.randomUUID(), numeroLot: "Lot 1", loyerMensuel: "" }])
     }
   }, [open])
 
@@ -206,7 +206,6 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
           await createLot({
             bienId: nouveauBien.id,
             numeroLot: lot.numeroLot,
-            superficie: lot.superficie ? parseFloat(lot.superficie) : undefined,
             loyerMensuel: parseFloat(lot.loyerMensuel),
             estLotDefaut: i === 0,
           })
@@ -239,6 +238,9 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         tauxCredit: "",
         dureeCredit: "",
       })
+      
+      // Rafraîchir la sidebar pour afficher le nouveau bien
+      refreshSidebar()
       
       // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
       toast.success("Bien créé avec succès !")
@@ -376,7 +378,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                   setMultipleLots(e.target.checked)
                   if (e.target.checked && lots.length === 0) {
                     setLots([
-                      { id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }
+                      { id: crypto.randomUUID(), numeroLot: "Lot 1", loyerMensuel: "" }
                     ])
                   }
                 }}
@@ -398,7 +400,6 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                     onClick={() => setLots([...lots, {
                       id: crypto.randomUUID(),
                       numeroLot: `Lot ${lots.length + 1}`,
-                      superficie: "",
                       loyerMensuel: ""
                     }])}
                     size="sm"
@@ -428,7 +429,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <Label className="text-slate-500 dark:text-slate-400 text-xs">Nom du lot</Label>
                         <Input
@@ -439,23 +440,6 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
                             setLots(newLots)
                           }}
                           placeholder="ex: T2 RDC"
-                          disabled={loading}
-                        />
-                      </div>
-
-                      <div>
-                        <Label className="text-slate-500 dark:text-slate-400 text-xs">Superficie (m²)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={lot.superficie}
-                          onChange={(e) => {
-                            const newLots = [...lots]
-                            newLots[index].superficie = e.target.value
-                            setLots(newLots)
-                          }}
-                          placeholder="45.5"
                           disabled={loading}
                         />
                       </div>

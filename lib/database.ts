@@ -593,7 +593,6 @@ export async function getLots(bienId: string): Promise<Lot[]> {
 export async function createLot(data: {
   bienId: string
   numeroLot: string
-  superficie?: number
   loyerMensuel: number
   estLotDefaut?: boolean
 }): Promise<Lot> {
@@ -607,7 +606,6 @@ export async function createLot(data: {
       bien_id: data.bienId,
       user_id: user.id,
       numero_lot: data.numeroLot,
-      superficie: data.superficie || null,
       loyer_mensuel: data.loyerMensuel,
       est_lot_defaut: data.estLotDefaut ?? false,
     })
