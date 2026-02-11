@@ -716,19 +716,6 @@ export async function getLocataires(bienId: string, supabaseClient?: any): Promi
 }
 
 /**
- * Rétro-compatibilité : récupère le premier locataire d'un bien
- * 
- * @deprecated Utiliser getLocataires() à la place
- * @param bienId - L'ID du bien
- * @param supabaseClient - Client Supabase optionnel
- * @returns Promise<Locataire | null> - Le premier locataire ou null
- */
-export async function getLocataire(bienId: string, supabaseClient?: any): Promise<Locataire | null> {
-  const locataires = await getLocataires(bienId, supabaseClient)
-  return locataires.length > 0 ? locataires[0] : null
-}
-
-/**
  * Récupère les locataires d'un lot spécifique
  * 
  * @param lotId - L'ID du lot

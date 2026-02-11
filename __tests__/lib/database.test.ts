@@ -56,7 +56,7 @@ import {
   getUserProfile,
   createUserProfile,
   updateUserProfile,
-  getLocataire,
+  getLocataires,
   upsertLocataire,
   getLoyers,
   upsertLoyer,
@@ -331,28 +331,28 @@ describe('database', () => {
   // LOCATAIRES
   // ============================================
 
-  describe('getLocataire', () => {
-    it('devrait récupérer le locataire d\'un bien', async () => {
-      // getLocataire appelle getLocataires qui retourne un tableau
+  describe('getLocataires', () => {
+    it('devrait récupérer les locataires d\'un bien', async () => {
       const mockClient = createChainableMock({ data: [mockLocataireData], error: null })
       vi.mocked(createClient).mockReturnValue(mockClient)
 
-      const result = await getLocataire('bien-123')
+      const result = await getLocataires('bien-123')
 
       expect(mockClient.from).toHaveBeenCalledWith('locataires')
       expect(mockClient.eq).toHaveBeenCalledWith('bien_id', 'bien-123')
-      expect(result?.nom).toBe('Martin')
-      expect(result?.prenom).toBe('Sophie')
-      expect(result?.lotId).toBe('lot-456')
+      expect(result).toHaveLength(1)
+      expect(result[0].nom).toBe('Martin')
+      expect(result[0].prenom).toBe('Sophie')
+      expect(result[0].lotId).toBe('lot-456')
     })
 
-    it('devrait retourner null si pas de locataire', async () => {
+    it('devrait retourner un tableau vide si pas de locataire', async () => {
       const mockClient = createChainableMock({ data: [], error: null })
       vi.mocked(createClient).mockReturnValue(mockClient)
 
-      const result = await getLocataire('bien-sans-locataire')
+      const result = await getLocataires('bien-sans-locataire')
 
-      expect(result).toBeNull()
+      expect(result).toEqual([])
     })
   })
 

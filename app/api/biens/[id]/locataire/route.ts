@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBien, getLocataire, upsertLocataire } from '@/lib/database'
+import { getBien, getLocataires, upsertLocataire } from '@/lib/database'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -37,12 +37,14 @@ export async function GET(
       )
     }
     
-    // Récupérer les infos du locataire
-    const locataire = await getLocataire(id)
+    // Récupérer les infos des locataires
+    const locataires = await getLocataires(id)
+    // Rétrocompatibilité : retourne le premier locataire sous la clé "locataire"
+    const locataire = locataires.length > 0 ? locataires[0] : null
     
-    return NextResponse.json({ locataire })
+    return NextResponse.json({ locataire, locataires })
   } catch (error: unknown) {
-    logger.error('[API getLocataire] Erreur:', error)
+    logger.error('[API getLocataires] Erreur:', error)
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }
