@@ -156,45 +156,46 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     setIsSubmitting(true)
     setLoading(true)
 
-    // Convertir en mensuel si l'utilisateur a saisi en annuel
-    const diviseur = modeCharges === 'annuel' ? 12 : 1
-    
-    // Calculer le loyer total (somme des lots en mode multi, ou loyer direct en mode simple)
-    const loyerTotal = multipleLots
-      ? lots.reduce((sum, lot) => sum + parseFloat(lot.loyerMensuel || "0"), 0)
-      : parseFloat(formData.loyerMensuel)
-
-    const data: any = {
-      nom: formData.nom.trim(),
-      adresse: formData.adresse.trim(),
-      ville: formData.ville.trim(),
-      codePostal: formData.codePostal.trim(),
-      loyerMensuel: loyerTotal,
-      typeFinancement: formData.typeFinancement,
-      taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) / diviseur : 0,
-      chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) / diviseur : 0,
-      assurance: formData.assurance ? parseFloat(formData.assurance) / diviseur : 0,
-      fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) / diviseur : 0,
-      autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) / diviseur : 0,
-      chargesMensuelles: 0,
-    }
-
-    if (formData.typeFinancement === "CREDIT") {
-      // Calculer la mensualité automatiquement
-      const mensualiteCalculee = calculateMensualiteCredit(
-        parseFloat(formData.montantCredit),
-        parseFloat(formData.tauxCredit),
-        parseInt(formData.dureeCredit)
-      )
-      
-      data.mensualiteCredit = mensualiteCalculee
-      data.montantCredit = parseFloat(formData.montantCredit)
-      data.tauxCredit = parseFloat(formData.tauxCredit)
-      data.dureeCredit = parseInt(formData.dureeCredit)
-      data.dateDebutCredit = formData.dateDebutCredit ? formData.dateDebutCredit : null
-    }
-
     try {
+      // Convertir en mensuel si l'utilisateur a saisi en annuel
+      const diviseur = modeCharges === 'annuel' ? 12 : 1
+      
+      // Calculer le loyer total (somme des lots en mode multi, ou loyer direct en mode simple)
+      const loyerTotal = multipleLots
+        ? lots.reduce((sum, lot) => sum + parseFloat(lot.loyerMensuel || "0"), 0)
+        : parseFloat(formData.loyerMensuel)
+
+      const data: any = {
+        nom: formData.nom.trim(),
+        adresse: formData.adresse.trim(),
+        ville: formData.ville.trim(),
+        codePostal: formData.codePostal.trim(),
+        loyerMensuel: loyerTotal,
+        typeFinancement: formData.typeFinancement,
+        taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) / diviseur : 0,
+        chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) / diviseur : 0,
+        assurance: formData.assurance ? parseFloat(formData.assurance) / diviseur : 0,
+        fraisGestion: formData.fraisGestion ? parseFloat(formData.fraisGestion) / diviseur : 0,
+        autresCharges: formData.autresCharges ? parseFloat(formData.autresCharges) / diviseur : 0,
+        chargesMensuelles: 0,
+      }
+
+      if (formData.typeFinancement === "CREDIT") {
+        // Calculer la mensualité automatiquement
+        const mensualiteCalculee = calculateMensualiteCredit(
+          parseFloat(formData.montantCredit),
+          parseFloat(formData.tauxCredit),
+          parseInt(formData.dureeCredit)
+        )
+        
+        data.mensualiteCredit = mensualiteCalculee
+        data.montantCredit = parseFloat(formData.montantCredit)
+        data.tauxCredit = parseFloat(formData.tauxCredit)
+        data.dureeCredit = parseInt(formData.dureeCredit)
+        data.dateDebutCredit = formData.dateDebutCredit ? formData.dateDebutCredit : null
+      }
+
+      // Créer le bien
       const nouveauBien = await createBien(user.id, data)
 
       // Créer les lots
@@ -240,10 +241,10 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       })
       
       // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
-      // Ne pas fermer le dialog ici pour éviter les conflits
       toast.success("Bien créé avec succès !")
       onSuccess?.()
     } catch (error: unknown) {
+      console.error('[BienForm] Erreur création bien/lots:', error)
       logger.error('[BienForm] Erreur création:', error)
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la création du bien"
       toast.error(errorMessage)
@@ -253,6 +254,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         onOpenChange?.(false)
       }
     } finally {
+      // CRITIQUE : Toujours réinitialiser l'état de chargement
       setLoading(false)
       setIsSubmitting(false)
     }
