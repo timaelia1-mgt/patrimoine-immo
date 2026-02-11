@@ -1,6 +1,6 @@
 "use client"
 
-import { upsertLoyer, getLocataires } from "@/lib/database"
+import { upsertLoyer, getLocataires, getLots } from "@/lib/database"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -27,8 +27,8 @@ interface LoyersProps {
 
 export function Loyers({ bien, lotId }: LoyersProps) {
   const router = useRouter()
-  const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
 
+  const [lot, setLot] = useState<any>(null)
   const [locataires, setLocataires] = useState<any[]>([])
   const [profile, setProfile] = useState<any>(null)
   const [loyersData, setLoyersData] = useState<any[]>([])
@@ -47,6 +47,15 @@ export function Loyers({ bien, lotId }: LoyersProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Si lotId fourni, charger le lot spécifique
+        if (lotId) {
+          const lotsData = await getLots(bien.id)
+          const lotTrouve = lotsData.find((l: any) => l.id === lotId)
+          setLot(lotTrouve || null)
+        } else {
+          setLot(null)
+        }
+
         // Appels parallèles : locataires (direct DB) + profile + loyers (API)
         const [locatairesData, profileResponse, loyersResponse] = await Promise.all([
           getLocataires(bien.id),
@@ -116,6 +125,11 @@ export function Loyers({ bien, lotId }: LoyersProps) {
     }
     fetchData()
   }, [bien.id, lotId])
+
+  // Loyer du lot si lotId fourni, sinon loyer total du bien
+  const loyerMensuel = lot
+    ? parseFloat(lot.loyerMensuel?.toString() || "0")
+    : parseFloat(bien.loyerMensuel?.toString() || "0")
 
   // Calculs agrégés multi-locataires
   const totalAPL = locataires.reduce((sum, loc) => sum + parseFloat(loc.montantAPL?.toString() || "0"), 0)
