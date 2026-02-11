@@ -40,13 +40,8 @@ export function Loyers({ bien }: LoyersProps) {
   const anneeActuelle = new Date().getFullYear()
   const moisActuel = new Date().getMonth()
   
-  // États des paiements : { locataire: boolean, apl: boolean }
-  const [paiements, setPaiements] = useState<Array<{ locataire: boolean; apl: boolean }>>(
-    Array.from({ length: 12 }, () => ({
-      locataire: false,
-      apl: false,
-    }))
-  )
+  // États des paiements : { mois, locataire, apl, locataireId }
+  const [paiements, setPaiements] = useState<Array<{ mois: number; locataire: boolean; apl: boolean; locataireId?: string | null }>>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,13 +68,40 @@ export function Loyers({ bien }: LoyersProps) {
         
         setLoyersData(loyersApiData.loyers || [])
         
-        const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
-          const loyerMois = (loyersApiData.loyers || []).find((l: any) => l.mois === i)
-          return {
-            locataire: loyerMois?.payeLocataire || false,
-            apl: loyerMois?.payeAPL || false,
+        // Construire les paiements : une entrée par mois par locataire
+        const paiementsFromDB: Array<{ mois: number; locataire: boolean; apl: boolean; locataireId?: string | null }> = []
+        
+        for (let mois = 0; mois < 12; mois++) {
+          if (locatairesData.length > 0) {
+            for (const loc of locatairesData) {
+              // Chercher un loyer spécifique à ce locataire et ce mois
+              const loyerMois = (loyersApiData.loyers || []).find(
+                (l: any) => l.mois === mois && l.locataireId === loc.id
+              )
+              // Fallback : chercher un loyer global (ancien format sans locataireId)
+              const loyerGlobal = !loyerMois
+                ? (loyersApiData.loyers || []).find((l: any) => l.mois === mois && !l.locataireId)
+                : null
+              const loyer = loyerMois || loyerGlobal
+              
+              paiementsFromDB.push({
+                mois,
+                locataire: loyer?.payeLocataire || false,
+                apl: loyer?.payeAPL || false,
+                locataireId: loc.id,
+              })
+            }
+          } else {
+            // Pas de locataire : paiement global
+            const loyerMois = (loyersApiData.loyers || []).find((l: any) => l.mois === mois)
+            paiementsFromDB.push({
+              mois,
+              locataire: loyerMois?.payeLocataire || false,
+              apl: loyerMois?.payeAPL || false,
+              locataireId: null,
+            })
           }
-        })
+        }
         setPaiements(paiementsFromDB)
       } catch (error: unknown) {
         logger.error('[Loyers] Erreur chargement:', error)
@@ -94,71 +116,79 @@ export function Loyers({ bien }: LoyersProps) {
   // Calculs agrégés multi-locataires
   const totalAPL = locataires.reduce((sum, loc) => sum + parseFloat(loc.montantAPL?.toString() || "0"), 0)
   const totalLoyerNetLocataires = loyerMensuel - totalAPL
-  
-  // Premier locataire pour la quittance (en attendant l'étape 7)
-  const premierLocataire = locataires.length > 0 ? locataires[0] : null
 
-  // Calculs
-  const moisLocatairePayes = paiements.filter(p => p.locataire).length
-  const moisAPLPayes = paiements.filter(p => p.apl).length
+  // Calculs agrégés : compter les mois payés de façon unique (un mois = payé si au moins 1 locataire a payé)
+  const moisUniquesLocatairePayes = new Set(paiements.filter(p => p.locataire).map(p => p.mois)).size
+  const moisUniquesAPLPayes = new Set(paiements.filter(p => p.apl).map(p => p.mois)).size
   
-  const caLocataire = totalLoyerNetLocataires * moisLocatairePayes
-  const caAPL = totalAPL * moisAPLPayes
+  // CA calculé par locataire : somme des (resteACharge * moisPayés) pour chaque locataire
+  const caLocataire = locataires.reduce((sum, loc) => {
+    const moisPayes = paiements.filter(p => p.locataireId === loc.id && p.locataire).length
+    const resteACharge = loyerMensuel - parseFloat(loc.montantAPL?.toString() || "0")
+    return sum + (resteACharge * moisPayes)
+  }, 0)
+  
+  const caAPL = locataires.reduce((sum, loc) => {
+    const moisPayes = paiements.filter(p => p.locataireId === loc.id && p.apl).length
+    const montantAPLLoc = parseFloat(loc.montantAPL?.toString() || "0")
+    return sum + (montantAPLLoc * moisPayes)
+  }, 0)
+  
   const caTotal = caLocataire + caAPL
-  
   const caPrevuTotal = loyerMensuel * 12
 
-  const togglePaiementLocataire = async (index: number) => {
-    const newPaiements = [...paiements]
-    newPaiements[index] = {
-      ...newPaiements[index],
-      locataire: !newPaiements[index].locataire,
-    }
-    setPaiements(newPaiements)
-
-    await savePaiement(index, newPaiements[index])
-  }
-
-  const togglePaiementAPL = async (index: number) => {
-    const newPaiements = [...paiements]
-    newPaiements[index] = {
-      ...newPaiements[index],
-      apl: !newPaiements[index].apl,
-    }
-    setPaiements(newPaiements)
-
-    await savePaiement(index, newPaiements[index])
-  }
-
-  const savePaiement = async (
-    mois: number,
-    paiement: { locataire: boolean; apl: boolean }
-  ) => {
-    // Sauvegarder l'état précédent pour rollback
+  const handleTogglePaiement = async (mois: number, type: "locataire" | "apl", locataireId: string) => {
     const previousState = [...paiements]
+    
+    // Mise à jour optimiste locale
+    const newPaiements = paiements.map(p => {
+      if (p.mois === mois && p.locataireId === locataireId) {
+        return { ...p, [type === "locataire" ? "locataire" : "apl"]: !p[type === "locataire" ? "locataire" : "apl"] }
+      }
+      return p
+    })
+    setPaiements(newPaiements)
+    
+    // Trouver le paiement mis à jour
+    const paiementUpdated = newPaiements.find(p => p.mois === mois && p.locataireId === locataireId)
+    if (!paiementUpdated) return
+    
+    // Trouver le locataire pour calculer les montants
+    const locataire = locataires.find(l => l.id === locataireId)
+    if (!locataire) return
+    
+    const montantAPLLoc = parseFloat(locataire.montantAPL?.toString() || "0")
+    const resteACharge = loyerMensuel - montantAPLLoc
     
     try {
       const annee = new Date().getFullYear()
 
       await upsertLoyer(bien.id, annee, mois, {
-        montantLocataire: totalLoyerNetLocataires,
-        montantAPL: totalAPL,
-        payeLocataire: paiement.locataire,
-        payeAPL: paiement.apl,
-      })
-      router.refresh() // Refresh data after saving
+        montantLocataire: resteACharge,
+        montantAPL: montantAPLLoc,
+        payeLocataire: paiementUpdated.locataire,
+        payeAPL: paiementUpdated.apl,
+      }, undefined, locataireId)
+      router.refresh()
     } catch (error) {
       logger.error('[Loyers] Erreur sauvegarde paiement:', error)
-      // Rollback de l'état local
       setPaiements(previousState)
-      // Feedback utilisateur
       toast.error('Erreur lors de la sauvegarde du paiement')
     }
   }
 
-  const openQuittance = (moisIndex: number) => {
-    const loyer = loyersData.find((l) => l.mois === moisIndex)
+  const openQuittance = (moisIndex: number, locataireId: string) => {
+    // Trouver le locataire concerné
+    const locataire = locataires.find(l => l.id === locataireId)
+    if (!locataire) return
+    
+    // Trouver le loyer spécifique (par locataire) ou global
+    const loyer = loyersData.find((l) => l.mois === moisIndex && l.locataireId === locataireId)
+      || loyersData.find((l) => l.mois === moisIndex && !l.locataireId)
     if (!loyer || !loyer.payeLocataire) return
+
+    const montantAPLLoc = parseFloat(locataire.montantAPL?.toString() || "0")
+    const resteACharge = loyerMensuel - montantAPLLoc
 
     // Calculer les dates de paiement
     const datePayeLocataireDate = loyer.datePaiementLocataire 
@@ -176,16 +206,16 @@ export function Loyers({ bien }: LoyersProps) {
       bienAdresse: bien.adresse || '',
       bienVille: bien.ville || '',
       bienCodePostal: bien.codePostal || '',
-      locataireNom: premierLocataire?.nom || '',
-      locatairePrenom: premierLocataire?.prenom || '',
-      locataireEmail: premierLocataire?.email || null,
+      locataireNom: locataire.nom || '',
+      locatairePrenom: locataire.prenom || '',
+      locataireEmail: locataire.email || null,
       annee: anneeActuelle,
       mois: moisIndex + 1, // Convertir 0-11 en 1-12
-      datePayeLocataire: datePayeLocataireDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
-      datePayeAPL: datePayeAPLDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
-      modePaiement: premierLocataire?.modePaiement || 'virement',
-      montantLocataire: parseFloat(loyer.montantLocataire?.toString() || totalLoyerNetLocataires.toString() || "0"),
-      montantAPL: parseFloat(loyer.montantAPL?.toString() || totalAPL.toString() || "0"),
+      datePayeLocataire: datePayeLocataireDate.toISOString().split('T')[0],
+      datePayeAPL: datePayeAPLDate.toISOString().split('T')[0],
+      modePaiement: locataire.modePaiement || 'virement',
+      montantLocataire: parseFloat(loyer.montantLocataire?.toString() || resteACharge.toString() || "0"),
+      montantAPL: parseFloat(loyer.montantAPL?.toString() || montantAPLLoc.toString() || "0"),
     })
     setQuittanceOpen(true)
   }
@@ -205,27 +235,31 @@ export function Loyers({ bien }: LoyersProps) {
         caPrevuTotal={caPrevuTotal}
         caLocataire={caLocataire}
         loyerNetLocataire={totalLoyerNetLocataires}
-        moisLocatairePayes={moisLocatairePayes}
+        moisLocatairePayes={moisUniquesLocatairePayes}
         caAPL={caAPL}
         montantAPL={totalAPL}
-        moisAPLPayes={moisAPLPayes}
+        moisAPLPayes={moisUniquesAPLPayes}
         loyerMensuel={loyerMensuel}
       />
       
       <CalendrierPaiements
         paiements={paiements}
-        loyerNetLocataire={totalLoyerNetLocataires}
-        montantAPL={totalAPL}
+        locataires={locataires.map(l => ({
+          id: l.id,
+          nom: l.nom,
+          prenom: l.prenom,
+          montantAPL: parseFloat(l.montantAPL?.toString() || "0"),
+        }))}
+        loyerMensuel={loyerMensuel}
         moisActuel={moisActuel}
         anneeActuelle={anneeActuelle}
-        onToggleLocataire={togglePaiementLocataire}
-        onToggleAPL={togglePaiementAPL}
+        onTogglePaiement={handleTogglePaiement}
         onOpenQuittance={openQuittance}
       />
       
       <LoyersStatistiques
-        moisLocatairePayes={moisLocatairePayes}
-        moisAPLPayes={moisAPLPayes}
+        moisLocatairePayes={moisUniquesLocatairePayes}
+        moisAPLPayes={moisUniquesAPLPayes}
         montantAPL={totalAPL}
         caPrevuTotal={caPrevuTotal}
         caTotal={caTotal}
@@ -237,7 +271,7 @@ export function Loyers({ bien }: LoyersProps) {
           isOpen={quittanceOpen}
           onClose={() => setQuittanceOpen(false)}
           data={quittanceData}
-          locataireEmail={premierLocataire?.email}
+          locataireEmail={quittanceData.locataireEmail}
         />
       )}
     </div>
