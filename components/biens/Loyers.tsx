@@ -1,6 +1,6 @@
 "use client"
 
-import { upsertLoyer } from "@/lib/database"
+import { upsertLoyer, getLocataires } from "@/lib/database"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -28,7 +28,7 @@ export function Loyers({ bien }: LoyersProps) {
   const router = useRouter()
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
 
-  const [locataireInfo, setLocataireInfo] = useState<any>(null)
+  const [locataires, setLocataires] = useState<any[]>([])
   const [profile, setProfile] = useState<any>(null)
   const [loyersData, setLoyersData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,33 +51,30 @@ export function Loyers({ bien }: LoyersProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Appels parallèles avec Promise.all pour un chargement plus rapide (~300ms économisés)
-        const [locataireResponse, profileResponse, loyersResponse] = await Promise.all([
-          fetch(`/api/biens/${bien.id}/locataire`),
+        // Appels parallèles : locataires (direct DB) + profile + loyers (API)
+        const [locatairesData, profileResponse, loyersResponse] = await Promise.all([
+          getLocataires(bien.id),
           fetch(`/api/user/profile`),
           fetch(`/api/biens/${bien.id}/loyers`)
         ])
         
-        // Parser les réponses en parallèle aussi
-        const [locataireData, profileData, loyersData] = await Promise.all([
-          locataireResponse.ok ? locataireResponse.json() : { locataire: null },
+        // Parser les réponses API en parallèle
+        const [profileData, loyersApiData] = await Promise.all([
           profileResponse.ok ? profileResponse.json() : { profile: null },
           loyersResponse.ok ? loyersResponse.json() : { loyers: [] }
         ])
         
         // Traiter les données
-        if (locataireData.locataire) {
-          setLocataireInfo(locataireData.locataire)
-        }
+        setLocataires(locatairesData)
         
         if (profileData.profile) {
           setProfile(profileData.profile)
         }
         
-        setLoyersData(loyersData.loyers || [])
+        setLoyersData(loyersApiData.loyers || [])
         
         const paiementsFromDB = Array.from({ length: 12 }, (_, i) => {
-          const loyerMois = (loyersData.loyers || []).find((l: any) => l.mois === i)
+          const loyerMois = (loyersApiData.loyers || []).find((l: any) => l.mois === i)
           return {
             locataire: loyerMois?.payeLocataire || false,
             apl: loyerMois?.payeAPL || false,
@@ -94,15 +91,19 @@ export function Loyers({ bien }: LoyersProps) {
     fetchData()
   }, [bien.id])
 
-  const montantAPL = parseFloat(locataireInfo?.montantAPL || "0")
-  const loyerNetLocataire = loyerMensuel - montantAPL
+  // Calculs agrégés multi-locataires
+  const totalAPL = locataires.reduce((sum, loc) => sum + parseFloat(loc.montantAPL?.toString() || "0"), 0)
+  const totalLoyerNetLocataires = loyerMensuel - totalAPL
+  
+  // Premier locataire pour la quittance (en attendant l'étape 7)
+  const premierLocataire = locataires.length > 0 ? locataires[0] : null
 
   // Calculs
   const moisLocatairePayes = paiements.filter(p => p.locataire).length
   const moisAPLPayes = paiements.filter(p => p.apl).length
   
-  const caLocataire = loyerNetLocataire * moisLocatairePayes
-  const caAPL = montantAPL * moisAPLPayes
+  const caLocataire = totalLoyerNetLocataires * moisLocatairePayes
+  const caAPL = totalAPL * moisAPLPayes
   const caTotal = caLocataire + caAPL
   
   const caPrevuTotal = loyerMensuel * 12
@@ -140,8 +141,8 @@ export function Loyers({ bien }: LoyersProps) {
       const annee = new Date().getFullYear()
 
       await upsertLoyer(bien.id, annee, mois, {
-        montantLocataire: loyerNetLocataire,
-        montantAPL: montantAPL,
+        montantLocataire: totalLoyerNetLocataires,
+        montantAPL: totalAPL,
         payeLocataire: paiement.locataire,
         payeAPL: paiement.apl,
       })
@@ -175,16 +176,16 @@ export function Loyers({ bien }: LoyersProps) {
       bienAdresse: bien.adresse || '',
       bienVille: bien.ville || '',
       bienCodePostal: bien.codePostal || '',
-      locataireNom: locataireInfo?.nom || '',
-      locatairePrenom: locataireInfo?.prenom || '',
-      locataireEmail: locataireInfo?.email || null,
+      locataireNom: premierLocataire?.nom || '',
+      locatairePrenom: premierLocataire?.prenom || '',
+      locataireEmail: premierLocataire?.email || null,
       annee: anneeActuelle,
       mois: moisIndex + 1, // Convertir 0-11 en 1-12
       datePayeLocataire: datePayeLocataireDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
       datePayeAPL: datePayeAPLDate.toISOString().split('T')[0], // Format 'yyyy-MM-dd'
-      modePaiement: locataireInfo?.modePaiement || 'virement',
-      montantLocataire: parseFloat(loyer.montantLocataire?.toString() || loyerNetLocataire.toString() || "0"),
-      montantAPL: parseFloat(loyer.montantAPL?.toString() || montantAPL.toString() || "0"),
+      modePaiement: premierLocataire?.modePaiement || 'virement',
+      montantLocataire: parseFloat(loyer.montantLocataire?.toString() || totalLoyerNetLocataires.toString() || "0"),
+      montantAPL: parseFloat(loyer.montantAPL?.toString() || totalAPL.toString() || "0"),
     })
     setQuittanceOpen(true)
   }
@@ -203,18 +204,18 @@ export function Loyers({ bien }: LoyersProps) {
         caTotal={caTotal}
         caPrevuTotal={caPrevuTotal}
         caLocataire={caLocataire}
-        loyerNetLocataire={loyerNetLocataire}
+        loyerNetLocataire={totalLoyerNetLocataires}
         moisLocatairePayes={moisLocatairePayes}
         caAPL={caAPL}
-        montantAPL={montantAPL}
+        montantAPL={totalAPL}
         moisAPLPayes={moisAPLPayes}
         loyerMensuel={loyerMensuel}
       />
       
       <CalendrierPaiements
         paiements={paiements}
-        loyerNetLocataire={loyerNetLocataire}
-        montantAPL={montantAPL}
+        loyerNetLocataire={totalLoyerNetLocataires}
+        montantAPL={totalAPL}
         moisActuel={moisActuel}
         anneeActuelle={anneeActuelle}
         onToggleLocataire={togglePaiementLocataire}
@@ -225,7 +226,7 @@ export function Loyers({ bien }: LoyersProps) {
       <LoyersStatistiques
         moisLocatairePayes={moisLocatairePayes}
         moisAPLPayes={moisAPLPayes}
-        montantAPL={montantAPL}
+        montantAPL={totalAPL}
         caPrevuTotal={caPrevuTotal}
         caTotal={caTotal}
       />
@@ -236,7 +237,7 @@ export function Loyers({ bien }: LoyersProps) {
           isOpen={quittanceOpen}
           onClose={() => setQuittanceOpen(false)}
           data={quittanceData}
-          locataireEmail={locataireInfo?.email}
+          locataireEmail={premierLocataire?.email}
         />
       )}
     </div>
