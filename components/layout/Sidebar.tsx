@@ -54,7 +54,7 @@ export function Sidebar() {
 
       // Timeout de 10 secondes (au lieu de 20s + retry)
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout Supabase après 10s')), 10000)
+        setTimeout(() => reject(new Error('Timeout Supabase après 30s')), 30000)
       )
 
       const [biensData, profileData] = await Promise.all([
@@ -63,16 +63,19 @@ export function Sidebar() {
       ])
 
       // Ignorer si un fetch plus récent a été lancé entre-temps
-      if (currentFetchId !== fetchCountRef.current) return
+      if (currentFetchId !== fetchCountRef.current) {
+        console.log('[Sidebar] ⚠️ Fetch obsolète ignoré (id:', currentFetchId, 'current:', fetchCountRef.current, ')')
+        return
+      }
 
-      console.log('[Sidebar] Biens récupérés:', biensData?.length || 0)
+      console.log('[Sidebar] Biens récupérés:', biensData?.length || 0, '| Profile:', profileData?.plan || 'null')
       if (biensData) setBiens(biensData)
       if (profileData) setProfile(profileData)
     } catch (error: unknown) {
       // Ignorer les erreurs d'un fetch obsolète
       if (currentFetchId !== fetchCountRef.current) return
       const err = error as Error
-      console.error('[Sidebar] Erreur fetch:', err.message)
+      console.error('[Sidebar] ❌ Erreur fetch:', err.message, err)
       setBiens([])
     } finally {
       // Ne mettre loading=false que si c'est bien le fetch le plus récent
@@ -97,9 +100,9 @@ export function Sidebar() {
     // Safety timeout : garantir que loading passe à false après 12s max
     // (filet de sécurité si le fetch hang indéfiniment)
     const safetyTimer = setTimeout(() => {
-      console.warn('[Sidebar] ⚠️ Safety timeout: force loading=false après 12s')
+      console.warn('[Sidebar] ⚠️ Safety timeout: force loading=false après 35s')
       setLoading(false)
-    }, 12000)
+    }, 35000)
 
     // Écouter les événements de refresh
     const handleRefresh = () => {
