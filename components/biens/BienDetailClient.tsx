@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -71,6 +71,11 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const router = useRouter()
   const [bien, setBien] = useState(initialBien)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+
+  // Synchroniser le state local quand le serveur renvoie des données fraîches (après router.refresh())
+  useEffect(() => {
+    setBien(initialBien)
+  }, [initialBien])
 
   const handleDelete = async () => {
     const shouldDelete = window.confirm("⚠️ Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.")
