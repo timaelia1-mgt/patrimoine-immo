@@ -66,7 +66,7 @@ export function CalendrierPaiements({
             <User className="w-12 h-12 mx-auto mb-3 text-slate-600" />
             <p className="text-slate-400">Aucun locataire configuré</p>
             <p className="text-sm text-slate-500 mt-1">
-              Ajoutez un locataire dans l&apos;onglet &quot;Locataire&quot; pour suivre les paiements.
+              Ajoutez un locataire dans l&apos;onglet &quot;Locataires&quot; pour suivre les paiements.
             </p>
           </div>
         </CardContent>

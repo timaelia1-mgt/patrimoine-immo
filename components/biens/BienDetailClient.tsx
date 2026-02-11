@@ -50,8 +50,8 @@ const Investissement = dynamic(
   { loading: () => <TabLoading /> }
 )
 
-const Locataire = dynamic(
-  () => import("@/components/biens/Locataire").then(mod => ({ default: mod.Locataire })),
+const LocatairesList = dynamic(
+  () => import("@/components/biens/LocatairesList").then(mod => ({ default: mod.LocatairesList })),
   { loading: () => <TabLoading /> }
 )
 
@@ -158,7 +158,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
           <TabsTrigger value="charges">Charges</TabsTrigger>
           <TabsTrigger value="financement">Financement</TabsTrigger>
           <TabsTrigger value="investissement">Investissement</TabsTrigger>
-          <TabsTrigger value="locataire">Locataire</TabsTrigger>
+          <TabsTrigger value="locataires">Locataires</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -194,8 +194,8 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
           <Investissement bien={bien} />
         </TabsContent>
 
-        <TabsContent value="locataire">
-          <Locataire bien={bien} />
+        <TabsContent value="locataires">
+          <LocatairesList bien={bien} />
         </TabsContent>
 
         <TabsContent value="documents">
