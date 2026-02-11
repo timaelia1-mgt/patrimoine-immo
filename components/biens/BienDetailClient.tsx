@@ -10,6 +10,7 @@ import { formatCurrency, calculerStatutBien, calculateChargesMensuelles } from "
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { deleteBien, type Bien } from "@/lib/database"
+import { refreshSidebar } from "@/components/layout/Sidebar"
 import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics"
 
 // Composant de chargement réutilisable
@@ -25,8 +26,8 @@ const VueEnsemble = dynamic(
   { loading: () => <TabLoading /> }
 )
 
-const Loyers = dynamic(
-  () => import("@/components/biens/Loyers").then(mod => ({ default: mod.Loyers })),
+const LoyersParLot = dynamic(
+  () => import("@/components/biens/LoyersParLot").then(mod => ({ default: mod.LoyersParLot })),
   { loading: () => <TabLoading /> }
 )
 
@@ -81,6 +82,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
       })
 
       toast.success("Bien supprimé avec succès")
+      refreshSidebar()
       router.push("/dashboard")
     } catch (error: unknown) {
       logger.error('[BienDetail] Erreur suppression:', error)
@@ -168,7 +170,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
 
         <TabsContent value="loyers">
           <div className="space-y-6">
-            <Loyers bien={bien} />
+            <LoyersParLot bien={bien} />
             
             {/* Historique des quittances */}
             <HistoriqueQuittances

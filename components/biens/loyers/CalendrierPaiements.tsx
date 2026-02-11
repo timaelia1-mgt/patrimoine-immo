@@ -27,6 +27,7 @@ interface CalendrierPaiementsProps {
   anneeActuelle: number
   onTogglePaiement: (mois: number, type: "locataire" | "apl", locataireId: string) => void
   onOpenQuittance: (mois: number, locataireId: string) => void
+  lotId?: string
 }
 
 const MOIS = [
@@ -51,6 +52,7 @@ export function CalendrierPaiements({
   anneeActuelle,
   onTogglePaiement,
   onOpenQuittance,
+  lotId,
 }: CalendrierPaiementsProps) {
 
   const getPaiement = (mois: number, locataireId: string): PaiementData | undefined => {

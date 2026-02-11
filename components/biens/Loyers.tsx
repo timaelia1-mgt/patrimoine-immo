@@ -22,9 +22,10 @@ const QuittanceModal = dynamic(
 
 interface LoyersProps {
   bien: any
+  lotId?: string
 }
 
-export function Loyers({ bien }: LoyersProps) {
+export function Loyers({ bien, lotId }: LoyersProps) {
   const router = useRouter()
   const loyerMensuel = parseFloat(bien.loyerMensuel?.toString() || "0")
 
@@ -59,8 +60,11 @@ export function Loyers({ bien }: LoyersProps) {
           loyersResponse.ok ? loyersResponse.json() : { loyers: [] }
         ])
         
-        // Traiter les données
-        setLocataires(locatairesData)
+        // Traiter les données — filtrer par lot si lotId fourni
+        const locatairesFiltres = lotId
+          ? locatairesData.filter((loc: any) => loc.lotId === lotId)
+          : locatairesData
+        setLocataires(locatairesFiltres)
         
         if (profileData.profile) {
           setProfile(profileData.profile)
@@ -68,12 +72,12 @@ export function Loyers({ bien }: LoyersProps) {
         
         setLoyersData(loyersApiData.loyers || [])
         
-        // Construire les paiements : une entrée par mois par locataire
+        // Construire les paiements : une entrée par mois par locataire (filtrés par lot)
         const paiementsFromDB: Array<{ mois: number; locataire: boolean; apl: boolean; locataireId?: string | null }> = []
         
         for (let mois = 0; mois < 12; mois++) {
-          if (locatairesData.length > 0) {
-            for (const loc of locatairesData) {
+          if (locatairesFiltres.length > 0) {
+            for (const loc of locatairesFiltres) {
               // Chercher un loyer spécifique à ce locataire et ce mois
               const loyerMois = (loyersApiData.loyers || []).find(
                 (l: any) => l.mois === mois && l.locataireId === loc.id
@@ -111,7 +115,7 @@ export function Loyers({ bien }: LoyersProps) {
       }
     }
     fetchData()
-  }, [bien.id])
+  }, [bien.id, lotId])
 
   // Calculs agrégés multi-locataires
   const totalAPL = locataires.reduce((sum, loc) => sum + parseFloat(loc.montantAPL?.toString() || "0"), 0)
@@ -255,6 +259,7 @@ export function Loyers({ bien }: LoyersProps) {
         anneeActuelle={anneeActuelle}
         onTogglePaiement={handleTogglePaiement}
         onOpenQuittance={openQuittance}
+        lotId={lotId}
       />
       
       <LoyersStatistiques
