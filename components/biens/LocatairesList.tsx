@@ -24,8 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { KPICard } from "@/components/biens/KPICard"
 import { formatCurrency } from "@/lib/calculations"
-import { getLocataires, upsertLocataire, deleteLocataire } from "@/lib/database"
-import { createClient } from "@/lib/supabase/client"
+import { getLocataires, upsertLocataire, deleteLocataire, getLots } from "@/lib/database"
 import { toast } from "sonner"
 
 interface LocatairesListProps {
@@ -43,12 +42,14 @@ export function LocatairesList({ bien }: LocatairesListProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [locataires, setLocataires] = useState<any[]>([])
+  const [lots, setLots] = useState<any[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   
   const [formData, setFormData] = useState({
     id: "",
+    lotId: "",
     nom: "",
     prenom: "",
     email: "",
@@ -63,26 +64,31 @@ export function LocatairesList({ bien }: LocatairesListProps) {
   const totalAPL = locataires.reduce((sum, loc) => sum + parseFloat(loc.montantAPL || "0"), 0)
   const totalNetLocataires = loyerMensuel - totalAPL
 
-  // Charger locataires
+  // Charger locataires ET lots en parallèle
   useEffect(() => {
-    const fetchLocataires = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const data = await getLocataires(bien.id)
-        setLocataires(data)
+        const [locatairesData, lotsData] = await Promise.all([
+          getLocataires(bien.id),
+          getLots(bien.id)
+        ])
+        setLocataires(locatairesData)
+        setLots(lotsData)
       } catch (error) {
-        console.error("Erreur chargement locataires:", error)
+        console.error("Erreur chargement:", error)
         toast.error("Erreur lors du chargement")
       } finally {
         setLoading(false)
       }
     }
-    fetchLocataires()
+    fetchData()
   }, [bien.id])
 
   const resetForm = () => {
     setFormData({
       id: "",
+      lotId: "",
       nom: "",
       prenom: "",
       email: "",
@@ -98,6 +104,7 @@ export function LocatairesList({ bien }: LocatairesListProps) {
   const startEdit = (locataire: any) => {
     setFormData({
       id: locataire.id,
+      lotId: locataire.lotId || "",
       nom: locataire.nom,
       prenom: locataire.prenom,
       email: locataire.email || "",
@@ -119,21 +126,13 @@ export function LocatairesList({ bien }: LocatairesListProps) {
     try {
       setSaving(true)
 
-      // Récupérer le lot par défaut
-      const supabase = createClient()
-      const { data: defaultLot, error: lotError } = await supabase
-        .from("lots")
-        .select("id")
-        .eq("bien_id", bien.id)
-        .eq("est_lot_defaut", true)
-        .single()
-
-      if (lotError || !defaultLot) {
-        toast.error("Erreur : aucun lot par défaut trouvé")
+      // Validation du lot sélectionné
+      if (!formData.lotId) {
+        toast.error("Veuillez sélectionner un lot")
         return
       }
 
-      await upsertLocataire(bien.id, defaultLot.id, {
+      await upsertLocataire(bien.id, formData.lotId, {
         id: formData.id || undefined,
         nom: formData.nom,
         prenom: formData.prenom,
@@ -226,7 +225,22 @@ export function LocatairesList({ bien }: LocatairesListProps) {
             </CardTitle>
             {!adding && !editingId && (
               <Button
-                onClick={() => setAdding(true)}
+                onClick={() => {
+                  const lotParDefaut = lots.find(l => l.estLotDefaut)
+                  setFormData({
+                    ...formData,
+                    id: "",
+                    lotId: lotParDefaut?.id || (lots[0]?.id || ""),
+                    nom: "",
+                    prenom: "",
+                    email: "",
+                    telephone: "",
+                    dateEntree: "",
+                    montantAPL: "0",
+                    modePaiement: "virement",
+                  })
+                  setAdding(true)
+                }}
                 className="bg-amber-600 hover:bg-amber-500 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -241,6 +255,26 @@ export function LocatairesList({ bien }: LocatairesListProps) {
             <Card className="bg-slate-800/50 border-slate-700">
               <CardContent className="pt-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Sélection du lot */}
+                  <div className="md:col-span-2">
+                    <Label className="text-slate-300">
+                      Lot <span className="text-red-400">*</span>
+                    </Label>
+                    <select
+                      value={formData.lotId}
+                      onChange={(e) => setFormData({ ...formData, lotId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200"
+                      required
+                    >
+                      <option value="">Sélectionner un lot</option>
+                      {lots.map((lot) => (
+                        <option key={lot.id} value={lot.id}>
+                          {lot.numeroLot} - {formatCurrency(lot.loyerMensuel)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <Label className="text-slate-300">
                       Nom <span className="text-red-400">*</span>
@@ -386,7 +420,10 @@ export function LocatairesList({ bien }: LocatairesListProps) {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Badge className="bg-sky-500/10 text-sky-400 border-sky-500/50">
+                          {lots.find(l => l.id === locataire.lotId)?.numeroLot || "N/A"}
+                        </Badge>
                         <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/50">
                           APL: {formatCurrency(parseFloat(locataire.montantAPL || "0"))}
                         </Badge>
