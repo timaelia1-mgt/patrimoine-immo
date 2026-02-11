@@ -12,6 +12,8 @@ import { toast } from "sonner"
 import { deleteBien, type Bien } from "@/lib/database"
 import { refreshSidebar } from "@/components/layout/Sidebar"
 import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics"
+import { Edit, Trash2 } from "lucide-react"
+import { BienFormDialog } from "@/components/biens/BienFormDialog"
 
 // Composant de chargement réutilisable
 const TabLoading = () => (
@@ -67,7 +69,8 @@ interface BienDetailClientProps {
 
 export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const router = useRouter()
-  const [bien] = useState(initialBien)
+  const [bien, setBien] = useState(initialBien)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const handleDelete = async () => {
     const shouldDelete = window.confirm("⚠️ Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.")
@@ -115,12 +118,23 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button 
-              onClick={handleDelete}
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setEditDialogOpen(true)}
               variant="outline"
               size="sm"
+              className="border-amber-600 text-amber-400 hover:bg-amber-600/10"
             >
+              <Edit className="w-4 h-4 mr-2" />
+              Modifier
+            </Button>
+            <Button 
+              onClick={handleDelete}
+              variant="destructive"
+              size="sm"
+              className="bg-red-600 hover:bg-red-500"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
               Supprimer
             </Button>
           </div>
@@ -204,6 +218,18 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
           <Documents bien={bien} />
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de modification du bien */}
+      <BienFormDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        bien={bien}
+        onSuccess={() => {
+          setEditDialogOpen(false)
+          router.refresh()
+          refreshSidebar()
+        }}
+      />
     </div>
   )
 }

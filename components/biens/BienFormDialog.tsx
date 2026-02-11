@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
-import { createBien, createLot } from "@/lib/database"
+import { createBien, createLot, updateBien, type Bien } from "@/lib/database"
 import { calculateMensualiteCredit, formatCurrency } from "@/lib/calculations"
 import { refreshSidebar } from "@/components/layout/Sidebar"
 import { Plus, Trash2 } from "lucide-react"
@@ -17,9 +17,11 @@ interface BienFormDialogProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSuccess?: () => void
+  bien?: Bien
 }
 
-export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialogProps) {
+export function BienFormDialog({ open, onOpenChange, onSuccess, bien }: BienFormDialogProps) {
+  const isEditMode = !!bien
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,9 +52,29 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     dureeCredit: "",
   })
 
-  // Réinitialiser le formulaire quand le dialog se ferme
+  // Pré-remplir en mode édition OU réinitialiser quand le dialog se ferme
   useEffect(() => {
-    if (!open) {
+    if (open && isEditMode && bien) {
+      setFormData({
+        nom: bien.nom || "",
+        adresse: bien.adresse || "",
+        ville: bien.ville || "",
+        codePostal: bien.codePostal || "",
+        loyerMensuel: bien.loyerMensuel ? bien.loyerMensuel.toString() : "",
+        taxeFonciere: bien.taxeFonciere ? bien.taxeFonciere.toString() : "",
+        chargesCopro: bien.chargesCopro ? bien.chargesCopro.toString() : "",
+        assurance: bien.assurance ? bien.assurance.toString() : "",
+        fraisGestion: bien.fraisGestion ? bien.fraisGestion.toString() : "",
+        autresCharges: bien.autresCharges ? bien.autresCharges.toString() : "",
+        typeFinancement: bien.typeFinancement || "CREDIT",
+        dateDebutCredit: bien.dateDebutCredit || "",
+        montantCredit: bien.montantCredit ? bien.montantCredit.toString() : "",
+        tauxCredit: bien.tauxCredit ? bien.tauxCredit.toString() : "",
+        dureeCredit: bien.dureeCredit ? bien.dureeCredit.toString() : "",
+      })
+      setModeCharges('mensuel')
+      setMultipleLots(false)
+    } else if (!open) {
       setFormData({
         nom: "",
         adresse: "",
@@ -74,7 +96,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       setMultipleLots(false)
       setLots([{ id: crypto.randomUUID(), numeroLot: "Lot 1", loyerMensuel: "" }])
     }
-  }, [open])
+  }, [open, isEditMode, bien])
 
   // Calculer la mensualité automatiquement
   const mensualiteCalculee = formData.typeFinancement === "CREDIT" && 
@@ -195,56 +217,60 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         data.dateDebutCredit = formData.dateDebutCredit ? formData.dateDebutCredit : null
       }
 
-      // Créer le bien
-      const nouveauBien = await createBien(user.id, data)
+      if (isEditMode && bien) {
+        // MODE ÉDITION : mettre à jour le bien existant
+        await updateBien(bien.id, data)
+        
+        toast.success("Bien modifié avec succès !")
+        refreshSidebar()
+        onSuccess?.()
+      } else {
+        // MODE CRÉATION : créer le bien + lots
+        const nouveauBien = await createBien(user.id, data)
 
-      // Créer les lots
-      if (multipleLots && lots.length > 0) {
-        // Mode multi-lots : créer chaque lot (le premier est le lot par défaut)
-        for (let i = 0; i < lots.length; i++) {
-          const lot = lots[i]
+        // Créer les lots
+        if (multipleLots && lots.length > 0) {
+          for (let i = 0; i < lots.length; i++) {
+            const lot = lots[i]
+            await createLot({
+              bienId: nouveauBien.id,
+              numeroLot: lot.numeroLot,
+              loyerMensuel: parseFloat(lot.loyerMensuel),
+              estLotDefaut: i === 0,
+            })
+          }
+        } else {
           await createLot({
             bienId: nouveauBien.id,
-            numeroLot: lot.numeroLot,
-            loyerMensuel: parseFloat(lot.loyerMensuel),
-            estLotDefaut: i === 0,
+            numeroLot: "Principal",
+            loyerMensuel: loyerTotal,
+            estLotDefaut: true,
           })
         }
-      } else {
-        // Mode simple : créer le lot par défaut avec le loyer du bien
-        await createLot({
-          bienId: nouveauBien.id,
-          numeroLot: "Principal",
-          loyerMensuel: loyerTotal,
-          estLotDefaut: true,
+        
+        // Reset du formulaire
+        setFormData({
+          nom: "",
+          adresse: "",
+          ville: "",
+          codePostal: "",
+          loyerMensuel: "",
+          taxeFonciere: "",
+          chargesCopro: "",
+          assurance: "",
+          fraisGestion: "",
+          autresCharges: "",
+          typeFinancement: "CREDIT",
+          dateDebutCredit: "",
+          montantCredit: "",
+          tauxCredit: "",
+          dureeCredit: "",
         })
+        
+        refreshSidebar()
+        toast.success("Bien créé avec succès !")
+        onSuccess?.()
       }
-      
-      // Reset du formulaire
-      setFormData({
-        nom: "",
-        adresse: "",
-        ville: "",
-        codePostal: "",
-        loyerMensuel: "",
-        taxeFonciere: "",
-        chargesCopro: "",
-        assurance: "",
-        fraisGestion: "",
-        autresCharges: "",
-        typeFinancement: "CREDIT",
-        dateDebutCredit: "",
-        montantCredit: "",
-        tauxCredit: "",
-        dureeCredit: "",
-      })
-      
-      // Rafraîchir la sidebar pour afficher le nouveau bien
-      refreshSidebar()
-      
-      // Appeler onSuccess - le parent (DashboardClient) gérera la fermeture et le refresh
-      toast.success("Bien créé avec succès !")
-      onSuccess?.()
     } catch (error: unknown) {
       console.error('[BienForm] Erreur création bien/lots:', error)
       logger.error('[BienForm] Erreur création:', error)
@@ -266,9 +292,11 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Ajouter un bien immobilier</DialogTitle>
+          <DialogTitle>{isEditMode ? "Modifier le bien" : "Ajouter un bien immobilier"}</DialogTitle>
           <DialogDescription>
-            Remplissez les informations de base. Les champs marqués d'un * sont obligatoires.
+            {isEditMode
+              ? "Modifiez les informations du bien. Les champs marqués d'un * sont obligatoires."
+              : "Remplissez les informations de base. Les champs marqués d'un * sont obligatoires."}
           </DialogDescription>
         </DialogHeader>
 
@@ -368,8 +396,8 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               </div>
             )}
 
-            {/* Checkbox plusieurs lots */}
-            <div className="flex items-center gap-2 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            {/* Checkbox plusieurs lots (uniquement en mode création) */}
+            {!isEditMode && <div className="flex items-center gap-2 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <input
                 type="checkbox"
                 id="multipleLots"
@@ -388,10 +416,10 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               <Label htmlFor="multipleLots" className="text-slate-700 dark:text-slate-300 cursor-pointer">
                 Ce bien possède plusieurs lots (appartements, studios, etc.)
               </Label>
-            </div>
+            </div>}
 
-            {/* Formulaire des lots (si mode multiple) */}
-            {multipleLots && (
+            {/* Formulaire des lots (si mode multiple, uniquement en création) */}
+            {!isEditMode && multipleLots && (
               <div className="space-y-4 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <Label className="text-slate-700 dark:text-slate-300 font-medium">Lots du bien</Label>
@@ -729,7 +757,9 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               Annuler
             </Button>
             <Button type="submit" disabled={loading || isSubmitting}>
-              {loading ? "Ajout en cours..." : "Ajouter le bien"}
+              {loading
+                ? (isEditMode ? "Modification en cours..." : "Ajout en cours...")
+                : (isEditMode ? "Enregistrer les modifications" : "Ajouter le bien")}
             </Button>
           </div>
         </form>
