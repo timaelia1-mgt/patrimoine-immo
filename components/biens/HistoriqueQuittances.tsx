@@ -54,6 +54,25 @@ export function HistoriqueQuittances({
   const [quittances, setQuittances] = useState<Quittance[]>([])
   const [loading, setLoading] = useState(true)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [profileName, setProfileName] = useState<string>(proprietaireNom)
+
+  // Charger le vrai nom du propriétaire depuis le profil
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/user/profile')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.profile?.name) {
+            setProfileName(data.profile.name)
+          }
+        }
+      } catch (error) {
+        // Fallback silencieux sur le prop proprietaireNom
+      }
+    }
+    fetchProfile()
+  }, [])
 
   useEffect(() => {
     fetchQuittances()
@@ -91,7 +110,7 @@ export function HistoriqueQuittances({
         bienAdresse,
         bienVille,
         bienCodePostal,
-        proprietaireNom,
+        proprietaireNom: profileName,
         locataireNom: quittance.locataire_nom,
         locatairePrenom: quittance.locataire_prenom,
         locataireEmail: quittance.locataire_email,

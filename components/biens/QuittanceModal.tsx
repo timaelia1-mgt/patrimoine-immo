@@ -283,8 +283,8 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
             <span className="text-white font-medium">{data.locatairePrenom} {data.locataireNom}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Bien</span>
-            <span className="text-white font-medium">{data.bienNom}</span>
+            <span className="text-slate-400">Adresse</span>
+            <span className="text-white font-medium">{data.bienAdresse}, {data.bienCodePostal} {data.bienVille}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Loyer</span>

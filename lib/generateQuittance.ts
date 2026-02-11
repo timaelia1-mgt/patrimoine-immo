@@ -101,16 +101,15 @@ export function generateQuittancePDF(data: QuittanceData): jsPDF {
   doc.setFontSize(10)
   doc.text(data.proprietaireNom, 15, y)
 
-  // Bien (à droite)
+  // Adresse du bien (à droite)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkColor)
-  doc.text('BIEN CONCERNÉ', pageWidth / 2 + 5, 58)
+  doc.text('ADRESSE DU BIEN', pageWidth / 2 + 5, 58)
 
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...grayColor)
-  doc.text(data.bienNom, pageWidth / 2 + 5, 65)
-  doc.text(`${data.bienAdresse}`, pageWidth / 2 + 5, 73)
-  doc.text(`${data.bienCodePostal} ${data.bienVille}`, pageWidth / 2 + 5, 81)
+  doc.text(`${data.bienAdresse}`, pageWidth / 2 + 5, 65)
+  doc.text(`${data.bienCodePostal} ${data.bienVille}`, pageWidth / 2 + 5, 73)
 
   // --- LIGNE SÉPARATRICE ---
   y = 92

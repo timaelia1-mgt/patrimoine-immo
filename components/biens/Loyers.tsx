@@ -219,7 +219,7 @@ export function Loyers({ bien, lotId }: LoyersProps) {
 
     setQuittanceData({
       bienId: bien.id,
-      proprietaireNom: profile?.nom || 'Propriétaire',
+      proprietaireNom: profile?.name || 'Propriétaire',
       bienNom: bien.nom,
       bienAdresse: bien.adresse || '',
       bienVille: bien.ville || '',
