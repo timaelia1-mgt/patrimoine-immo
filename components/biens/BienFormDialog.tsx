@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
-import { createBien } from "@/lib/database"
-import { calculateMensualiteCredit } from "@/lib/calculations"
+import { createBien, createLot } from "@/lib/database"
+import { calculateMensualiteCredit, formatCurrency } from "@/lib/calculations"
+import { Plus, Trash2 } from "lucide-react"
 
 interface BienFormDialogProps {
   open?: boolean
@@ -22,6 +23,15 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modeCharges, setModeCharges] = useState<'mensuel' | 'annuel'>('mensuel')
+  const [multipleLots, setMultipleLots] = useState(false)
+  const [lots, setLots] = useState<Array<{
+    id: string
+    numeroLot: string
+    superficie: string
+    loyerMensuel: string
+  }>>([
+    { id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }
+  ])
   const [formData, setFormData] = useState({
     nom: "",
     adresse: "",
@@ -61,6 +71,8 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
         dureeCredit: "",
       })
       setModeCharges('mensuel')
+      setMultipleLots(false)
+      setLots([{ id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }])
     }
   }, [open])
 
@@ -106,9 +118,23 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
       toast.error("Le code postal est obligatoire")
       return
     }
-    if (!formData.loyerMensuel || parseFloat(formData.loyerMensuel) <= 0) {
-      toast.error("Le loyer mensuel est obligatoire et doit être supérieur à 0")
-      return
+    if (!multipleLots) {
+      if (!formData.loyerMensuel || parseFloat(formData.loyerMensuel) <= 0) {
+        toast.error("Le loyer mensuel est obligatoire et doit être supérieur à 0")
+        return
+      }
+    } else {
+      // Valider que chaque lot a un loyer
+      for (const lot of lots) {
+        if (!lot.loyerMensuel || parseFloat(lot.loyerMensuel) <= 0) {
+          toast.error(`Le loyer du lot "${lot.numeroLot}" est obligatoire et doit être supérieur à 0`)
+          return
+        }
+      }
+      if (lots.length === 0) {
+        toast.error("Vous devez créer au moins un lot")
+        return
+      }
     }
 
     // Validation des champs de crédit si typeFinancement === "CREDIT"
@@ -133,12 +159,17 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     // Convertir en mensuel si l'utilisateur a saisi en annuel
     const diviseur = modeCharges === 'annuel' ? 12 : 1
     
+    // Calculer le loyer total (somme des lots en mode multi, ou loyer direct en mode simple)
+    const loyerTotal = multipleLots
+      ? lots.reduce((sum, lot) => sum + parseFloat(lot.loyerMensuel || "0"), 0)
+      : parseFloat(formData.loyerMensuel)
+
     const data: any = {
       nom: formData.nom.trim(),
       adresse: formData.adresse.trim(),
       ville: formData.ville.trim(),
       codePostal: formData.codePostal.trim(),
-      loyerMensuel: parseFloat(formData.loyerMensuel),
+      loyerMensuel: loyerTotal,
       typeFinancement: formData.typeFinancement,
       taxeFonciere: formData.taxeFonciere ? parseFloat(formData.taxeFonciere) / diviseur : 0,
       chargesCopro: formData.chargesCopro ? parseFloat(formData.chargesCopro) / diviseur : 0,
@@ -164,7 +195,30 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
     }
 
     try {
-      await createBien(user.id, data)
+      const nouveauBien = await createBien(user.id, data)
+
+      // Créer les lots
+      if (multipleLots && lots.length > 0) {
+        // Mode multi-lots : créer chaque lot (le premier est le lot par défaut)
+        for (let i = 0; i < lots.length; i++) {
+          const lot = lots[i]
+          await createLot({
+            bienId: nouveauBien.id,
+            numeroLot: lot.numeroLot,
+            superficie: lot.superficie ? parseFloat(lot.superficie) : undefined,
+            loyerMensuel: parseFloat(lot.loyerMensuel),
+            estLotDefaut: i === 0,
+          })
+        }
+      } else {
+        // Mode simple : créer le lot par défaut avec le loyer du bien
+        await createLot({
+          bienId: nouveauBien.id,
+          numeroLot: "Principal",
+          loyerMensuel: loyerTotal,
+          estLotDefaut: true,
+        })
+      }
       
       // Reset du formulaire
       setFormData({
@@ -290,22 +344,153 @@ export function BienFormDialog({ open, onOpenChange, onSuccess }: BienFormDialog
               </h3>
             </div>
 
-            <div>
-              <Label htmlFor="loyerMensuel" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
-                Loyer mensuel (€) *
-              </Label>
-              <Input
-                id="loyerMensuel"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.loyerMensuel}
-                onChange={(e) => setFormData({ ...formData, loyerMensuel: e.target.value })}
-                placeholder="Ex: 900"
-                required
+            {/* Loyer mensuel (si mode simple) */}
+            {!multipleLots && (
+              <div>
+                <Label htmlFor="loyerMensuel" className="text-sm font-medium mb-1.5 block text-slate-700 dark:text-slate-300">
+                  Loyer mensuel (€) *
+                </Label>
+                <Input
+                  id="loyerMensuel"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.loyerMensuel}
+                  onChange={(e) => setFormData({ ...formData, loyerMensuel: e.target.value })}
+                  placeholder="Ex: 900"
+                  required={!multipleLots}
+                  disabled={loading}
+                />
+              </div>
+            )}
+
+            {/* Checkbox plusieurs lots */}
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <input
+                type="checkbox"
+                id="multipleLots"
+                checked={multipleLots}
+                onChange={(e) => {
+                  setMultipleLots(e.target.checked)
+                  if (e.target.checked && lots.length === 0) {
+                    setLots([
+                      { id: crypto.randomUUID(), numeroLot: "Lot 1", superficie: "", loyerMensuel: "" }
+                    ])
+                  }
+                }}
+                className="w-4 h-4 rounded border-amber-500/50 bg-slate-800 text-amber-600 focus:ring-amber-500"
                 disabled={loading}
               />
+              <Label htmlFor="multipleLots" className="text-slate-700 dark:text-slate-300 cursor-pointer">
+                Ce bien possède plusieurs lots (appartements, studios, etc.)
+              </Label>
             </div>
+
+            {/* Formulaire des lots (si mode multiple) */}
+            {multipleLots && (
+              <div className="space-y-4 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-700 dark:text-slate-300 font-medium">Lots du bien</Label>
+                  <Button
+                    type="button"
+                    onClick={() => setLots([...lots, {
+                      id: crypto.randomUUID(),
+                      numeroLot: `Lot ${lots.length + 1}`,
+                      superficie: "",
+                      loyerMensuel: ""
+                    }])}
+                    size="sm"
+                    className="bg-amber-600 hover:bg-amber-500 text-white"
+                    disabled={loading}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Ajouter un lot
+                  </Button>
+                </div>
+
+                {lots.map((lot, index) => (
+                  <div key={lot.id} className="p-3 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Lot {index + 1}</span>
+                      {lots.length > 1 && (
+                        <Button
+                          type="button"
+                          onClick={() => setLots(lots.filter((_, i) => i !== index))}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 hover:bg-red-500/10 h-8 w-8 p-0"
+                          disabled={loading}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-slate-500 dark:text-slate-400 text-xs">Nom du lot</Label>
+                        <Input
+                          value={lot.numeroLot}
+                          onChange={(e) => {
+                            const newLots = [...lots]
+                            newLots[index].numeroLot = e.target.value
+                            setLots(newLots)
+                          }}
+                          placeholder="ex: T2 RDC"
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-500 dark:text-slate-400 text-xs">Superficie (m²)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={lot.superficie}
+                          onChange={(e) => {
+                            const newLots = [...lots]
+                            newLots[index].superficie = e.target.value
+                            setLots(newLots)
+                          }}
+                          placeholder="45.5"
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-500 dark:text-slate-400 text-xs">
+                          Loyer mensuel (€) <span className="text-red-400">*</span>
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={lot.loyerMensuel}
+                          onChange={(e) => {
+                            const newLots = [...lots]
+                            newLots[index].loyerMensuel = e.target.value
+                            setLots(newLots)
+                          }}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Loyer total calculé */}
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 dark:text-slate-300">Loyer mensuel total du bien</span>
+                    <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                      {formatCurrency(lots.reduce((sum, lot) => sum + parseFloat(lot.loyerMensuel || "0"), 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between mb-3">

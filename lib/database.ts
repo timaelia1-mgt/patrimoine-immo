@@ -595,6 +595,7 @@ export async function createLot(data: {
   numeroLot: string
   superficie?: number
   loyerMensuel: number
+  estLotDefaut?: boolean
 }): Promise<Lot> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -608,7 +609,7 @@ export async function createLot(data: {
       numero_lot: data.numeroLot,
       superficie: data.superficie || null,
       loyer_mensuel: data.loyerMensuel,
-      est_lot_defaut: false,
+      est_lot_defaut: data.estLotDefaut ?? false,
     })
     .select()
     .single()
