@@ -1,6 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
+
+// Wrapper avec QueryClientProvider pour les tests
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  })
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 /**
  * Tests pour DashboardClient
@@ -80,13 +95,22 @@ vi.mock('@/components/dashboard/ExportExcelButton', () => ({
   ExportExcelButton: () => <div data-testid="export-excel">Export</div>,
 }))
 
-// Mock dynamic import
-vi.mock('next/dynamic', () => ({
-  default: (fn: () => Promise<any>) => {
-    const Component = vi.fn(() => null)
-    return Component
-  },
-}))
+// Mock next/dynamic : résout la factory via React.lazy + Suspense
+vi.mock('next/dynamic', () => {
+  const React = require('react')
+  return {
+    default: (loader: () => Promise<any>, opts?: any) => {
+      const LazyComponent = React.lazy(loader)
+      return function DynamicMock(props: any) {
+        return React.createElement(
+          React.Suspense,
+          { fallback: null },
+          React.createElement(LazyComponent, props)
+        )
+      }
+    },
+  }
+})
 
 describe('DashboardClient', () => {
   const mockBiens = [
@@ -136,13 +160,13 @@ describe('DashboardClient', () => {
   describe('rendu de base', () => {
     it('devrait se rendre sans erreur', () => {
       expect(() => {
-        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />, { wrapper: createWrapper() })
       }).not.toThrow()
     })
 
     it('devrait accepter une liste de biens vide', () => {
       expect(() => {
-        render(<DashboardClient biens={[]} userId={mockUserId} />)
+        render(<DashboardClient biens={[]} userId={mockUserId} />, { wrapper: createWrapper() })
       }).not.toThrow()
     })
   })
@@ -153,7 +177,7 @@ describe('DashboardClient', () => {
 
   describe('dialog d\'ajout de bien', () => {
     it('devrait ne pas afficher le dialog par défaut', () => {
-      render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
+      render(<DashboardClient biens={mockBiens} userId={mockUserId} />, { wrapper: createWrapper() })
       
       expect(screen.queryByTestId('bien-form-dialog')).not.toBeInTheDocument()
     })
@@ -161,7 +185,7 @@ describe('DashboardClient', () => {
     it('devrait ouvrir le dialog si ?add=true dans l\'URL', async () => {
       mockSearchParams = new URLSearchParams('add=true')
       
-      render(<DashboardClient biens={[]} userId={mockUserId} />)
+      render(<DashboardClient biens={[]} userId={mockUserId} />, { wrapper: createWrapper() })
       
       await waitFor(() => {
         expect(screen.getByTestId('bien-form-dialog')).toBeInTheDocument()
@@ -178,13 +202,15 @@ describe('DashboardClient', () => {
       // useProfile est mocké pour retourner { plan: 'gratuit' }
       // Le composant dérive planType et maxBiens à partir de ces données
       expect(() => {
-        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />, { wrapper: createWrapper() })
       }).not.toThrow()
     })
 
     it('devrait mettre à jour quand les props changent', () => {
+      const wrapper = createWrapper()
       const { rerender } = render(
-        <DashboardClient biens={mockBiens} userId={mockUserId} />
+        <DashboardClient biens={mockBiens} userId={mockUserId} />,
+        { wrapper }
       )
       
       // Changer la liste de biens
@@ -205,7 +231,7 @@ describe('DashboardClient', () => {
     it('devrait gérer un profil null sans crash', () => {
       // Même si useProfile retourne null, le composant doit fallback sur 'gratuit'
       expect(() => {
-        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />, { wrapper: createWrapper() })
       }).not.toThrow()
     })
   })

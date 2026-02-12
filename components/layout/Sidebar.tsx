@@ -1,123 +1,44 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut, Search, TrendingUp, Users } from "lucide-react"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { usePathname } from "next/navigation"
+import { Home, Settings, Building2, Plus, ChevronDown, CreditCard, LogOut, Search, TrendingUp } from "lucide-react"
+import { useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { getBiens, getUserProfile } from "@/lib/database"
-import type { Bien, UserProfile } from "@/lib/database"
+import type { Bien } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/stripe"
 import type { PlanType } from "@/lib/stripe"
 import { calculateChargesMensuelles } from "@/lib/calculations"
 import { trackEvent, resetUser, ANALYTICS_EVENTS } from "@/lib/analytics"
+import { useBiens } from "@/lib/hooks/use-biens"
+import { useProfile } from "@/lib/hooks/use-profile"
 
-// Événement personnalisé pour rafraîchir la sidebar (conservé pour compatibilité)
+// Conservé pour compatibilité (no-op, React Query gère l'invalidation automatiquement)
 export const REFRESH_SIDEBAR_EVENT = 'refresh-sidebar'
-
-// Fonction utilitaire pour déclencher le refresh de la sidebar
 export const refreshSidebar = () => {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(REFRESH_SIDEBAR_EVENT))
-  }
+  // No-op : React Query invalide le cache automatiquement via les mutations
 }
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const [biens, setBiens] = useState<Bien[]>([])
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
   const [biensExpanded, setBiensExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [hoveredBien, setHoveredBien] = useState<string | null>(null)
 
-  // Ref pour gérer les appels concurrents (éviter les race conditions)
-  const fetchCountRef = useRef(0)
+  // Hooks React Query (cache partagé avec le Dashboard)
+  const { data: biens = [], isLoading: biensLoading } = useBiens({
+    userId: user?.id || '',
+    enabled: !!user?.id,
+  })
 
-  // Fonction pour récupérer les biens
-  const fetchBiens = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false)
-      setBiens([])
-      return
-    }
+  const { data: profile, isLoading: profileLoading } = useProfile({
+    userId: user?.id || '',
+    enabled: !!user?.id,
+  })
 
-    // Incrémenter le compteur pour invalider les fetchs précédents
-    const currentFetchId = ++fetchCountRef.current
-    setLoading(true)
-
-    try {
-      console.log('[Sidebar] Récupération des biens pour user:', user.id)
-
-      // Timeout de 10 secondes (au lieu de 20s + retry)
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout Supabase après 30s')), 30000)
-      )
-
-      const [biensData, profileData] = await Promise.all([
-        Promise.race([getBiens(user.id), timeoutPromise]),
-        Promise.race([getUserProfile(user.id), timeoutPromise]),
-      ])
-
-      // Ignorer si un fetch plus récent a été lancé entre-temps
-      if (currentFetchId !== fetchCountRef.current) {
-        console.log('[Sidebar] ⚠️ Fetch obsolète ignoré (id:', currentFetchId, 'current:', fetchCountRef.current, ')')
-        return
-      }
-
-      console.log('[Sidebar] Biens récupérés:', biensData?.length || 0, '| Profile:', profileData?.plan || 'null')
-      if (biensData) setBiens(biensData)
-      if (profileData) setProfile(profileData)
-    } catch (error: unknown) {
-      // Ignorer les erreurs d'un fetch obsolète
-      if (currentFetchId !== fetchCountRef.current) return
-      const err = error as Error
-      console.error('[Sidebar] ❌ Erreur fetch:', err.message, err)
-      setBiens([])
-    } finally {
-      // Ne mettre loading=false que si c'est bien le fetch le plus récent
-      if (currentFetchId === fetchCountRef.current) {
-        setLoading(false)
-      }
-    }
-  }, [user?.id])
-
-  useEffect(() => {
-    console.log("[Sidebar] useEffect déclenché - authLoading:", authLoading, "user:", user?.id)
-
-    // Skip tant que l'auth n'est pas résolue ET qu'on n'a pas de user
-    if (authLoading && !user?.id) {
-      console.log("[Sidebar] authLoading with no user, skipping fetch")
-      return
-    }
-
-    // Charger les biens
-    fetchBiens()
-
-    // Safety timeout : garantir que loading passe à false après 12s max
-    // (filet de sécurité si le fetch hang indéfiniment)
-    const safetyTimer = setTimeout(() => {
-      console.warn('[Sidebar] ⚠️ Safety timeout: force loading=false après 35s')
-      setLoading(false)
-    }, 35000)
-
-    // Écouter les événements de refresh
-    const handleRefresh = () => {
-      console.log('[Sidebar] Événement refresh détecté')
-      if (user) {
-        fetchBiens()
-      }
-    }
-
-    window.addEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
-    return () => {
-      clearTimeout(safetyTimer)
-      window.removeEventListener(REFRESH_SIDEBAR_EVENT, handleRefresh)
-    }
-  }, [user?.id, authLoading, fetchBiens])
+  const loading = (authLoading && !user?.id) || biensLoading || profileLoading
 
   const handleSignOut = async () => {
     try {
@@ -172,7 +93,7 @@ export function Sidebar() {
 
   // Plan et limites
   const currentPlan = (profile?.plan || 'gratuit') as PlanType
-  // ✅ Vérifier que le plan existe, sinon fallback sur 'gratuit'
+  // Vérifier que le plan existe, sinon fallback sur 'gratuit'
   const maxBiens = PLANS[currentPlan]?.maxBiens ?? PLANS['gratuit'].maxBiens
   const canAddMore = maxBiens === null || biens.length < maxBiens
 
@@ -208,7 +129,7 @@ export function Sidebar() {
 
         {/* Navigation principale */}
         <nav className="px-4 py-6 space-y-1.5">
-          {navigationLinks.map((link, index) => {
+          {navigationLinks.map((link) => {
             const Icon = link.icon
             const isLinkActive = pathname === link.href
 
@@ -280,7 +201,7 @@ export function Sidebar() {
                   {searchQuery ? 'Aucun bien trouvé' : 'Aucun bien'}
                 </div>
               ) : (
-                filteredBiens.map((bien, index) => {
+                filteredBiens.map((bien) => {
                   const isBienActive = pathname.includes(bien.id)
                   const cashFlow = calculateCashFlow(bien)
                   const isHovered = hoveredBien === bien.id

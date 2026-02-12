@@ -10,7 +10,7 @@ import { formatCurrency, calculerStatutBien, calculateChargesMensuelles } from "
 import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { deleteBien, type Bien } from "@/lib/database"
-import { refreshSidebar } from "@/components/layout/Sidebar"
+import { useQueryClient } from "@tanstack/react-query"
 import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics"
 import { Edit, Trash2 } from "lucide-react"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
@@ -69,6 +69,7 @@ interface BienDetailClientProps {
 
 export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [bien, setBien] = useState(initialBien)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
@@ -90,7 +91,8 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
       })
 
       toast.success("Bien supprimé avec succès")
-      refreshSidebar()
+      queryClient.invalidateQueries({ queryKey: ['biens'] })
+      queryClient.removeQueries({ queryKey: ['bien', bien.id] })
       router.push("/dashboard")
     } catch (error: unknown) {
       logger.error('[BienDetail] Erreur suppression:', error)
@@ -113,7 +115,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const cashFlow = loyerNet - mensualiteCredit
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 pt-16 lg:pt-6 space-y-6">
       <div className="mb-6">
         <div className="flex items-start justify-between">
           <div>
@@ -231,8 +233,8 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
         bien={bien}
         onSuccess={() => {
           setEditDialogOpen(false)
-          router.refresh()
-          refreshSidebar()
+          queryClient.invalidateQueries({ queryKey: ['biens'] })
+          queryClient.invalidateQueries({ queryKey: ['bien', bien.id] })
         }}
       />
     </div>

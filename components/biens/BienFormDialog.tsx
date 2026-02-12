@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger"
 import { toast } from "sonner"
 import { createBien, createLot, updateBien, type Bien } from "@/lib/database"
 import { calculateMensualiteCredit, formatCurrency } from "@/lib/calculations"
-import { refreshSidebar } from "@/components/layout/Sidebar"
+import { useQueryClient } from "@tanstack/react-query"
 import { Plus, Trash2 } from "lucide-react"
 
 interface BienFormDialogProps {
@@ -23,6 +23,7 @@ interface BienFormDialogProps {
 export function BienFormDialog({ open, onOpenChange, onSuccess, bien }: BienFormDialogProps) {
   const isEditMode = !!bien
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modeCharges, setModeCharges] = useState<'mensuel' | 'annuel'>('mensuel')
@@ -222,7 +223,8 @@ export function BienFormDialog({ open, onOpenChange, onSuccess, bien }: BienForm
         await updateBien(bien.id, data)
         
         toast.success("Bien modifié avec succès !")
-        refreshSidebar()
+        queryClient.invalidateQueries({ queryKey: ['biens'] })
+        queryClient.invalidateQueries({ queryKey: ['bien', bien.id] })
         onSuccess?.()
       } else {
         // MODE CRÉATION : créer le bien + lots
@@ -267,7 +269,7 @@ export function BienFormDialog({ open, onOpenChange, onSuccess, bien }: BienForm
           dureeCredit: "",
         })
         
-        refreshSidebar()
+        queryClient.invalidateQueries({ queryKey: ['biens'] })
         toast.success("Bien créé avec succès !")
         onSuccess?.()
       }

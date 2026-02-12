@@ -2,7 +2,7 @@ import { memo } from 'react'
 
 export const DashboardSkeleton = memo(function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pt-16 lg:pt-0">
       {/* Hero Section Skeleton */}
       <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
         <div className="relative px-8 py-6">

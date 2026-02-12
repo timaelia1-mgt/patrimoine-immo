@@ -4,14 +4,12 @@ import { useEffect, useState, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { BienFormDialog } from "@/components/biens/BienFormDialog"
-import { refreshSidebar } from "@/components/layout/Sidebar"
+import { useQueryClient } from "@tanstack/react-query"
 import { PLANS } from "@/lib/stripe"
 import type { PlanType } from "@/lib/stripe"
 import type { Bien } from "@/lib/database"
 import { useProfile } from "@/lib/hooks/use-profile"
 import { calculateChargesMensuelles } from "@/lib/calculations"
-import { PatrimoineChart } from "@/components/dashboard/PatrimoineChart"
 import { ExportExcelButton } from "@/components/dashboard/ExportExcelButton"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
@@ -33,6 +31,32 @@ import {
 const UpgradeModal = dynamic(
   () => import("@/components/modals/UpgradeModal").then(mod => ({ default: mod.UpgradeModal })),
   { ssr: false }
+)
+
+// Lazy-load PatrimoineChart (inclut Recharts ~50KB)
+const PatrimoineChart = dynamic(
+  () => import("@/components/dashboard/PatrimoineChart").then(mod => ({ default: mod.PatrimoineChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-in fade-in duration-500">
+        <div className="mb-8">
+          <div className="h-8 w-64 bg-slate-800 rounded animate-pulse mb-2" />
+          <div className="h-5 w-96 bg-slate-800 rounded animate-pulse" />
+        </div>
+        <div className="border border-slate-800/50 bg-slate-800/50 rounded-2xl p-6 h-96 animate-pulse" />
+      </div>
+    ),
+  }
+)
+
+// Lazy-load BienFormDialog (chargé uniquement quand l'utilisateur clique "Ajouter un bien")
+const BienFormDialog = dynamic(
+  () => import("@/components/biens/BienFormDialog").then(mod => ({ default: mod.BienFormDialog })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
 )
 
 interface DashboardClientProps {
@@ -84,6 +108,7 @@ function calculateStats(biens: Bien[]) {
 export function DashboardClient({ biens, userId }: DashboardClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
 
@@ -116,7 +141,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
         setUpgradeModalOpen(true)
         return
       }
-
+      
       setDialogOpen(true)
     }
 
@@ -150,16 +175,13 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
   const handleSuccess = () => {
     // 1. Fermer le dialog d'abord
     setDialogOpen(false)
-
-    // 2. Rafraîchir la sidebar (client component) pour afficher le nouveau bien
-    refreshSidebar()
-
-    // 3. Refresh des données server pour afficher le nouveau bien dans le dashboard
-    router.refresh()
+    
+    // 2. Invalider le cache React Query pour rafraîchir biens (Dashboard + Sidebar)
+    queryClient.invalidateQueries({ queryKey: ['biens', userId] })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pt-16 lg:pt-0">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
         <div className="relative px-8 py-6">
@@ -476,7 +498,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {maxBiens !== null && (
-                  <Badge
+                  <Badge 
                     variant={remainingBiens !== null && remainingBiens <= 0 ? 'destructive' : 'secondary'}
                     className="text-sm px-3 py-1"
                   >
@@ -489,7 +511,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                   </Badge>
                 )}
               </div>
-
+              
               <Button
                 onClick={() => {
                   if (canCreateBien) {

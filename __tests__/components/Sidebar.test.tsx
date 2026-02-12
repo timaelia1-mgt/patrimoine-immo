@@ -46,13 +46,16 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
-// Mock des fonctions database
-const mockGetBiens = vi.fn()
-const mockGetUserProfile = vi.fn()
+// Mock des hooks React Query (au lieu des fonctions database directes)
+const mockUseBiens = vi.fn()
+const mockUseProfile = vi.fn()
 
-vi.mock('@/lib/database', () => ({
-  getBiens: (...args: any[]) => mockGetBiens(...args),
-  getUserProfile: (...args: any[]) => mockGetUserProfile(...args),
+vi.mock('@/lib/hooks/use-biens', () => ({
+  useBiens: (opts: any) => mockUseBiens(opts),
+}))
+
+vi.mock('@/lib/hooks/use-profile', () => ({
+  useProfile: (opts: any) => mockUseProfile(opts),
 }))
 
 // Mock dynamic import pour UpgradeModal
@@ -64,8 +67,18 @@ describe('Sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockPathname = '/dashboard'
-    mockGetBiens.mockResolvedValue([])
-    mockGetUserProfile.mockResolvedValue({ plan: 'gratuit' })
+
+    // Default: pas de biens, profil gratuit, pas de loading
+    mockUseBiens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    })
+    mockUseProfile.mockReturnValue({
+      data: { plan: 'gratuit' },
+      isLoading: false,
+      error: null,
+    })
     
     // Mock window.location
     Object.defineProperty(window, 'location', {
@@ -160,10 +173,14 @@ describe('Sidebar', () => {
     })
 
     it('devrait afficher le compteur de biens', async () => {
-      mockGetBiens.mockResolvedValueOnce([
-        { id: '1', nom: 'Bien 1', ville: 'Paris' },
-        { id: '2', nom: 'Bien 2', ville: 'Lyon' },
-      ])
+      mockUseBiens.mockReturnValue({
+        data: [
+          { id: '1', nom: 'Bien 1', ville: 'Paris' },
+          { id: '2', nom: 'Bien 2', ville: 'Lyon' },
+        ],
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
@@ -173,7 +190,11 @@ describe('Sidebar', () => {
     })
 
     it('devrait afficher "Aucun bien" si pas de biens', async () => {
-      mockGetBiens.mockResolvedValueOnce([])
+      mockUseBiens.mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
@@ -183,10 +204,14 @@ describe('Sidebar', () => {
     })
 
     it('devrait afficher la liste des biens', async () => {
-      mockGetBiens.mockResolvedValueOnce([
-        { id: '1', nom: 'Appartement Paris', ville: 'Paris' },
-        { id: '2', nom: 'Maison Lyon', ville: 'Lyon' },
-      ])
+      mockUseBiens.mockReturnValue({
+        data: [
+          { id: '1', nom: 'Appartement Paris', ville: 'Paris' },
+          { id: '2', nom: 'Maison Lyon', ville: 'Lyon' },
+        ],
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
@@ -197,9 +222,13 @@ describe('Sidebar', () => {
     })
 
     it('devrait afficher la ville de chaque bien', async () => {
-      mockGetBiens.mockResolvedValueOnce([
-        { id: '1', nom: 'Appartement', ville: 'Marseille' },
-      ])
+      mockUseBiens.mockReturnValue({
+        data: [
+          { id: '1', nom: 'Appartement', ville: 'Marseille' },
+        ],
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
@@ -209,13 +238,17 @@ describe('Sidebar', () => {
     })
 
     it('devrait pouvoir réduire/étendre la section biens', async () => {
-      mockGetBiens.mockResolvedValueOnce([
-        { id: '1', nom: 'Mon Bien', ville: 'Paris' },
-      ])
+      mockUseBiens.mockReturnValue({
+        data: [
+          { id: '1', nom: 'Mon Bien', ville: 'Paris' },
+        ],
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
-      // Attendre que les biens soient chargés
+      // Attendre que les biens soient affichés
       await waitFor(() => {
         expect(screen.getByText('Mon Bien')).toBeInTheDocument()
       })
@@ -245,8 +278,16 @@ describe('Sidebar', () => {
     })
 
     it('devrait être un lien vers /dashboard?add=true si limite non atteinte', async () => {
-      mockGetBiens.mockResolvedValueOnce([])
-      mockGetUserProfile.mockResolvedValueOnce({ plan: 'gratuit' })
+      mockUseBiens.mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+      mockUseProfile.mockReturnValue({
+        data: { plan: 'gratuit' },
+        isLoading: false,
+        error: null,
+      })
       
       render(<Sidebar />)
       
@@ -295,29 +336,34 @@ describe('Sidebar', () => {
   })
 
   // ============================================
-  // CHARGEMENT DES DONNÉES
+  // CHARGEMENT DES DONNÉES (via React Query hooks)
   // ============================================
 
   describe('chargement des données', () => {
-    it('devrait appeler getBiens avec le userId', async () => {
+    it('devrait appeler useBiens avec le userId', async () => {
       render(<Sidebar />)
       
-      await waitFor(() => {
-        expect(mockGetBiens).toHaveBeenCalledWith('user-123')
+      expect(mockUseBiens).toHaveBeenCalledWith({
+        userId: 'user-123',
+        enabled: true,
       })
     })
 
-    it('devrait appeler getUserProfile avec le userId', async () => {
+    it('devrait appeler useProfile avec le userId', async () => {
       render(<Sidebar />)
       
-      await waitFor(() => {
-        expect(mockGetUserProfile).toHaveBeenCalledWith('user-123')
+      expect(mockUseProfile).toHaveBeenCalledWith({
+        userId: 'user-123',
+        enabled: true,
       })
     })
 
     it('devrait afficher un spinner pendant le chargement', async () => {
-      // Simuler un chargement lent
-      mockGetBiens.mockImplementationOnce(() => new Promise(resolve => setTimeout(() => resolve([]), 1000)))
+      mockUseBiens.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        error: null,
+      })
       
       render(<Sidebar />)
       

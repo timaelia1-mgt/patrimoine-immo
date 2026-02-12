@@ -27,7 +27,7 @@ export default async function AbonnementPage() {
     const planDetails = PLANS[currentPlan] ?? PLANS['gratuit']
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-8">
+    <div className="container max-w-6xl mx-auto p-6 pt-16 lg:pt-6 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

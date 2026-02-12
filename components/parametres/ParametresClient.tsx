@@ -155,7 +155,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
   }
 
   return (
-    <div className="p-8 dark:bg-slate-950">
+    <div className="p-8 pt-16 lg:pt-8 dark:bg-slate-950">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white mb-2">Paramètres</h1>
