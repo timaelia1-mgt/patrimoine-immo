@@ -115,6 +115,73 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  /* ============================================
+     PATRIMO DESIGN TOKENS
+     ============================================ */
+
+  /* Semantic Color Tokens - Text */
+  --color-text-primary: oklch(0.984 0.003 247.858);        /* White - Primary text */
+  --color-text-secondary: oklch(0.8 0.02 250);             /* Light gray - Secondary text */
+  --color-text-tertiary: oklch(0.6 0.03 250);              /* Medium gray - Tertiary text */
+  --color-text-muted: oklch(0.45 0.04 255);                /* Dark gray - Muted text */
+  --color-text-inverse: oklch(0.129 0.042 264.695);        /* Dark - Text on light bg */
+
+  /* Semantic Color Tokens - Backgrounds */
+  --color-bg-primary: oklch(0.129 0.042 264.695);          /* slate-950 - Main bg */
+  --color-bg-secondary: oklch(0.208 0.042 265.755);        /* slate-900 - Cards bg */
+  --color-bg-tertiary: oklch(0.279 0.041 260.031);         /* slate-800 - Elevated bg */
+  --color-bg-elevated: oklch(0.35 0.04 260);               /* Hover states */
+  --color-bg-inverse: oklch(0.984 0.003 247.858);          /* White - Light mode bg */
+
+  /* Brand Colors - Amber */
+  --color-brand-primary: oklch(0.769 0.188 70.08);         /* amber-500 - Primary brand */
+  --color-brand-secondary: oklch(0.828 0.189 84.429);      /* amber-400 - Secondary brand */
+  --color-brand-tertiary: oklch(0.9 0.15 90);              /* amber-300 - Tertiary brand */
+  --color-brand-muted: oklch(0.6 0.12 70);                 /* Muted brand */
+
+  /* Status Colors */
+  --color-success: oklch(0.646 0.222 41.116);              /* Green - Success states */
+  --color-success-muted: oklch(0.5 0.15 140);              /* Muted success */
+  --color-error: oklch(0.577 0.245 27.325);                /* Red - Error states */
+  --color-error-muted: oklch(0.5 0.2 25);                  /* Muted error */
+  --color-warning: oklch(0.769 0.188 70.08);               /* Amber - Warning states */
+  --color-info: oklch(0.6 0.118 184.704);                  /* Blue - Info states */
+
+  /* Border Colors */
+  --color-border-primary: oklch(0.279 0.041 260.031);      /* slate-800 - Primary borders */
+  --color-border-secondary: oklch(0.35 0.04 260);          /* Lighter borders */
+  --color-border-muted: oklch(0.25 0.04 260);              /* Subtle borders */
+  --color-border-brand: oklch(0.769 0.188 70.08 / 0.3);   /* Brand borders */
+
+  /* Shadow Tokens */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* Brand Glow Shadows */
+  --shadow-brand-sm: 0 0 10px oklch(0.769 0.188 70.08 / 0.15);
+  --shadow-brand-md: 0 0 20px oklch(0.769 0.188 70.08 / 0.2);
+  --shadow-brand-lg: 0 0 30px oklch(0.769 0.188 70.08 / 0.25);
+
+  /* Success Glow Shadows */
+  --shadow-success-sm: 0 0 10px oklch(0.646 0.222 41.116 / 0.15);
+  --shadow-success-md: 0 0 20px oklch(0.646 0.222 41.116 / 0.2);
+
+  /* Spacing Scale (Tailwind standard)
+     p-2 = 8px, p-4 = 16px, p-6 = 24px, p-8 = 32px, p-12 = 48px, p-16 = 64px */
+
+  /* Border Radius Scale (already defined in @theme inline via --radius)
+     --radius-sm, --radius-md, --radius-lg, --radius-xl, --radius-2xl, --radius-3xl, --radius-4xl */
+
+  /* Animation Tokens */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {
@@ -154,4 +221,52 @@ html {
 .font-serif {
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   letter-spacing: -0.01em;
+}
+
+/* ============================================
+   PATRIMO UTILITY CLASSES
+   ============================================ */
+
+.text-patrimo-primary {
+  color: var(--color-text-primary);
+}
+
+.text-patrimo-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-patrimo-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.text-patrimo-muted {
+  color: var(--color-text-muted);
+}
+
+.bg-patrimo-primary {
+  background-color: var(--color-bg-primary);
+}
+
+.bg-patrimo-secondary {
+  background-color: var(--color-bg-secondary);
+}
+
+.bg-patrimo-tertiary {
+  background-color: var(--color-bg-tertiary);
+}
+
+.border-patrimo-primary {
+  border-color: var(--color-border-primary);
+}
+
+.border-patrimo-secondary {
+  border-color: var(--color-border-secondary);
+}
+
+.shadow-brand-glow {
+  box-shadow: var(--shadow-brand-md);
+}
+
+.shadow-success-glow {
+  box-shadow: var(--shadow-success-md);
 }

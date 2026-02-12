@@ -4,17 +4,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
 
 // Wrapper avec QueryClientProvider pour les tests
-const createWrapper = () => {
+function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   })
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  )
+  function TestQueryProvider({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    )
+  }
+  TestQueryProvider.displayName = 'TestQueryProvider'
+  return TestQueryProvider
 }
 
 /**
@@ -96,18 +100,24 @@ vi.mock('@/components/dashboard/ExportExcelButton', () => ({
 }))
 
 // Mock next/dynamic : résout la factory via React.lazy + Suspense
+// Note: vi.mock factories s'exécutent dans un scope isolé, on importe React ici
+import React from 'react'
+
 vi.mock('next/dynamic', () => {
-  const React = require('react')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactModule = require('react')
   return {
     default: (loader: () => Promise<any>, opts?: any) => {
-      const LazyComponent = React.lazy(loader)
-      return function DynamicMock(props: any) {
-        return React.createElement(
-          React.Suspense,
+      const LazyComponent = ReactModule.lazy(loader)
+      function DynamicMock(props: any) {
+        return ReactModule.createElement(
+          ReactModule.Suspense,
           { fallback: null },
-          React.createElement(LazyComponent, props)
+          ReactModule.createElement(LazyComponent, props)
         )
       }
+      DynamicMock.displayName = 'DynamicMock'
+      return DynamicMock
     },
   }
 })

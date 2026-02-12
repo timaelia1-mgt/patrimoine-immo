@@ -122,7 +122,7 @@ function CheckoutFeedbackContent() {
                 Paiement annulé
               </h3>
               <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                Votre paiement a été annulé. Aucun montant n'a été débité. Vous pouvez réessayer à tout moment.
+                Votre paiement a été annulé. Aucun montant n&apos;a été débité. Vous pouvez réessayer à tout moment.
               </p>
               <Button
                 onClick={() => {
