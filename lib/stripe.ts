@@ -125,7 +125,9 @@ export function getPlanDetails(planType: PlanType): typeof PLANS[PlanType] {
  * getPlanMaxBiens('premium') // null (illimité)
  */
 export function getPlanMaxBiens(planType: PlanType): number | null {
-  return PLANS[planType]?.maxBiens ?? 2
+  const plan = PLANS[planType]
+  if (!plan) return 2 // Only fallback if plan doesn't exist
+  return plan.maxBiens // Can be null for premium
 }
 
 /**
@@ -139,7 +141,9 @@ export function getPlanMaxBiens(planType: PlanType): number | null {
  * canAddBien('premium', 100) // true (illimité)
  */
 export function canAddBien(planType: PlanType, currentBiensCount: number): boolean {
-  const maxBiens = PLANS[planType]?.maxBiens ?? 2
+  const plan = PLANS[planType]
+  if (!plan) return currentBiensCount < 2 // Fallback only if invalid plan
+  const maxBiens = plan.maxBiens
   if (maxBiens === null) return true // illimité
   return currentBiensCount < maxBiens
 }
@@ -165,7 +169,9 @@ export function getPriceId(planType: Exclude<PlanType, 'gratuit'>): string | nul
  * getRemainingBiens('premium', 100) // null (illimité)
  */
 export function getRemainingBiens(planType: PlanType, currentBiensCount: number): number | null {
-  const maxBiens = PLANS[planType]?.maxBiens ?? 2
+  const plan = PLANS[planType]
+  if (!plan) return Math.max(0, 2 - currentBiensCount) // Fallback only if invalid
+  const maxBiens = plan.maxBiens
   if (maxBiens === null) return null // illimité
   return Math.max(0, maxBiens - currentBiensCount)
 }
