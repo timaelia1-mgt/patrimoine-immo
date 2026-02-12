@@ -8,7 +8,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/lib/theme-provider"
 import { Moon, Sun } from "lucide-react"
-import { updateUserProfile, type UserProfile } from "@/lib/database"
+import type { UserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { DataManagementSection } from "./DataManagementSection"
 
@@ -57,15 +57,27 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
 
     try {
       setLoading(true)
+      console.log("[Paramètres] Début sauvegarde...")
       
-      await updateUserProfile(profile.id, {
-        name: settings.nom.trim(),
-        currency: settings.devise,
-        rentPaymentDay: parseInt(settings.jourPaiement),
-        paymentDelayDays: parseInt(settings.delaiPaiement),
-        emailAlertsEnabled: settings.alertesEmail,
-        appNotificationsEnabled: settings.alertesNotification,
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: settings.nom.trim(),
+          currency: settings.devise,
+          rentPaymentDay: parseInt(settings.jourPaiement),
+          paymentDelayDays: parseInt(settings.delaiPaiement),
+          emailAlertsEnabled: settings.alertesEmail,
+          appNotificationsEnabled: settings.alertesNotification,
+        }),
       })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Erreur HTTP ${response.status}`)
+      }
+      
+      console.log("[Paramètres] Sauvegarde réussie")
       
       // Rafraîchir la page pour afficher les nouvelles valeurs
       router.refresh()
@@ -73,7 +85,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
       // Afficher un message de succès
       alert("✓ Paramètres enregistrés avec succès !")
     } catch (error: any) {
-      console.error("Erreur lors de la sauvegarde:", error)
+      console.error("[Paramètres] Erreur lors de la sauvegarde:", error)
       alert(`Erreur lors de la sauvegarde: ${error?.message || "Erreur inconnue"}`)
     } finally {
       setLoading(false)
