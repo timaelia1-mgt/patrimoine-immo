@@ -132,18 +132,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Track logout AVANT de reset
       trackEvent(ANALYTICS_EVENTS.LOGOUT)
-
-      const supabase = createClient()
+  
+      // ✅ Utiliser le client mémorisé au lieu d'en créer un nouveau
       const { error } = await supabase.auth.signOut()
       if (error) {
         logger.error("[AuthContext] Erreur lors de la déconnexion:", error)
         throw error
       }
-
+  
       // Reset PostHog identity
       resetUser()
       hasTrackedSession.current = false
-
+  
       setUser(null)
       setSession(null)
       toast.success('Déconnexion réussie')
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.location.href = '/login'
       throw error
     }
-  }, [])
+  }, [supabase])  // ✅ Ajouter supabase en dépendance
 
   // CRITIQUE : Mémoriser l'objet value pour éviter les re-renders en cascade
   const contextValue = useMemo(

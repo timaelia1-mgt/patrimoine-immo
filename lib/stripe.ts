@@ -113,7 +113,7 @@ export function isValidPlanType(plan: string): plan is PlanType {
  * console.log(details.maxBiens) // 10
  */
 export function getPlanDetails(planType: PlanType): typeof PLANS[PlanType] {
-  return PLANS[planType]
+  return PLANS[planType] ?? PLANS['gratuit']
 }
 
 /**
@@ -125,7 +125,7 @@ export function getPlanDetails(planType: PlanType): typeof PLANS[PlanType] {
  * getPlanMaxBiens('premium') // null (illimité)
  */
 export function getPlanMaxBiens(planType: PlanType): number | null {
-  return PLANS[planType].maxBiens
+  return PLANS[planType]?.maxBiens ?? 2
 }
 
 /**
@@ -139,7 +139,7 @@ export function getPlanMaxBiens(planType: PlanType): number | null {
  * canAddBien('premium', 100) // true (illimité)
  */
 export function canAddBien(planType: PlanType, currentBiensCount: number): boolean {
-  const maxBiens = PLANS[planType].maxBiens
+  const maxBiens = PLANS[planType]?.maxBiens ?? 2
   if (maxBiens === null) return true // illimité
   return currentBiensCount < maxBiens
 }
@@ -152,7 +152,7 @@ export function canAddBien(planType: PlanType, currentBiensCount: number): boole
  * getPriceId('essentiel') // 'price_xxx'
  */
 export function getPriceId(planType: Exclude<PlanType, 'gratuit'>): string | null {
-  return PLANS[planType].priceId
+  return PLANS[planType]?.priceId ?? null
 }
 
 /**
@@ -165,7 +165,7 @@ export function getPriceId(planType: Exclude<PlanType, 'gratuit'>): string | nul
  * getRemainingBiens('premium', 100) // null (illimité)
  */
 export function getRemainingBiens(planType: PlanType, currentBiensCount: number): number | null {
-  const maxBiens = PLANS[planType].maxBiens
+  const maxBiens = PLANS[planType]?.maxBiens ?? 2
   if (maxBiens === null) return null // illimité
   return Math.max(0, maxBiens - currentBiensCount)
 }

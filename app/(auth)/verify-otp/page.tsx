@@ -15,8 +15,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
 function VerifyOtpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()

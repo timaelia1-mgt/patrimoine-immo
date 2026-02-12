@@ -9,10 +9,6 @@ import { PlansSection } from '@/components/abonnement/PlansSection'
 import { ComparisonTable } from '@/components/abonnement/ComparisonTable'
 import { FAQ } from '@/components/abonnement/FAQ'
 
-// Désactiver le cache
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 export default async function AbonnementPage() {
   try {
     const supabase = await createClient()
@@ -28,7 +24,7 @@ export default async function AbonnementPage() {
     }
 
     const currentPlan = (profile.plan || 'gratuit') as PlanType
-    const planDetails = PLANS[currentPlan]
+    const planDetails = PLANS[currentPlan] ?? PLANS['gratuit']
 
   return (
     <div className="container max-w-6xl mx-auto p-6 space-y-8">

@@ -6,9 +6,6 @@ import { logger } from '@/lib/logger'
 import { BienDetailClient } from '@/components/biens/BienDetailClient'
 import { Button } from '@/components/ui/button'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 interface BienDetailPageProps {
   params: Promise<{ id: string }>
 }

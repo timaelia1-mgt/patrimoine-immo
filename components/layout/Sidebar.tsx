@@ -172,7 +172,8 @@ export function Sidebar() {
 
   // Plan et limites
   const currentPlan = (profile?.plan || 'gratuit') as PlanType
-  const maxBiens = PLANS[currentPlan].maxBiens
+  // ✅ Vérifier que le plan existe, sinon fallback sur 'gratuit'
+  const maxBiens = PLANS[currentPlan]?.maxBiens ?? PLANS['gratuit'].maxBiens
   const canAddMore = maxBiens === null || biens.length < maxBiens
 
   return (

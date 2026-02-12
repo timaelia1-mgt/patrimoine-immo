@@ -3,10 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/database'
 import { ParametresClient } from '@/components/parametres/ParametresClient'
 
-// Désactiver le cache
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 export default async function ParametresPage() {
   try {
     const supabase = await createClient()

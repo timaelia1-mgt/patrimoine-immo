@@ -189,7 +189,7 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
   
   if (!canAddBien(planType, currentCount)) {
     const maxBiens = getPlanMaxBiens(planType)
-    const planName = PLANS[planType].name
+    const planName = PLANS[planType]?.name ?? 'Gratuit'
     throw new Error(`Limite de ${maxBiens} biens atteinte pour le plan ${planName}. Passez au plan supérieur pour en créer plus.`)
   }
 

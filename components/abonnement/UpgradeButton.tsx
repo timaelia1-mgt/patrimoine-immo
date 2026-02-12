@@ -14,7 +14,7 @@ interface UpgradeButtonProps {
 export function UpgradeButton({ targetPlan, userId }: UpgradeButtonProps) {
   const [loading, setLoading] = useState(false)
 
-  const plan = PLANS[targetPlan]
+  const plan = PLANS[targetPlan] ?? PLANS['gratuit']
 
   const handleUpgrade = async () => {
     if (!plan.priceId) {

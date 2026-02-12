@@ -142,7 +142,7 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
                 <AlertCircle className="h-4 w-4 text-amber-500" />
                 <AlertTitle className="text-amber-400">Limite presque atteinte</AlertTitle>
                 <AlertDescription className="text-slate-300">
-                  Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[planType].name}.{' '}
+                  Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[planType]?.name ?? 'Gratuit'}.{' '}
                   <Button variant="link" className="p-0 h-auto text-amber-400 hover:text-amber-300" asChild>
                     <Link href="/abonnement">Passer à un plan supérieur</Link>
                   </Button>
@@ -156,7 +156,7 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Limite atteinte</AlertTitle>
                 <AlertDescription>
-                  Vous avez atteint la limite de {maxBiens} bien{maxBiens > 1 ? 's' : ''} de votre plan {PLANS[planType].name}.{' '}
+                  Vous avez atteint la limite de {maxBiens} bien{maxBiens > 1 ? 's' : ''} de votre plan {PLANS[planType]?.name ?? 'Gratuit'}.{' '}
                   <Button variant="link" className="p-0 h-auto text-red-300 hover:text-red-200 underline" asChild>
                     <Link href="/abonnement">Passer à un plan supérieur</Link>
                   </Button>
@@ -176,7 +176,7 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
         <UpgradeModal
           open={upgradeModalOpen}
           onClose={() => setUpgradeModalOpen(false)}
-          currentPlan={PLANS[planType].name}
+          currentPlan={PLANS[planType]?.name ?? 'Gratuit'}
           currentCount={currentBiens}
           maxBiens={maxBiens}
         />

@@ -24,10 +24,6 @@ import { ExportExcelButton } from '@/components/dashboard/ExportExcelButton'
 import { PLANS } from '@/lib/stripe'
 import type { PlanType } from '@/lib/stripe'
 
-// Désactiver le cache
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 // Fonction pour calculer les stats
 function calculateStats(biens: any[]) {
   if (!biens || !Array.isArray(biens)) {
@@ -78,14 +74,17 @@ export default async function DashboardPage() {
       redirect('/login')
     }
 
-    // Passer le client Supabase serveur à getBiens
-    const biens = await getBiens(user.id, supabase)
-    const stats = calculateStats(biens)
+    // ✅ PARALLÉLISER - Fetch biens ET profile en même temps
+    const [biens, profile] = await Promise.all([
+      getBiens(user.id, supabase),
+      getUserProfile(user.id, supabase)
+    ])
     
-    // Récupérer le profil pour les limites de plan
-    const profile = await getUserProfile(user.id, supabase)
+    // Calculs après fetch (pas de await)
+    const stats = calculateStats(biens)
     const planType = (profile?.plan || 'gratuit') as PlanType
-    const maxBiens = PLANS[planType].maxBiens
+    // ✅ Vérifier que le plan existe, sinon fallback sur 'gratuit'
+    const maxBiens = PLANS[planType]?.maxBiens ?? PLANS['gratuit'].maxBiens
 
     return (
       <Suspense fallback={<DashboardSkeleton />}>
