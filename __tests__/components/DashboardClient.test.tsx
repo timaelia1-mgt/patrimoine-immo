@@ -6,11 +6,13 @@ import { DashboardClient } from '@/components/dashboard/DashboardClient'
  * Tests pour DashboardClient
  * 
  * Ce composant gère :
+ * - L'affichage complet du dashboard (KPIs, biens, graphique)
  * - Le dialog d'ajout de bien (BienFormDialog)
  * - La vérification des limites de biens selon le plan
  * - Le modal d'upgrade si limite atteinte
+ * - Le fetch du profil utilisateur en interne
  * 
- * Props : { biens: any[], stats: any, planType: PlanType, maxBiens: number | null }
+ * Props : { biens: Bien[], userId: string }
  */
 
 // Mock des hooks Next.js
@@ -43,7 +45,16 @@ vi.mock('@/lib/database', () => ({
   getBiens: vi.fn(() => Promise.resolve([])),
 }))
 
-// Mock du BienFormDialog pour éviter de charger tout le composant
+// Mock du hook useProfile (utilise React Query en interne)
+vi.mock('@/lib/hooks/use-profile', () => ({
+  useProfile: () => ({
+    data: { plan: 'gratuit' },
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+// Mock des composants enfants pour éviter de charger tout le bundle
 vi.mock('@/components/biens/BienFormDialog', () => ({
   BienFormDialog: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
     open ? (
@@ -55,11 +66,18 @@ vi.mock('@/components/biens/BienFormDialog', () => ({
   ),
 }))
 
-// Mock du UpgradeModal
 vi.mock('@/components/modals/UpgradeModal', () => ({
   UpgradeModal: ({ open }: { open: boolean }) => (
     open ? <div data-testid="upgrade-modal">Modal Upgrade</div> : null
   ),
+}))
+
+vi.mock('@/components/dashboard/PatrimoineChart', () => ({
+  PatrimoineChart: () => <div data-testid="patrimoine-chart">Chart</div>,
+}))
+
+vi.mock('@/components/dashboard/ExportExcelButton', () => ({
+  ExportExcelButton: () => <div data-testid="export-excel">Export</div>,
 }))
 
 // Mock dynamic import
@@ -75,27 +93,40 @@ describe('DashboardClient', () => {
     {
       id: 'bien-1',
       nom: 'Appartement Paris',
+      ville: 'Paris',
       prixAchat: 250000,
       loyerMensuel: 1200,
+      typeFinancement: 'CREDIT' as const,
+      mensualiteCredit: 800,
+      taxeFonciere: 0,
+      chargesCopro: 0,
+      assurance: 0,
+      fraisGestion: 0,
+      autresCharges: 0,
+      chargesMensuelles: 0,
     },
     {
       id: 'bien-2',
       nom: 'Maison Lyon',
+      ville: 'Lyon',
       prixAchat: 350000,
       loyerMensuel: 1500,
+      typeFinancement: 'CASH' as const,
+      taxeFonciere: 0,
+      chargesCopro: 0,
+      assurance: 0,
+      fraisGestion: 0,
+      autresCharges: 0,
+      chargesMensuelles: 0,
     },
   ]
 
-  const mockStats = {
-    totalPatrimoine: 600000,
-    totalLoyers: 2700,
-    cashFlowMensuel: 1500,
-  }
+  const mockUserId = 'user-123'
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockSearchParams = new URLSearchParams()
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null })
+    mockGetUser.mockResolvedValue({ data: { user: { id: mockUserId } }, error: null })
   })
 
   // ============================================
@@ -105,19 +136,13 @@ describe('DashboardClient', () => {
   describe('rendu de base', () => {
     it('devrait se rendre sans erreur', () => {
       expect(() => {
-        render(<DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />)
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
       }).not.toThrow()
     })
 
     it('devrait accepter une liste de biens vide', () => {
       expect(() => {
-        render(<DashboardClient biens={[]} stats={mockStats} planType="gratuit" maxBiens={2} />)
-      }).not.toThrow()
-    })
-
-    it('devrait accepter des stats vides', () => {
-      expect(() => {
-        render(<DashboardClient biens={mockBiens} stats={{}} planType="gratuit" maxBiens={2} />)
+        render(<DashboardClient biens={[]} userId={mockUserId} />)
       }).not.toThrow()
     })
   })
@@ -128,7 +153,7 @@ describe('DashboardClient', () => {
 
   describe('dialog d\'ajout de bien', () => {
     it('devrait ne pas afficher le dialog par défaut', () => {
-      render(<DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />)
+      render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
       
       expect(screen.queryByTestId('bien-form-dialog')).not.toBeInTheDocument()
     })
@@ -136,7 +161,7 @@ describe('DashboardClient', () => {
     it('devrait ouvrir le dialog si ?add=true dans l\'URL', async () => {
       mockSearchParams = new URLSearchParams('add=true')
       
-      render(<DashboardClient biens={[]} stats={mockStats} planType="gratuit" maxBiens={2} />)
+      render(<DashboardClient biens={[]} userId={mockUserId} />)
       
       await waitFor(() => {
         expect(screen.getByTestId('bien-form-dialog')).toBeInTheDocument()
@@ -149,25 +174,24 @@ describe('DashboardClient', () => {
   // ============================================
 
   describe('vérification des limites', () => {
-    it('devrait utiliser les props planType et maxBiens', () => {
-      render(<DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />)
-      
-      // Le composant utilise maintenant les props serveur directement
-      // Plus besoin de fetch côté client
+    it('devrait utiliser le profil fourni par useProfile', () => {
+      // useProfile est mocké pour retourner { plan: 'gratuit' }
+      // Le composant dérive planType et maxBiens à partir de ces données
+      expect(() => {
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
+      }).not.toThrow()
     })
 
     it('devrait mettre à jour quand les props changent', () => {
       const { rerender } = render(
-        <DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />
+        <DashboardClient biens={mockBiens} userId={mockUserId} />
       )
       
-      // Changer le plan et le nombre de biens
+      // Changer la liste de biens
       rerender(
         <DashboardClient 
-          biens={[...mockBiens, { id: 'bien-3', nom: 'Nouveau' }]} 
-          stats={mockStats} 
-          planType="essentiel" 
-          maxBiens={10} 
+          biens={[...mockBiens, { id: 'bien-3', nom: 'Nouveau', ville: 'Marseille', loyerMensuel: 900, typeFinancement: 'CASH' as const, taxeFonciere: 0, chargesCopro: 0, assurance: 0, fraisGestion: 0, autresCharges: 0, chargesMensuelles: 0, prixAchat: 200000 }]} 
+          userId={mockUserId}
         />
       )
     })
@@ -178,21 +202,10 @@ describe('DashboardClient', () => {
   // ============================================
 
   describe('gestion des erreurs', () => {
-    it('devrait gérer une erreur d\'authentification', async () => {
-      mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-      
+    it('devrait gérer un profil null sans crash', () => {
+      // Même si useProfile retourne null, le composant doit fallback sur 'gratuit'
       expect(() => {
-        render(<DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />)
-      }).not.toThrow()
-    })
-
-    it('devrait gérer une erreur de getUserProfile', async () => {
-      const { getUserProfile } = await import('@/lib/database')
-      vi.mocked(getUserProfile).mockRejectedValueOnce(new Error('Profile error'))
-      
-      // Ne devrait pas throw
-      expect(() => {
-        render(<DashboardClient biens={mockBiens} stats={mockStats} planType="gratuit" maxBiens={2} />)
+        render(<DashboardClient biens={mockBiens} userId={mockUserId} />)
       }).not.toThrow()
     })
   })

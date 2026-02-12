@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth-context"
 import { PostHogProvider } from "@/lib/analytics"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Toaster } from "@/components/ui/toaster"
+import { QueryProvider } from "@/lib/query-provider"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,14 +40,16 @@ export default function RootLayout({
     <html lang="fr" className="dark">
       <body className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} font-sans antialiased`}>
         <ErrorBoundary>
-          <PostHogProvider>
-            <ThemeProvider>
-              <AuthProvider>
-                {children}
-                <Toaster />
-              </AuthProvider>
-            </ThemeProvider>
-          </PostHogProvider>
+          <QueryProvider>
+            <PostHogProvider>
+              <ThemeProvider>
+                <AuthProvider>
+                  {children}
+                  <Toaster />
+                </AuthProvider>
+              </ThemeProvider>
+            </PostHogProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

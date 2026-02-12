@@ -1,408 +1,48 @@
-import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { getBiens, getUserProfile } from '@/lib/database'
-import { logger } from '@/lib/logger'
-import { calculateChargesMensuelles } from '@/lib/calculations'
-import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  TrendingUp, 
-  Home, 
-  DollarSign, 
-  Wallet,
-  MapPin,
-  Calendar,
-  ArrowUpRight,
-  Sparkles
-} from 'lucide-react'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
+import { useBiens } from '@/lib/hooks/use-biens'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
-import { PatrimoineChart } from '@/components/dashboard/PatrimoineChart'
-import { ExportExcelButton } from '@/components/dashboard/ExportExcelButton'
-import { PLANS } from '@/lib/stripe'
-import type { PlanType } from '@/lib/stripe'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
-// Fonction pour calculer les stats
-function calculateStats(biens: any[]) {
-  if (!biens || !Array.isArray(biens)) {
-    return {
-      totalLoyers: 0,
-      totalCharges: 0,
-      totalMensualites: 0,
-      totalCashFlow: 0,
-      nombreBiens: 0
-    }
-  }
+export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
 
-  let totalLoyers = 0
-  let totalCharges = 0
-  let totalMensualites = 0
-
-  biens.forEach((bien) => {
-    const loyer = parseFloat(bien.loyerMensuel?.toString() || "0") || 0
-    totalLoyers += loyer
-    
-    // Utiliser la fonction centralisée
-    const charges = calculateChargesMensuelles(bien)
-    totalCharges += charges
-    
-    if (bien.typeFinancement === 'CREDIT') {
-      const mensualite = parseFloat(bien.mensualiteCredit?.toString() || "0") || 0
-      totalMensualites += mensualite
-    }
+  // Hook avec cache React Query
+  const { data: biens, isLoading: biensLoading, error: biensError } = useBiens({
+    userId: user?.id || '',
+    enabled: !!user, // Ne fetch que si user existe
   })
 
-  const totalCashFlow = totalLoyers - totalCharges - totalMensualites
-
-  return {
-    totalLoyers: isNaN(totalLoyers) ? 0 : totalLoyers,
-    totalCharges: isNaN(totalCharges) ? 0 : totalCharges,
-    totalMensualites: isNaN(totalMensualites) ? 0 : totalMensualites,
-    totalCashFlow: isNaN(totalCashFlow) ? 0 : totalCashFlow,
-    nombreBiens: biens.length
-  }
-}
-
-export default async function DashboardPage() {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error || !user) {
-      redirect('/login')
+  // Redirect si pas authentifié
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login')
     }
+  }, [user, authLoading, router])
 
-    // ✅ PARALLÉLISER - Fetch biens ET profile en même temps
-    const [biens, profile] = await Promise.all([
-      getBiens(user.id, supabase),
-      getUserProfile(user.id, supabase)
-    ])
-    
-    // Calculs après fetch (pas de await)
-    const stats = calculateStats(biens)
-    const planType = (profile?.plan || 'gratuit') as PlanType
-    // ✅ Vérifier que le plan existe, sinon fallback sur 'gratuit'
-    const maxBiens = PLANS[planType]?.maxBiens ?? PLANS['gratuit'].maxBiens
-
-    return (
-      <Suspense fallback={<DashboardSkeleton />}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        {/* Hero Section - SANS effets de background */}
-        <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
-          <div className="relative px-8 py-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center gap-3 mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <span className="text-amber-400/80 text-xs font-medium tracking-wider uppercase">
-                  Votre Patrimoine
-                </span>
-              </div>
-              <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                Tableau de Bord
-              </h1>
-              <p className="text-slate-400 text-base max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                Vue d'ensemble de vos {stats.nombreBiens} {stats.nombreBiens > 1 ? 'biens immobiliers' : 'bien immobilier'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* KPIs Premium - SANS overlap */}
-        <div className="px-8 py-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {/* Cash Flow */}
-              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.3s' }}>
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-emerald-500/20 transition-shadow duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30">
-                        <TrendingUp className="w-5 h-5 text-white" />
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        stats.totalCashFlow > 0 
-                          ? 'bg-emerald-500/20 text-emerald-400' 
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {stats.totalLoyers > 0 ? (
-                          <>
-                            {stats.totalCashFlow > 0 ? '↑' : '↓'}{' '}
-                            {Math.abs((stats.totalCashFlow / stats.totalLoyers) * 100).toFixed(1)}%
-                          </>
-                        ) : (
-                          'N/A'
-                        )}
-                      </span>
-                    </div>
-                    <CardTitle className="text-sm font-medium text-slate-400">
-                      Cash-flow Mensuel
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className={`text-4xl font-bold ${
-                      stats.totalCashFlow > 0 ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'EUR',
-                        minimumFractionDigits: 0
-                      }).format(stats.totalCashFlow)}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">Par mois</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Loyers */}
-              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.4s' }}>
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/20 transition-shadow duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-                        <DollarSign className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <CardTitle className="text-sm font-medium text-slate-400">
-                      Loyers Totaux
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-4xl font-bold text-blue-400">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'EUR',
-                        minimumFractionDigits: 0
-                      }).format(stats.totalLoyers)}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">Par mois</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Charges */}
-              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.5s' }}>
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-orange-500/20 transition-shadow duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg shadow-orange-500/30">
-                        <Wallet className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <CardTitle className="text-sm font-medium text-slate-400">
-                      Charges Totales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-4xl font-bold text-orange-400">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'EUR',
-                        minimumFractionDigits: 0
-                      }).format(stats.totalCharges + stats.totalMensualites)}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">Par mois</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Nombre de biens */}
-              <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.6s' }}>
-                <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-purple-500/20 transition-shadow duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg shadow-purple-500/30">
-                        <Home className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <CardTitle className="text-sm font-medium text-slate-400">
-                      Portefeuille
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-4xl font-bold text-purple-400">
-                      {stats.nombreBiens}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">{stats.nombreBiens > 1 ? 'Biens' : 'Bien'}</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Section Export Excel */}
-            {biens.length > 0 && (
-              <ExportExcelButton nombreBiens={biens.length} />
-            )}
-
-            {/* Section Mes Biens */}
-            {biens.length > 0 && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                      Mes Biens
-                    </h2>
-                    <p className="text-slate-400">
-                      {biens.length} {biens.length > 1 ? 'propriétés' : 'propriété'} dans votre portefeuille
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {biens.map((bien, index) => {
-                    const charges = calculateChargesMensuelles(bien)
-                    const mensualite = bien.typeFinancement === 'CREDIT' ? (bien.mensualiteCredit || 0) : 0
-                    const cashflow = (bien.loyerMensuel || 0) - charges - mensualite
-
-                    return (
-                      <div 
-                        key={bien.id} 
-                        className="animate-in fade-in duration-500"
-                        style={{ animationDelay: `${0.8 + index * 0.1}s` }}
-                      >
-                        <Card className="relative border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/10 transition-shadow duration-300 overflow-hidden">
-                          {/* Decorative corner */}
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/10 to-transparent rounded-bl-[100px]" />
-                          
-                          <CardHeader className="relative">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <CardTitle className="text-xl font-bold text-white mb-2">
-                                  {bien.nom}
-                                </CardTitle>
-                                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{bien.ville}</span>
-                                </div>
-                              </div>
-                              <div className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-                                bien.typeFinancement === 'CASH' 
-                                  ? 'bg-emerald-500/20 text-emerald-400' 
-                                  : 'bg-blue-500/20 text-blue-400'
-                              }`}>
-                                {bien.typeFinancement === 'CASH' ? 'Comptant' : 'Crédit'}
-                              </div>
-                            </div>
-                          </CardHeader>
-
-                          <CardContent className="space-y-4">
-                            {/* Loyer */}
-                            <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl">
-                              <span className="text-slate-400 text-sm">Loyer mensuel</span>
-                              <span className="text-white font-semibold">
-                                {new Intl.NumberFormat('fr-FR', {
-                                  style: 'currency',
-                                  currency: 'EUR',
-                                  minimumFractionDigits: 0
-                                }).format(bien.loyerMensuel || 0)}
-                              </span>
-                            </div>
-
-                            {/* Cash-flow du bien */}
-                            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/50 to-slate-800/30 rounded-xl border border-slate-700/50">
-                              <span className="text-slate-400 text-sm font-medium">Cash-flow</span>
-                              <span className={`font-bold ${cashflow > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {cashflow > 0 ? '+' : ''}{new Intl.NumberFormat('fr-FR', {
-                                  style: 'currency',
-                                  currency: 'EUR',
-                                  minimumFractionDigits: 0
-                                }).format(cashflow)}
-                              </span>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="pt-2">
-                              <Link href={`/biens/${bien.id}`}>
-                                <Button 
-                                  variant="ghost" 
-                                  className="w-full justify-between text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 group/btn"
-                                >
-                                  <span>Voir les détails</span>
-                                  <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                                </Button>
-                              </Link>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Graphique d'évolution du patrimoine */}
-            {biens.length > 0 && (
-              <div className="mt-12 animate-in fade-in duration-500" style={{ animationDelay: '1s' }}>
-                <PatrimoineChart biens={biens} />
-              </div>
-            )}
-
-            {/* Message d'accueil si aucun bien */}
-            {biens.length === 0 && (
-              <div className="text-center max-w-lg mx-auto py-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
-                <div className="relative mb-8">
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full blur-3xl"></div>
-                  <div className="relative w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full flex items-center justify-center mx-auto border border-amber-500/30">
-                    <Home className="w-16 h-16 text-amber-400" />
-                  </div>
-                </div>
-                
-                <h2 className="text-4xl font-bold text-white mb-4">
-                  Commencez votre aventure immobilière
-                </h2>
-                
-                <p className="text-slate-400 mb-8 leading-relaxed text-lg">
-                  Ajoutez votre premier bien pour suivre vos investissements, calculer votre patrimoine et optimiser votre rentabilité.
-                </p>
-                
-                <Link href="/dashboard?add=true">
-                  <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/50 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-semibold"
-                  >
-                    <Home className="w-5 h-5 mr-2" />
-                    Ajouter mon premier bien
-                  </Button>
-                </Link>
-                
-                <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <TrendingUp className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-1">Suivez votre patrimoine</h3>
-                    <p className="text-slate-400 text-sm">Visualisez l'évolution de votre richesse immobilière</p>
-                  </div>
-                  
-                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                    <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <DollarSign className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-1">Optimisez vos revenus</h3>
-                    <p className="text-slate-400 text-sm">Analysez votre cash-flow et rentabilité</p>
-                  </div>
-                  
-                  <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <Wallet className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-1">Gérez vos charges</h3>
-                    <p className="text-slate-400 text-sm">Suivez tous vos coûts et dépenses</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <DashboardClient biens={biens} stats={stats} planType={planType} maxBiens={maxBiens} />
-        </div>
-      </Suspense>
-    )
-  } catch (error: unknown) {
-    logger.error('[Dashboard] Erreur chargement:', error)
-    redirect('/login')
+  // Loading state
+  if (authLoading || biensLoading) {
+    return <DashboardSkeleton />
   }
+
+  // Error state
+  if (biensError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="text-center p-6">
+          <p className="text-red-400 text-lg font-medium mb-2">Erreur de chargement des biens</p>
+          <p className="text-slate-400 text-sm">{biensError.message}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // User doit exister ici
+  if (!user || !biens) return null
+
+  return <DashboardClient biens={biens} userId={user.id} />
 }
