@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
+import { refreshSidebar } from "@/components/layout/Sidebar"
 import { PLANS } from "@/lib/stripe"
 import type { PlanType } from "@/lib/stripe"
 import { Badge } from "@/components/ui/badge"
@@ -84,7 +85,10 @@ export function DashboardClient({ biens, stats, planType, maxBiens }: DashboardC
     // 1. Fermer le dialog d'abord
     setDialogOpen(false)
     
-    // 2. Refresh des données pour afficher le nouveau bien
+    // 2. Rafraîchir la sidebar (client component) pour afficher le nouveau bien
+    refreshSidebar()
+    
+    // 3. Refresh des données server pour afficher le nouveau bien dans le dashboard
     router.refresh()
   }
 

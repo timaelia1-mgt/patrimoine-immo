@@ -50,6 +50,51 @@ export async function POST(_request: NextRequest): Promise<NextResponse<SessionR
       )
     }
 
+    // Vérifier que le customer existe dans l'environnement Stripe actuel
+    // (gère le cas test → prod où l'ID test n'existe pas en prod)
+    try {
+      const customer = await stripe.customers.retrieve(profile.stripe_customer_id)
+      if (customer.deleted) {
+        logger.warn('[Create Portal] Customer Stripe supprimé', { 
+          customerId: profile.stripe_customer_id, userId: user.id 
+        })
+
+        // Nettoyer le customer ID invalide du profil
+        await supabase
+          .from('profiles')
+          .update({ 
+            stripe_customer_id: null, 
+            stripe_subscription_id: null,
+            subscription_status: null,
+          })
+          .eq('id', user.id)
+
+        return NextResponse.json(
+          { error: 'Votre abonnement est invalide (environnement modifié). Veuillez souscrire à nouveau un plan payant.' },
+          { status: 400 }
+        )
+      }
+    } catch {
+      logger.warn('[Create Portal] Customer ID invalide (probablement test→prod)', { 
+        customerId: profile.stripe_customer_id, userId: user.id 
+      })
+
+      // Nettoyer le customer ID invalide du profil
+      await supabase
+        .from('profiles')
+        .update({ 
+          stripe_customer_id: null, 
+          stripe_subscription_id: null,
+          subscription_status: null,
+        })
+        .eq('id', user.id)
+
+      return NextResponse.json(
+        { error: 'Votre abonnement est invalide (environnement modifié). Veuillez souscrire à nouveau un plan payant.' },
+        { status: 400 }
+      )
+    }
+
     // Paramètres typés pour le portal
     const params: CreatePortalParams = {
       customer: profile.stripe_customer_id,
