@@ -44,7 +44,7 @@ const PatrimoineChart = dynamic(
           <div className="h-8 w-64 bg-slate-800 rounded animate-pulse mb-2" />
           <div className="h-5 w-96 bg-slate-800 rounded animate-pulse" />
         </div>
-        <div className="border border-slate-800/50 bg-slate-800/50 rounded-2xl p-6 h-96 animate-pulse" />
+        <div className="border border-[var(--color-border-primary)]/50 bg-slate-800/50 rounded-2xl p-6 h-96 animate-pulse" />
       </div>
     ),
   }
@@ -183,19 +183,19 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pt-16 lg:pt-0">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800/50">
+      <div className="relative overflow-hidden bg-slate-950 border-b border-[var(--color-border-primary)]/50">
         <div className="relative px-8 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-3 mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <span className="text-amber-400/80 text-xs font-medium tracking-wider uppercase">
+              <Sparkles className="w-5 h-5 text-[var(--color-brand-secondary)]" />
+              <span className="text-[var(--color-brand-secondary)] opacity-80 text-xs font-medium tracking-wider uppercase">
                 Votre Patrimoine
               </span>
             </div>
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-400 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-[var(--color-brand-secondary)] mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
               Tableau de Bord
             </h1>
-            <p className="text-slate-400 text-base max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <p className="text-[var(--color-text-secondary)] text-base max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
               Vue d&apos;ensemble de vos {stats.nombreBiens} {stats.nombreBiens > 1 ? 'biens immobiliers' : 'bien immobilier'}
             </p>
           </div>
@@ -208,10 +208,10 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {/* Cash Flow */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.3s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-emerald-500/20 transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30">
+                    <div className="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-success-glow">
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -229,7 +229,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       )}
                     </span>
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-400">
+                  <CardTitle className="text-sm font-medium text-[var(--color-text-secondary)]">
                     Cash-flow Mensuel
                   </CardTitle>
                 </CardHeader>
@@ -243,21 +243,21 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       minimumFractionDigits: 0
                     }).format(stats.totalCashFlow)}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2">Par mois</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-2">Par mois</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Loyers */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.4s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/20 transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+                    <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg">
                       <DollarSign className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-400">
+                  <CardTitle className="text-sm font-medium text-[var(--color-text-secondary)]">
                     Loyers Totaux
                   </CardTitle>
                 </CardHeader>
@@ -269,21 +269,21 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       minimumFractionDigits: 0
                     }).format(stats.totalLoyers)}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2">Par mois</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-2">Par mois</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Charges */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.5s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-orange-500/20 transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg shadow-orange-500/30">
+                    <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg">
                       <Wallet className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-400">
+                  <CardTitle className="text-sm font-medium text-[var(--color-text-secondary)]">
                     Charges Totales
                   </CardTitle>
                 </CardHeader>
@@ -295,21 +295,21 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       minimumFractionDigits: 0
                     }).format(stats.totalCharges + stats.totalMensualites)}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2">Par mois</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-2">Par mois</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Nombre de biens */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.6s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl hover:shadow-purple-500/20 transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg shadow-purple-500/30">
+                    <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg">
                       <Home className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <CardTitle className="text-sm font-medium text-slate-400">
+                  <CardTitle className="text-sm font-medium text-[var(--color-text-secondary)]">
                     Portefeuille
                   </CardTitle>
                 </CardHeader>
@@ -317,7 +317,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                   <p className="text-4xl font-bold text-purple-400">
                     {stats.nombreBiens}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2">{stats.nombreBiens > 1 ? 'Biens' : 'Bien'}</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-2">{stats.nombreBiens > 1 ? 'Biens' : 'Bien'}</p>
                 </CardContent>
               </Card>
             </div>
@@ -336,7 +336,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                   <h2 className="text-3xl font-bold text-white mb-2">
                     Mes Biens
                   </h2>
-                  <p className="text-slate-400">
+                  <p className="text-[var(--color-text-secondary)]">
                     {biens.length} {biens.length > 1 ? 'propriétés' : 'propriété'} dans votre portefeuille
                   </p>
                 </div>
@@ -354,9 +354,9 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       className="animate-in fade-in duration-500"
                       style={{ animationDelay: `${0.8 + index * 0.1}s` }}
                     >
-                      <Card className="relative border border-slate-800/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-amber-500/10 transition-shadow duration-300 overflow-hidden">
+                      <Card className="relative border border-[var(--color-border-primary)]/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
                         {/* Decorative corner */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/10 to-transparent rounded-bl-[100px]" />
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--color-brand-secondary)]/10 to-transparent rounded-bl-[100px]" />
 
                         <CardHeader className="relative">
                           <div className="flex items-start justify-between mb-3">
@@ -364,7 +364,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                               <CardTitle className="text-xl font-bold text-white mb-2">
                                 {bien.nom}
                               </CardTitle>
-                              <div className="flex items-center gap-2 text-slate-400 text-sm">
+                              <div className="flex items-center gap-2 text-[var(--color-text-secondary)] text-sm">
                                 <MapPin className="w-4 h-4" />
                                 <span>{bien.ville}</span>
                               </div>
@@ -382,7 +382,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                         <CardContent className="space-y-4">
                           {/* Loyer */}
                           <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl">
-                            <span className="text-slate-400 text-sm">Loyer mensuel</span>
+                            <span className="text-[var(--color-text-secondary)] text-sm">Loyer mensuel</span>
                             <span className="text-white font-semibold">
                               {new Intl.NumberFormat('fr-FR', {
                                 style: 'currency',
@@ -394,7 +394,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
                           {/* Cash-flow du bien */}
                           <div className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-800/50 to-slate-800/30 rounded-xl border border-slate-700/50">
-                            <span className="text-slate-400 text-sm font-medium">Cash-flow</span>
+                            <span className="text-[var(--color-text-secondary)] text-sm font-medium">Cash-flow</span>
                             <span className={`font-bold ${cashflow > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {cashflow > 0 ? '+' : ''}{new Intl.NumberFormat('fr-FR', {
                                 style: 'currency',
@@ -409,7 +409,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                             <Link href={`/biens/${bien.id}`}>
                               <Button
                                 variant="ghost"
-                                className="w-full justify-between text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 group/btn"
+                                className="w-full justify-between text-[var(--color-brand-secondary)] hover:text-[var(--color-brand-tertiary)] hover:bg-[var(--color-brand-primary)]/10 group/btn"
                               >
                                 <span>Voir les détails</span>
                                 <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
@@ -436,9 +436,9 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
           {biens.length === 0 && (
             <div className="text-center max-w-lg mx-auto py-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-700">
               <div className="relative mb-8">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full blur-3xl"></div>
-                <div className="relative w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full flex items-center justify-center mx-auto border border-amber-500/30">
-                  <Home className="w-16 h-16 text-amber-400" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-brand-secondary)]/20 to-[var(--color-brand-muted)]/20 rounded-full blur-3xl"></div>
+                <div className="relative w-32 h-32 bg-gradient-to-br from-[var(--color-brand-secondary)]/20 to-[var(--color-brand-muted)]/20 rounded-full flex items-center justify-center mx-auto border border-[var(--color-border-brand)]">
+                  <Home className="w-16 h-16 text-[var(--color-brand-secondary)]" />
                 </div>
               </div>
 
@@ -446,14 +446,14 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                 Commencez votre aventure immobilière
               </h2>
 
-              <p className="text-slate-400 mb-8 leading-relaxed text-lg">
+              <p className="text-[var(--color-text-secondary)] mb-8 leading-relaxed text-lg">
                 Ajoutez votre premier bien pour suivre vos investissements, calculer votre patrimoine et optimiser votre rentabilité.
               </p>
 
               <Link href="/dashboard?add=true">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/50 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-semibold"
+                  className="bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-muted)] hover:from-[var(--color-brand-muted)] hover:to-[var(--color-brand-primary)] text-white transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-semibold shadow-brand-glow hover:shadow-[var(--shadow-brand-lg)]"
                 >
                   <Home className="w-5 h-5 mr-2" />
                   Ajouter mon premier bien
@@ -466,7 +466,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                     <TrendingUp className="w-5 h-5 text-blue-400" />
                   </div>
                   <h3 className="text-white font-semibold mb-1">Suivez votre patrimoine</h3>
-                  <p className="text-slate-400 text-sm">Visualisez l&apos;évolution de votre richesse immobilière</p>
+                  <p className="text-[var(--color-text-secondary)] text-sm">Visualisez l&apos;évolution de votre richesse immobilière</p>
                 </div>
 
                 <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
@@ -474,7 +474,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                     <DollarSign className="w-5 h-5 text-emerald-400" />
                   </div>
                   <h3 className="text-white font-semibold mb-1">Optimisez vos revenus</h3>
-                  <p className="text-slate-400 text-sm">Analysez votre cash-flow et rentabilité</p>
+                  <p className="text-[var(--color-text-secondary)] text-sm">Analysez votre cash-flow et rentabilité</p>
                 </div>
 
                 <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 backdrop-blur-sm">
@@ -482,7 +482,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                     <Wallet className="w-5 h-5 text-purple-400" />
                   </div>
                   <h3 className="text-white font-semibold mb-1">Gérez vos charges</h3>
-                  <p className="text-slate-400 text-sm">Suivez tous vos coûts et dépenses</p>
+                  <p className="text-[var(--color-text-secondary)] text-sm">Suivez tous vos coûts et dépenses</p>
                 </div>
               </div>
             </div>
@@ -523,8 +523,8 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                 disabled={false}
                 className={
                   canCreateBien
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg'
-                    : 'bg-slate-700 text-slate-400 cursor-pointer hover:bg-slate-600'
+                    ? 'bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-muted)] hover:from-[var(--color-brand-muted)] hover:to-[var(--color-brand-primary)] text-white shadow-brand-glow'
+                    : 'bg-slate-700 text-[var(--color-text-secondary)] cursor-pointer hover:bg-slate-600'
                 }
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -534,12 +534,12 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
             {/* Alerte si proche de la limite */}
             {maxBiens !== null && remainingBiens !== null && remainingBiens > 0 && remainingBiens <= 2 && (
-              <Alert className="bg-amber-500/10 border-amber-500/30">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                <AlertTitle className="text-amber-400">Limite presque atteinte</AlertTitle>
-                <AlertDescription className="text-slate-300">
+              <Alert className="bg-[var(--color-brand-primary)]/10 border-[var(--color-border-brand)]">
+                <AlertCircle className="h-4 w-4 text-[var(--color-brand-primary)]" />
+                <AlertTitle className="text-[var(--color-brand-secondary)]">Limite presque atteinte</AlertTitle>
+                <AlertDescription className="text-[var(--color-text-secondary)]">
                   Il vous reste {remainingBiens} bien{remainingBiens > 1 ? 's' : ''} disponible{remainingBiens > 1 ? 's' : ''} sur votre plan {PLANS[planType]?.name ?? 'Gratuit'}.{' '}
-                  <Button variant="link" className="p-0 h-auto text-amber-400 hover:text-amber-300" asChild>
+                  <Button variant="link" className="p-0 h-auto text-[var(--color-brand-secondary)] hover:text-[var(--color-brand-tertiary)]" asChild>
                     <Link href="/abonnement">Passer à un plan supérieur</Link>
                   </Button>
                 </AlertDescription>

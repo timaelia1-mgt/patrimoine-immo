@@ -98,31 +98,31 @@ export function Sidebar() {
   const canAddMore = maxBiens === null || biens.length < maxBiens
 
   return (
-    <aside className="h-screen w-72 flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-r border-amber-900/20 relative overflow-hidden">
+    <aside className="h-screen w-72 flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-r border-[var(--color-border-brand)] relative overflow-hidden">
       {/* Grain texture overlay */}
       <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
       }} />
 
       {/* Accent border */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-brand-primary)]/30 to-transparent" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Header avec logo */}
-        <div className="p-6 pb-4 border-b border-slate-800/50">
+        <div className="p-6 pb-4 border-b border-[var(--color-border-primary)]/50">
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="relative">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/20 group-hover:border-amber-500/40 transition-all duration-300 group-hover:scale-105">
-                <Building2 className="w-6 h-6 text-amber-500" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-brand-primary)]/20 to-[var(--color-brand-muted)]/10 flex items-center justify-center border border-[var(--color-brand-primary)]/20 group-hover:border-[var(--color-brand-primary)]/40 transition-all duration-300 group-hover:scale-105">
+                <Building2 className="w-6 h-6 text-[var(--color-brand-primary)]" />
               </div>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--color-brand-primary)] rounded-full animate-pulse" />
             </div>
             <div className="flex-1">
               <h1 className="font-serif text-lg font-semibold bg-gradient-to-r from-amber-200 via-amber-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
                 Patrimoine Immo
               </h1>
-              <p className="text-[11px] text-slate-500 tracking-wide uppercase mt-0.5">Gestion Premium</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] tracking-wide uppercase mt-0.5">Gestion Premium</p>
             </div>
           </Link>
         </div>
@@ -140,13 +140,13 @@ export function Sidebar() {
                 className={`
                   group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative
                   ${isLinkActive
-                    ? 'bg-gradient-to-r from-amber-500/10 to-amber-600/5 text-amber-400 shadow-lg shadow-amber-500/10'
-                    : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800/40'
+                    ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/10 to-[var(--color-brand-muted)]/5 text-[var(--color-brand-secondary)] shadow-brand-glow'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-brand-tertiary)] hover:bg-slate-800/40'
                   }
                 `}
               >
                 {isLinkActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-amber-500 to-amber-600 rounded-r-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-[var(--color-brand-primary)] to-[var(--color-brand-muted)] rounded-r-full" />
                 )}
                 <Icon className={`w-5 h-5 transition-all duration-300 ${isLinkActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                 <span className={`font-medium text-[15px] tracking-tight ${isLinkActive ? 'font-semibold' : ''}`}>
@@ -162,28 +162,28 @@ export function Sidebar() {
           <div className="mb-3">
             <button
               onClick={() => setBiensExpanded(!biensExpanded)}
-              className="w-full flex items-center justify-between px-2 py-2 text-slate-500 hover:text-amber-400 transition-all duration-300 group"
+              className="w-full flex items-center justify-between px-2 py-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] transition-all duration-300 group"
             >
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-semibold tracking-widest uppercase">Mes Biens</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-800/60 text-amber-400 rounded-full border border-amber-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-800/60 text-[var(--color-brand-secondary)] rounded-full border border-[var(--color-brand-primary)]/20">
                   {biens.length}
                 </span>
               </div>
-              <ChevronDown className={`w-4 h-4 transition-all duration-300 ${biensExpanded ? 'rotate-180' : ''} group-hover:text-amber-400`} />
+              <ChevronDown className={`w-4 h-4 transition-all duration-300 ${biensExpanded ? 'rotate-180' : ''} group-hover:text-[var(--color-brand-secondary)]`} />
             </button>
 
             {biensExpanded && (
               <div className="mt-3">
                 {/* Search bar */}
                 <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
                   <input
                     type="text"
                     placeholder="Rechercher..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/30 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-border-brand)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -193,11 +193,11 @@ export function Sidebar() {
           {biensExpanded && (
             <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
               {loading ? (
-                <div role="status" className="flex items-center justify-center py-8 text-slate-500 text-sm">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-700 border-t-amber-500" />
+                <div role="status" className="flex items-center justify-center py-8 text-[var(--color-text-muted)] text-sm">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-700 border-t-[var(--color-brand-primary)]" />
                 </div>
               ) : filteredBiens.length === 0 ? (
-                <div className="text-center py-8 text-slate-600 text-sm">
+                <div className="text-center py-8 text-[var(--color-text-muted)] text-sm">
                   {searchQuery ? 'Aucun bien trouvé' : 'Aucun bien'}
                 </div>
               ) : (
@@ -215,13 +215,13 @@ export function Sidebar() {
                       className={`
                         group block relative overflow-hidden rounded-xl transition-all duration-300
                         ${isBienActive
-                          ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-amber-500/30 shadow-lg shadow-amber-500/10'
-                          : 'bg-slate-900/30 border border-slate-800/50 hover:border-slate-700/80 hover:bg-slate-800/40'
+                          ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-[var(--color-border-brand)] shadow-brand-glow'
+                          : 'bg-slate-900/30 border border-[var(--color-border-primary)]/50 hover:border-slate-700/80 hover:bg-slate-800/40'
                         }
                       `}
                     >
                       {isBienActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-amber-600" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[var(--color-brand-primary)] to-[var(--color-brand-muted)]" />
                       )}
 
                       <div className="p-3">
@@ -229,29 +229,29 @@ export function Sidebar() {
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                              <h4 className={`font-medium text-[13px] truncate transition-colors ${isBienActive ? 'text-amber-300' : 'text-slate-300 group-hover:text-slate-200'}`}>
+                              <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-brand-primary)] flex-shrink-0" />
+                              <h4 className={`font-medium text-[13px] truncate transition-colors ${isBienActive ? 'text-[var(--color-brand-tertiary)]' : 'text-[var(--color-text-secondary)] group-hover:text-slate-200'}`}>
                                 {bien.nom}
                               </h4>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5 ml-3.5">{bien.ville}</p>
+                            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 ml-3.5">{bien.ville}</p>
                           </div>
                         </div>
 
                         {/* KPIs inline - visibles au hover ou quand actif */}
                         <div className={`grid grid-cols-2 gap-2 transition-all duration-300 ${isHovered || isBienActive ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                           {bien.loyerMensuel > 0 && (
-                            <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-slate-800/50">
-                              <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Loyer</div>
-                              <div className="text-xs font-semibold text-amber-400">
+                            <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-[var(--color-border-primary)]/50">
+                              <div className="text-[9px] text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">Loyer</div>
+                              <div className="text-xs font-semibold text-[var(--color-brand-secondary)]">
                                 {bien.loyerMensuel.toLocaleString('fr-FR')} €
                               </div>
                             </div>
                           )}
 
                           {cashFlow !== null && (
-                            <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-slate-800/50">
-                              <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-[var(--color-border-primary)]/50">
+                              <div className="text-[9px] text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5 flex items-center gap-1">
                                 <TrendingUp className="w-2.5 h-2.5" />
                                 CF
                               </div>
@@ -271,14 +271,14 @@ export function Sidebar() {
         </div>
 
         {/* Séparateur doré */}
-        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-[var(--color-brand-primary)]/20 to-transparent" />
 
         {/* Bouton Ajouter un bien */}
         <div className="p-4">
           {canAddMore ? (
             <Link
               href="/dashboard?add=true"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-300 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-95"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-300 bg-gradient-to-r from-[var(--color-brand-muted)] to-[var(--color-brand-primary)] text-white shadow-brand-glow hover:shadow-[var(--shadow-brand-lg)] hover:scale-[1.02] active:scale-95"
             >
               <Plus className="w-5 h-5" />
               Ajouter un bien
@@ -287,12 +287,12 @@ export function Sidebar() {
             <div>
               <Link
                 href="/abonnement"
-                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-300 bg-slate-800/50 text-slate-500 border border-slate-700/50 hover:bg-slate-800 hover:text-amber-400 hover:border-amber-500/30"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-300 bg-slate-800/50 text-[var(--color-text-muted)] border border-slate-700/50 hover:bg-slate-800 hover:text-[var(--color-brand-secondary)] hover:border-[var(--color-border-brand)]"
               >
                 <CreditCard className="w-5 h-5" />
                 Limite atteinte
               </Link>
-              <p className="text-center text-[11px] text-slate-600 mt-2">
+              <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-2">
                 {biens.length}/{maxBiens} biens · Passez au plan supérieur
               </p>
             </div>
@@ -300,19 +300,19 @@ export function Sidebar() {
         </div>
 
         {/* Séparateur doré */}
-        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-[var(--color-brand-primary)]/20 to-transparent" />
 
         {/* User info + déconnexion */}
         <div className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-amber-400 font-bold text-sm border border-slate-700/50">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-[var(--color-brand-secondary)] font-bold text-sm border border-slate-700/50">
               {user?.email?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-slate-300 truncate">
+              <p className="font-medium text-sm text-[var(--color-text-secondary)] truncate">
                 {user?.email?.split("@")[0] || "Utilisateur"}
               </p>
-              <p className="text-[11px] text-slate-600 truncate">
+              <p className="text-[11px] text-[var(--color-text-muted)] truncate">
                 {user?.email || "temp@example.com"}
               </p>
             </div>
@@ -320,7 +320,7 @@ export function Sidebar() {
 
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-slate-500 hover:text-amber-400 hover:bg-slate-800/40 rounded-lg transition-all duration-300 group"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] hover:bg-slate-800/40 rounded-lg transition-all duration-300 group"
           >
             <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="font-medium">Déconnexion</span>

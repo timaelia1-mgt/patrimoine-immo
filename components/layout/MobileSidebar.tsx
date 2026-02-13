@@ -43,7 +43,7 @@ export function MobileSidebar() {
       {/* Bouton hamburger - fixé en haut à gauche, visible uniquement sur mobile/tablette */}
       <button
         onClick={() => setDrawerOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 bg-slate-900/90 backdrop-blur-sm border border-slate-800 rounded-lg text-amber-400 hover:bg-slate-800 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-40 p-2 bg-slate-900/90 backdrop-blur-sm border border-slate-800 rounded-lg text-[var(--color-brand-secondary)] hover:bg-slate-800 transition-colors"
         aria-label="Ouvrir le menu"
       >
         <Menu className="w-6 h-6" />
@@ -69,7 +69,7 @@ export function MobileSidebar() {
         {/* Bouton fermer */}
         <button
           onClick={() => setDrawerOpen(false)}
-          className="absolute top-4 right-4 z-10 p-2 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-brand-secondary)] transition-colors"
           aria-label="Fermer le menu"
         >
           <X className="w-5 h-5" />
