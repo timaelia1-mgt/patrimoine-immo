@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getBien, getLocataires, upsertLocataire } from '@/lib/database'
 import { logger } from '@/lib/logger'
+import { UpsertLocataireSchema } from '@/lib/schemas'
 
 export async function GET(
   request: NextRequest,
@@ -68,7 +69,30 @@ export async function PUT(
     }
     
     const { id } = await params
-    const body = await request.json()
+    const requestBody = await request.json()
+
+    // Validate request body with Zod
+    const validation = UpsertLocataireSchema.safeParse(requestBody)
+
+    if (!validation.success) {
+      const fieldErrors = validation.error.flatten().fieldErrors
+
+      logger.warn('[Upsert Locataire] Validation failed', {
+        userId: user.id,
+        bienId: id,
+        errors: fieldErrors,
+      })
+
+      return NextResponse.json(
+        {
+          error: 'Données invalides',
+          details: fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
+    const body = validation.data
     
     // Vérifier que le bien appartient à l'utilisateur
     const bien = await getBien(id, supabase)
@@ -87,14 +111,6 @@ export async function PUT(
       )
     }
     
-    // Valider que nom et prénom sont fournis
-    if (!body.nom || !body.prenom) {
-      return NextResponse.json(
-        { error: 'Le nom et le prénom sont obligatoires' },
-        { status: 400 }
-      )
-    }
-    
     // Récupérer le lot par défaut du bien
     const { data: defaultLot } = await supabase
       .from("lots")
@@ -110,15 +126,15 @@ export async function PUT(
       )
     }
 
-    // Upsert locataire avec les 3 paramètres (bienId, lotId, data)
+    // Upsert locataire with validated and type-safe data
     await upsertLocataire(id, defaultLot.id, {
       nom: body.nom,
       prenom: body.prenom,
       email: body.email || null,
       telephone: body.telephone || null,
       dateEntree: body.dateEntree || null,
-      montantAPL: parseFloat(body.montantAPL || '0'),
-      modePaiement: body.modePaiement || 'virement',
+      montantAPL: body.montantAPL ?? 0,
+      modePaiement: body.modePaiement ?? 'virement',
     })
     
     return NextResponse.json({ success: true })

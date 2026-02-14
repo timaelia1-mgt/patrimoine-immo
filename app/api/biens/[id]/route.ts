@@ -4,6 +4,7 @@ import { getBien, updateBien } from '@/lib/database'
 import { logger } from '@/lib/logger'
 import { trackServerEvent } from '@/lib/analytics/server'
 import { ANALYTICS_EVENTS } from '@/lib/analytics'
+import { UpdateBienSchema } from '@/lib/schemas'
 
 export async function GET(
   request: NextRequest,
@@ -64,7 +65,30 @@ export async function PUT(
     }
     
     const { id } = await params
-    const body = await request.json()
+    const requestBody = await request.json()
+
+    // Validate request body with Zod
+    const validation = UpdateBienSchema.safeParse(requestBody)
+
+    if (!validation.success) {
+      const fieldErrors = validation.error.flatten().fieldErrors
+
+      logger.warn('[Update Bien] Validation failed', {
+        userId: user.id,
+        bienId: id,
+        errors: fieldErrors,
+      })
+
+      return NextResponse.json(
+        {
+          error: 'Données invalides',
+          details: fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
+    const body = validation.data
     
     // Vérifier que le bien appartient à l'utilisateur
     const bien = await getBien(id, supabase)
@@ -83,7 +107,7 @@ export async function PUT(
       )
     }
     
-    // Mettre à jour le bien (passer le client serveur pour RLS)
+    // Mettre à jour le bien avec données validées (updateBien gère camelCase → snake_case)
     await updateBien(id, body, supabase)
 
     // Track bien updated
