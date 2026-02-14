@@ -113,7 +113,7 @@ export async function getBiens(userId: string, supabaseClient?: any): Promise<Bi
     .order("created_at", { ascending: false })
 
   if (error) {
-    console.error("Erreur getBiens:", error)
+    console.error("Erreur getBiens:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -149,7 +149,7 @@ export async function getBien(bienId: string, supabaseClient?: any): Promise<Bie
     if (error.code === "PGRST116") {
       return null // Bien non trouvé
     }
-    console.error("Erreur getBien:", error)
+    console.error("Erreur getBien:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -234,7 +234,7 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     .single()
 
   if (error) {
-    console.error("Erreur createBien:", error)
+    console.error("Erreur createBien:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -261,6 +261,11 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
 export async function updateBien(bienId: string, updates: Partial<Bien>, supabaseClient?: any): Promise<Bien> {
   // Convertir les clés camelCase en snake_case pour Supabase
   const updatesSnakeCase: any = {}
+
+  // Convertir typeFinancement si présent
+  if (updates.typeFinancement) {
+    updates.typeFinancement = updates.typeFinancement === "CREDIT" ? "credit" as any : "comptant" as any
+  }
   
   // Mapping manuel pour garantir la précision
   const fieldMapping: Record<string, string> = {
@@ -315,7 +320,7 @@ export async function updateBien(bienId: string, updates: Partial<Bien>, supabas
     .single()
 
   if (error) {
-    console.error("Erreur updateBien:", error)
+    console.error("Erreur updateBien:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -347,7 +352,7 @@ export async function deleteBien(bienId: string): Promise<void> {
     .eq("id", bienId)
 
   if (error) {
-    console.error("Erreur deleteBien:", error)
+    console.error("Erreur deleteBien:", JSON.stringify(error, null, 2))
     throw error
   }
 }
@@ -385,7 +390,7 @@ export async function getUserProfile(userId: string, supabaseClient?: any): Prom
     .maybeSingle()
 
   if (error) {
-    console.error("Erreur getUserProfile:", error)
+    console.error("Erreur getUserProfile:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -420,7 +425,7 @@ export async function createUserProfile(userId: string, email: string, name?: st
     .maybeSingle()
 
   if (error) {
-    console.error("Erreur createUserProfile:", error)
+    console.error("Erreur createUserProfile:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -466,7 +471,7 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
     .single()
 
   if (error) {
-    console.error("Erreur updateUserProfile:", error)
+    console.error("Erreur updateUserProfile:", JSON.stringify(error, null, 2))
     throw error
   }
 
@@ -813,7 +818,7 @@ export async function upsertLocataire(
       .eq('id', data.id)
 
     if (error) {
-      console.error('Erreur upsertLocataire (update):', error)
+      console.error('Erreur upsertLocataire (update):', JSON.stringify(error, null, 2))
       throw error
     }
   } else {
@@ -826,7 +831,7 @@ export async function upsertLocataire(
       })
 
     if (error) {
-      console.error('Erreur upsertLocataire (insert):', error)
+      console.error('Erreur upsertLocataire (insert):', JSON.stringify(error, null, 2))
       throw error
     }
   }
@@ -895,7 +900,7 @@ export async function getLoyers(bienId: string, annee: number, supabaseClient?: 
     .order('mois', { ascending: true })
   
   if (error) {
-    console.error('Erreur getLoyers:', error)
+    console.error('Erreur getLoyers:', JSON.stringify(error, null, 2))
     return []
   }
   
@@ -983,7 +988,7 @@ export async function upsertLoyer(
     .single()
   
   if (error) {
-    console.error('Erreur upsertLoyer:', error)
+    console.error('Erreur upsertLoyer:', JSON.stringify(error, null, 2))
     throw error
   }
   
