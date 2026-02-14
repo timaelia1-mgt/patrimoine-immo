@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { useBien } from '@/lib/hooks/use-bien'
 import { BienDetailClient } from '@/components/biens/BienDetailClient'
-import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Home } from 'lucide-react'
 
 export default function BienDetailPage() {
   const { user, loading: authLoading } = useAuth()
@@ -46,22 +46,26 @@ export default function BienDetailPage() {
   // Error / not found
   if (bienError || !bien) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
-            Bien introuvable
-          </p>
-          <Link href="/dashboard">
-            <Button variant="outline">
-              Retour au dashboard
-            </Button>
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center pt-16 lg:pt-0">
+        <EmptyState
+          icon={Home}
+          title="Bien introuvable"
+          description="Ce bien n&apos;existe pas ou a été supprimé de votre portefeuille."
+          action={{
+            label: "Retour au dashboard",
+            href: "/dashboard",
+            variant: "outline"
+          }}
+        />
       </div>
     )
   }
 
   if (!user) return null
 
-  return <BienDetailClient bien={bien} />
+  return (
+    <div className="animate-in fade-in duration-500">
+      <BienDetailClient bien={bien} />
+    </div>
+  )
 }

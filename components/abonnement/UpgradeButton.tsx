@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { toast } from 'sonner'
 import { PLANS } from '@/lib/stripe'
 
@@ -52,23 +51,17 @@ export function UpgradeButton({ targetPlan, userId }: UpgradeButtonProps) {
   }
 
   return (
-    <Button
+    <LoadingButton
       onClick={handleUpgrade}
-      disabled={loading}
+      loading={loading}
+      loadingText="Chargement..."
       className={`w-full ${
         targetPlan === 'premium'
           ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
           : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
       } text-white`}
     >
-      {loading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Chargement...
-        </>
-      ) : (
-        `Passer à ${plan.name} (${plan.price}€/mois)`
-      )}
-    </Button>
+      {`Passer à ${plan.name} (${plan.price}€/mois)`}
+    </LoadingButton>
   )
 }

@@ -122,7 +122,7 @@ export function Sidebar() {
               <h1 className="font-serif text-lg font-semibold bg-gradient-to-r from-amber-200 via-amber-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
                 Patrimoine Immo
               </h1>
-              <p className="text-[11px] text-[var(--color-text-muted)] tracking-wide uppercase mt-0.5">Gestion Premium</p>
+              <p className="text-[11px] text-[var(--color-text-tertiary)] tracking-wide uppercase mt-0.5">Gestion Premium</p>
             </div>
           </Link>
         </div>
@@ -138,7 +138,7 @@ export function Sidebar() {
                 key={link.href}
                 href={link.href}
                 className={`
-                  group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative
+                  group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative focus-ring-inset
                   ${isLinkActive
                     ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/10 to-[var(--color-brand-muted)]/5 text-[var(--color-brand-secondary)] shadow-brand-glow'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-brand-tertiary)] hover:bg-slate-800/40'
@@ -162,10 +162,10 @@ export function Sidebar() {
           <div className="mb-3">
             <button
               onClick={() => setBiensExpanded(!biensExpanded)}
-              className="w-full flex items-center justify-between px-2 py-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] transition-all duration-300 group"
+              className="w-full flex items-center justify-between px-2 py-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] transition-all duration-300 group focus-ring-inset rounded-lg"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold tracking-widest uppercase">Mes Biens</span>
+                <span className="text-xs font-semibold tracking-widest uppercase">Mes Biens</span>
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-800/60 text-[var(--color-brand-secondary)] rounded-full border border-[var(--color-brand-primary)]/20">
                   {biens.length}
                 </span>
@@ -183,7 +183,7 @@ export function Sidebar() {
                     placeholder="Rechercher..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-border-brand)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-all duration-200"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-[var(--color-text-secondary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-secondary)] focus:ring-2 focus:ring-[var(--color-brand-secondary)]/30 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -234,7 +234,7 @@ export function Sidebar() {
                                 {bien.nom}
                               </h4>
                             </div>
-                            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 ml-3.5">{bien.ville}</p>
+                            <p className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5 ml-3.5">{bien.ville}</p>
                           </div>
                         </div>
 
@@ -242,7 +242,7 @@ export function Sidebar() {
                         <div className={`grid grid-cols-2 gap-2 transition-all duration-300 ${isHovered || isBienActive ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                           {bien.loyerMensuel > 0 && (
                             <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-[var(--color-border-primary)]/50">
-                              <div className="text-[9px] text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">Loyer</div>
+                              <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider mb-0.5">Loyer</div>
                               <div className="text-xs font-semibold text-[var(--color-brand-secondary)]">
                                 {bien.loyerMensuel.toLocaleString('fr-FR')} €
                               </div>
@@ -251,7 +251,7 @@ export function Sidebar() {
 
                           {cashFlow !== null && (
                             <div className="bg-slate-950/50 rounded-lg px-2 py-1.5 border border-[var(--color-border-primary)]/50">
-                              <div className="text-[9px] text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                              <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider mb-0.5 flex items-center gap-1">
                                 <TrendingUp className="w-2.5 h-2.5" />
                                 CF
                               </div>
@@ -292,7 +292,7 @@ export function Sidebar() {
                 <CreditCard className="w-5 h-5" />
                 Limite atteinte
               </Link>
-              <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-2">
+              <p className="text-center text-[11px] text-[var(--color-text-tertiary)] mt-2">
                 {biens.length}/{maxBiens} biens · Passez au plan supérieur
               </p>
             </div>
@@ -312,7 +312,7 @@ export function Sidebar() {
               <p className="font-medium text-sm text-[var(--color-text-secondary)] truncate">
                 {user?.email?.split("@")[0] || "Utilisateur"}
               </p>
-              <p className="text-[11px] text-[var(--color-text-muted)] truncate">
+              <p className="text-[11px] text-[var(--color-text-tertiary)] truncate">
                 {user?.email || "temp@example.com"}
               </p>
             </div>
@@ -320,7 +320,7 @@ export function Sidebar() {
 
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] hover:bg-slate-800/40 rounded-lg transition-all duration-300 group"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-brand-secondary)] hover:bg-slate-800/40 rounded-lg transition-all duration-300 group focus-ring-inset"
           >
             <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="font-medium">Déconnexion</span>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { 
@@ -13,7 +13,6 @@ import {
   FileText, 
   Upload, 
   Database, 
-  Loader2,
   Lightbulb,
   FolderDown,
   FolderUp
@@ -168,23 +167,16 @@ export function DataManagementSection() {
                       ✓ Comptabilité
                     </span>
                   </div>
-                  <Button
+                  <LoadingButton
                     onClick={handleExportExcel}
                     disabled={isAnyLoading}
+                    loading={isLoadingExcel}
+                    loadingText="Export en cours..."
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    {isLoadingExcel ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Export en cours...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-2" />
-                        Télécharger .xlsx
-                      </>
-                    )}
-                  </Button>
+                    <Download className="w-4 h-4 mr-2" />
+                    Télécharger .xlsx
+                  </LoadingButton>
                 </div>
               </div>
             </div>
@@ -210,23 +202,16 @@ export function DataManagementSection() {
                       ✓ Déclarations
                     </span>
                   </div>
-                  <Button
+                  <LoadingButton
                     onClick={handleExportPDF}
                     disabled={isAnyLoading}
+                    loading={isLoadingPDF}
+                    loadingText="Génération..."
                     className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                   >
-                    {isLoadingPDF ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Génération...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Télécharger .pdf
-                      </>
-                    )}
-                  </Button>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Télécharger .pdf
+                  </LoadingButton>
                 </div>
               </div>
             </div>
@@ -301,24 +286,17 @@ export function DataManagementSection() {
                       ✓ Réimportable
                     </span>
                   </div>
-                  <Button
+                  <LoadingButton
                     onClick={handleBackup}
                     disabled={isAnyLoading}
+                    loading={isLoadingBackup}
+                    loadingText="Création..."
                     variant="outline"
                     className="w-full"
                   >
-                    {isLoadingBackup ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Création...
-                      </>
-                    ) : (
-                      <>
-                        <Database className="w-4 h-4 mr-2" />
-                        Télécharger .json
-                      </>
-                    )}
-                  </Button>
+                    <Database className="w-4 h-4 mr-2" />
+                    Télécharger .json
+                  </LoadingButton>
                 </div>
               </div>
             </div>

@@ -8,6 +8,14 @@ export default function AppLayout({
 }>) {
   return (
     <div className="flex h-screen">
+      {/* Skip to main content — pour la navigation clavier */}
+      <a
+        href="#main-content"
+        className="skip-link"
+      >
+        Aller au contenu principal
+      </a>
+
       {/* Desktop Sidebar - caché sur mobile/tablette */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -17,7 +25,7 @@ export default function AppLayout({
       <MobileSidebar />
 
       {/* Contenu principal */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+      <main id="main-content" className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
         {children}
       </main>
     </div>

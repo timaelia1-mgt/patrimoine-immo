@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useBiens } from '@/lib/hooks/use-biens'
 import { DashboardClient } from '@/components/dashboard/DashboardClient'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
+import { ErrorState } from '@/components/ui/error-state'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
@@ -32,11 +33,14 @@ export default function DashboardPage() {
   // Error state
   if (biensError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="text-center p-6">
-          <p className="text-red-400 text-lg font-medium mb-2">Erreur de chargement des biens</p>
-          <p className="text-slate-400 text-sm">{biensError.message}</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-6">
+        <ErrorState
+          title="Impossible de charger vos biens"
+          message="Une erreur s&apos;est produite lors du chargement de vos biens immobiliers."
+          error={biensError}
+          onRetry={() => window.location.reload()}
+          retryText="Recharger la page"
+        />
       </div>
     )
   }
@@ -44,5 +48,9 @@ export default function DashboardPage() {
   // User doit exister ici
   if (!user || !biens) return null
 
-  return <DashboardClient biens={biens} userId={user.id} />
+  return (
+    <div className="animate-in fade-in duration-500">
+      <DashboardClient biens={biens} userId={user.id} />
+    </div>
+  )
 }

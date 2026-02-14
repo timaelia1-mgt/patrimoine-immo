@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Settings, Loader2 } from 'lucide-react'
+import { LoadingButton } from '@/components/ui/loading-button'
+import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ManageSubscriptionButtonProps {
@@ -45,23 +45,15 @@ export function ManageSubscriptionButton({
   }
 
   return (
-    <Button
+    <LoadingButton
       onClick={handleManageSubscription}
-      disabled={loading}
+      loading={loading}
+      loadingText="Chargement..."
       variant="outline"
       className={className}
     >
-      {loading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Chargement...
-        </>
-      ) : (
-        <>
-          <Settings className="mr-2 h-4 w-4" />
-          Gérer mon abonnement
-        </>
-      )}
-    </Button>
+      <Settings className="mr-2 h-4 w-4" />
+      Gérer mon abonnement
+    </LoadingButton>
   )
 }

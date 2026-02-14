@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, memo, useCallback } from 'react'
+import { useState, memo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
@@ -10,7 +11,6 @@ import {
   Download, 
   FileSpreadsheet, 
   FileText, 
-  Loader2, 
   Settings,
   ChevronRight,
   Database
@@ -135,38 +135,28 @@ export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }
           <div className="p-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Export Excel */}
-              <Button
+              <LoadingButton
                 onClick={handleExportExcel}
                 disabled={isAnyLoading || nombreBiens === 0}
+                loading={isLoadingExcel}
                 className="h-auto py-4 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex-col gap-1"
               >
-                {isLoadingExcel ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="w-5 h-5" />
-                )}
-                <span className="text-sm font-medium">
-                  {isLoadingExcel ? 'Export...' : 'Excel'}
-                </span>
+                {!isLoadingExcel && <FileSpreadsheet className="w-5 h-5" />}
+                <span className="text-sm font-medium">Excel</span>
                 <span className="text-xs opacity-70">.xlsx</span>
-              </Button>
+              </LoadingButton>
               
               {/* Export PDF */}
-              <Button
+              <LoadingButton
                 onClick={handleExportPDF}
                 disabled={isAnyLoading || nombreBiens === 0}
+                loading={isLoadingPDF}
                 className="h-auto py-4 px-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white shadow-lg shadow-rose-500/20 disabled:opacity-50 flex-col gap-1"
               >
-                {isLoadingPDF ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <FileText className="w-5 h-5" />
-                )}
-                <span className="text-sm font-medium">
-                  {isLoadingPDF ? 'Génération...' : 'Rapport PDF'}
-                </span>
+                {!isLoadingPDF && <FileText className="w-5 h-5" />}
+                <span className="text-sm font-medium">Rapport PDF</span>
                 <span className="text-xs opacity-70">.pdf</span>
-              </Button>
+              </LoadingButton>
               
               {/* Lien Import/Backup */}
               <Link href="/parametres" className="block">

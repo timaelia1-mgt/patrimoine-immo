@@ -3,10 +3,11 @@
 import { useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
-import { Upload, FileText, Download, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
+import { Upload, FileText, Download, AlertCircle, CheckCircle2, X } from 'lucide-react'
 
 interface ImportCSVModalProps {
   isOpen: boolean
@@ -278,23 +279,16 @@ Maison Bordeaux,12 rue des Vignes,33000,Bordeaux,credit,400000,30000,25000,10000
             >
               Annuler
             </Button>
-            <Button 
+            <LoadingButton 
               onClick={handleImport} 
-              disabled={!file || loading}
+              disabled={!file}
+              loading={loading}
+              loadingText="Import en cours..."
               className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Import en cours...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Importer les biens
-                </>
-              )}
-            </Button>
+              <Upload className="w-4 h-4 mr-2" />
+              Importer les biens
+            </LoadingButton>
           </div>
         </div>
       </DialogContent>

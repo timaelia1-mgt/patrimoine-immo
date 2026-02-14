@@ -1,7 +1,8 @@
 'use client'
 
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -112,9 +113,11 @@ export function PlanCard({
           Plan de base
         </Button>
       ) : (
-        <Button
+        <LoadingButton
           onClick={handleUpgrade}
-          disabled={disabled || loading}
+          disabled={disabled}
+          loading={loading}
+          loadingText="Chargement..."
           className={cn(
             'w-full font-semibold',
             isPopular 
@@ -122,15 +125,8 @@ export function PlanCard({
               : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100'
           )}
         >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Chargement...
-            </>
-          ) : (
-            `Passer à ${name}`
-          )}
-        </Button>
+          {`Passer à ${name}`}
+        </LoadingButton>
       )}
     </Card>
   )

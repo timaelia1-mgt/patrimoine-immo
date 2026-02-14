@@ -208,7 +208,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {/* Cash Flow */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.3s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:border-[var(--color-border-brand)] transition-all duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-success-glow">
@@ -250,7 +250,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
             {/* Loyers */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.4s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:border-[var(--color-border-brand)] transition-all duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg">
@@ -276,7 +276,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
             {/* Charges */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.5s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:border-[var(--color-border-brand)] transition-all duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg">
@@ -302,7 +302,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
             {/* Nombre de biens */}
             <div className="animate-in fade-in duration-500" style={{ animationDelay: '0.6s' }}>
-              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <Card className="relative border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:border-[var(--color-border-brand)] transition-all duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg">
@@ -354,7 +354,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                       className="animate-in fade-in duration-500"
                       style={{ animationDelay: `${0.8 + index * 0.1}s` }}
                     >
-                      <Card className="relative border border-[var(--color-border-primary)]/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
+                      <Card className="relative border border-[var(--color-border-primary)]/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 overflow-hidden">
                         {/* Decorative corner */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--color-brand-secondary)]/10 to-transparent rounded-bl-[100px]" />
 
@@ -521,13 +521,13 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
                   }
                 }}
                 disabled={false}
-                className={
+                className={`group ${
                   canCreateBien
                     ? 'bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-muted)] hover:from-[var(--color-brand-muted)] hover:to-[var(--color-brand-primary)] text-white shadow-brand-glow'
                     : 'bg-slate-700 text-[var(--color-text-secondary)] cursor-pointer hover:bg-slate-600'
-                }
+                }`}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90 duration-300" />
                 {canCreateBien ? 'Ajouter un bien' : 'Limite atteinte'}
               </Button>
             </div>
