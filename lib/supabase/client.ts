@@ -6,23 +6,24 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          const cookies = document.cookie.split(';')
-          const cookie = cookies.find(c => c.trim().startsWith(name + '='))
-          return cookie ? cookie.split('=')[1] : null
+        getAll() {
+          return document.cookie.split('; ').map(cookie => {
+            const [name, ...value] = cookie.split('=')
+            return { name, value: value.join('=') }
+          })
         },
-        set(name, value, options) {
-          let cookie = `${name}=${value}`
-          if (options?.maxAge) cookie += `; max-age=${options.maxAge}`
-          if (options?.path) cookie += `; path=${options.path}`
-          if (options?.domain) cookie += `; domain=${options.domain}`
-          cookie += '; SameSite=Lax; Secure'
-          document.cookie = cookie
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            let cookie = `${name}=${value}`
+            if (options?.maxAge) cookie += `; max-age=${options.maxAge}`
+            if (options?.path) cookie += `; path=${options.path}`
+            if (options?.domain) cookie += `; domain=${options.domain}`
+            if (options?.sameSite) cookie += `; SameSite=${options.sameSite}`
+            if (options?.secure) cookie += '; Secure'
+            document.cookie = cookie
+          })
         },
-        remove(name, options) {
-          document.cookie = `${name}=; path=${options?.path || '/'}; max-age=0`
-        }
-      }
+      },
     }
   )
 }
