@@ -107,16 +107,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
     
     // Fetch session from server (can read HTTP-only cookies)
+    console.log('[Auth] Fetching session from server...')
     fetch('/api/auth/session')
-      .then(res => res.json())
+      .then(res => {
+        console.log('[Auth] API response:', res.status)
+        return res.json()
+      })
       .then(({ session }) => {
+        console.log('[Auth] Session received:', !!session, session?.user?.id)
         if (isMounted && session) {
           setSession(session)
           setUser(session.user)
           setLoading(false)
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[Auth] Fetch error:', err)
         if (isMounted) setLoading(false)
       })
 
