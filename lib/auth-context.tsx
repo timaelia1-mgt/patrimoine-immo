@@ -28,8 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const hasTrackedSession = useRef(false) // Tracker login une seule fois par session
   
-  // CRITIQUE : Créer supabase une seule fois avec useMemo pour éviter les re-renders infinis
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useRef<ReturnType<typeof createClient> | null>(null)
 
   const createProfileIfNeeded = useCallback(async (userId: string, email: string, name?: string) => {
     try {
@@ -45,8 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
+    if (!supabase.current) {
+      supabase.current = createClient()
+    }
+    const supabaseClient = supabase.current
+
     // UN SEUL listener pour TOUT gérer
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
       async (event: any, session: Session | null) => {
         if (!isMounted) return
         
@@ -72,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Identify user dans PostHog (toujours, pour garder les propriétés à jour)
           try {
-            const { data: profile } = await supabase
+            const { data: profile } = await supabaseClient
               .from('profiles')
               .select('plan_type, name, email')
               .eq('id', session.user.id)
@@ -130,15 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, createProfileIfNeeded])
+  }, [createProfileIfNeeded])
 
   const signOut = useCallback(async () => {
     try {
       // Track logout AVANT de reset
       trackEvent(ANALYTICS_EVENTS.LOGOUT)
   
-      // ✅ Utiliser le client mémorisé au lieu d'en créer un nouveau
-      const { error } = await supabase.auth.signOut()
+      // Utiliser le client via ref
+      if (!supabase.current) {
+        supabase.current = createClient()
+      }
+      const { error } = await supabase.current.auth.signOut()
       if (error) {
         logger.error("[AuthContext] Erreur lors de la déconnexion:", error)
         throw error
@@ -166,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.location.href = '/login'
       throw error
     }
-  }, [supabase])  // ✅ Ajouter supabase en dépendance
+  }, [])
 
   // CRITIQUE : Mémoriser l'objet value pour éviter les re-renders en cascade
   const contextValue = useMemo(
