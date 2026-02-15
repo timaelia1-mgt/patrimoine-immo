@@ -1047,7 +1047,7 @@ export async function getInvestissementsSecondaires(
     throw new Error(`Impossible de récupérer les investissements secondaires: ${error.message || error.code || 'erreur inconnue'}`)
   }
   
-  return (data || []).map((inv) => ({
+  return (data || []).map((inv: any) => ({
     id: inv.id,
     bienId: inv.bien_id,
     date: inv.date,
