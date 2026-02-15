@@ -106,8 +106,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
     
-    // FORCER un refresh de session immédiatement
-    supabase.auth.refreshSession()
+    // Fetch session from server (can read HTTP-only cookies)
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(({ session }) => {
+        if (isMounted && session) {
+          setSession(session)
+          setUser(session.user)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false)
+      })
 
     return () => {
       isMounted = false
