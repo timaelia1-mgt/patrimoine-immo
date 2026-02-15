@@ -108,7 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Trigger manuel pour forcer le premier event immédiatement
     // Ceci évite le flash de loading
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      const session = data.session
       if (isMounted && loading) {
         setSession(session)
         setUser(session?.user ?? null)
