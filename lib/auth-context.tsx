@@ -49,89 +49,136 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const supabaseClient = supabase.current
 
-    // UN SEUL listener pour TOUT gérer
+    // Flag pour savoir si la session initiale a été résolue
+    let initialSessionResolved = false
+
+    // Fonction async pour les opérations secondaires (profil + analytics)
+    // Ne bloque PAS le loading state
+    const handleSessionSideEffects = async (currentSession: Session | null) => {
+      if (!currentSession?.user) {
+        hasTrackedSession.current = false
+        return
+      }
+
+      try {
+        await createProfileIfNeeded(
+          currentSession.user.id,
+          currentSession.user.email || "",
+          currentSession.user.user_metadata?.name
+        )
+      } catch (err) {
+        logger.error("[AuthContext] Erreur lors de la création du profil:", err)
+      }
+
+      // Identify user dans PostHog
+      try {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('plan_type, name, email')
+          .eq('id', currentSession.user.id)
+          .single()
+
+        if (!isMounted) return
+
+        identifyUser(currentSession.user.id, {
+          email: profile?.email || currentSession.user.email,
+          plan_type: profile?.plan_type || 'gratuit',
+          name: profile?.name,
+          created_at: currentSession.user.created_at,
+        })
+
+        // Track login seulement la première fois
+        if (!hasTrackedSession.current) {
+          trackEvent(ANALYTICS_EVENTS.LOGIN, {
+            plan_type: profile?.plan_type || 'gratuit',
+          })
+          hasTrackedSession.current = true
+          logger.info('[Auth] User login tracked', {
+            userId: currentSession.user.id,
+          })
+        }
+      } catch (err) {
+        logger.error("[AuthContext] Erreur analytics identify:", err)
+      }
+    }
+
+    // Listener pour les changements d'état d'auth
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      async (event: any, session: Session | null) => {
+      async (event: string, currentSession: Session | null) => {
         if (!isMounted) return
         
-        setSession(session)
-        setUser(session?.user ?? null)
+        setSession(currentSession)
+        setUser(currentSession?.user ?? null)
         
-        // CRITIQUE : Mettre loading=false IMMÉDIATEMENT après setUser
-        // Les opérations async (profil, analytics) ne doivent PAS bloquer le loading
-        setLoading(false)
-        
-        // Opérations secondaires (profil + analytics) en arrière-plan
-        // Ne bloquent plus le loading state
-        if (session?.user) {
-          try {
-            await createProfileIfNeeded(
-              session.user.id,
-              session.user.email || "",
-              session.user.user_metadata?.name
-            )
-          } catch (err) {
-            logger.error("[AuthContext] Erreur lors de la création du profil:", err)
-          }
-
-          // Identify user dans PostHog (toujours, pour garder les propriétés à jour)
-          try {
-            const { data: profile } = await supabaseClient
-              .from('profiles')
-              .select('plan_type, name, email')
-              .eq('id', session.user.id)
-              .single()
-
-            if (!isMounted) return
-
-            identifyUser(session.user.id, {
-              email: profile?.email || session.user.email,
-              plan_type: profile?.plan_type || 'gratuit',
-              name: profile?.name,
-              created_at: session.user.created_at,
-            })
-
-            // Track login seulement la première fois (éviter double track au refresh)
-            if (!hasTrackedSession.current) {
-              trackEvent(ANALYTICS_EVENTS.LOGIN, {
-                plan_type: profile?.plan_type || 'gratuit',
-              })
-              hasTrackedSession.current = true
-              logger.info('[Auth] User login tracked', {
-                userId: session.user.id,
-              })
-            }
-          } catch (err) {
-            logger.error("[AuthContext] Erreur analytics identify:", err)
-          }
-        } else {
+        if (currentSession) {
+          // Session valide → on peut mettre loading=false immédiatement
+          setLoading(false)
+          initialSessionResolved = true
+          // Side effects en arrière-plan
+          handleSessionSideEffects(currentSession)
+        } else if (event === 'SIGNED_OUT') {
+          // Déconnexion explicite → loading=false
+          setLoading(false)
+          initialSessionResolved = true
           hasTrackedSession.current = false
+        } else if (event === 'INITIAL_SESSION') {
+          // INITIAL_SESSION avec session null → NE PAS mettre loading=false !
+          // On attend la vérification côté serveur pour confirmer.
+          // Si le serveur confirme aussi null → loading sera mis à false par le fetch.
+          // Cela évite la race condition où on redirige vers /login prématurément.
+          if (initialSessionResolved) {
+            // Le fetch serveur a déjà répondu → on peut set loading=false
+            setLoading(false)
+          }
+          // sinon, on laisse le fetch serveur décider
+        } else {
+          // Autre event (TOKEN_REFRESHED, etc.) sans session → loading=false
+          setLoading(false)
+          initialSessionResolved = true
         }
       }
     )
     
-    // Fetch session from server (can read HTTP-only cookies)
-    console.log('[Auth] Fetching session from server...')
+    // Vérification côté serveur (backup fiable)
+    // Le serveur peut lire les cookies HTTP-only et valider la session
     fetch('/api/auth/session')
       .then(res => {
-        console.log('[Auth] API response:', res.status)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
-      .then(({ session }) => {
-        console.log('[Auth] Session received:', !!session, session?.user?.id)
-        if (isMounted && session) {
-          setSession(session)
-          setUser(session.user)
+      .then(({ session: serverSession }) => {
+        if (!isMounted) return
+        initialSessionResolved = true
+        
+        if (serverSession) {
+          setSession(serverSession)
+          setUser(serverSession.user)
+          // Side effects en arrière-plan
+          handleSessionSideEffects(serverSession)
+        }
+        // CRITIQUE : TOUJOURS mettre loading=false, même si session est null
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('[Auth] Server session check failed:', err)
+        if (isMounted) {
+          initialSessionResolved = true
           setLoading(false)
         }
       })
-      .catch((err) => {
-        console.error('[Auth] Fetch error:', err)
-        if (isMounted) setLoading(false)
-      })
+
+    // Safety net : si rien ne résout après 8 secondes, forcer loading=false
+    // Empêche le chargement infini dans tous les cas extrêmes
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('[Auth] Safety timeout: forcing loading=false after 8s')
+        setLoading(false)
+      }
+    }, 8000)
 
     return () => {
       isMounted = false
+      clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
   }, [createProfileIfNeeded])

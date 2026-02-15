@@ -11,5 +11,6 @@ export const config = {
     '/biens/:path*',
     '/parametres/:path*',
     '/abonnement/:path*',
+    '/api/auth/session',
   ],
 }
