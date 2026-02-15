@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Ceci évite le flash de loading
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       const session = data.session
-      if (isMounted && loading) {
+      if (isMounted) {
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
