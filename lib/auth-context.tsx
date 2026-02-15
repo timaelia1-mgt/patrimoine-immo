@@ -106,22 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
     
-    // Trigger manuel pour forcer le premier event immédiatement
-    // Ceci évite le flash de loading
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
-      const session = data.session
-      if (isMounted) {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setLoading(false)
-      }
-    }).catch(() => {
-      // En cas d'erreur, on met juste loading à false
-      // onAuthStateChange prendra le relais
-      if (isMounted) {
-        setLoading(false)
-      }
-    })
+    // FORCER un refresh de session immédiatement
+    supabase.auth.refreshSession()
 
     return () => {
       isMounted = false
