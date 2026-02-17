@@ -101,6 +101,14 @@ export function Financement({ bien }: FinancementProps) {
       toast.success("Financement mis à jour avec succès")
       setEditing(false)
       router.refresh()
+      // Forcer le re-render du composant avec les nouvelles données
+      setFormData({
+        dateDebutCredit: formData.dateDebutCredit,
+        mensualiteCredit: formData.mensualiteCredit,
+        montantCredit: formData.montantCredit,
+        tauxCredit: formData.tauxCredit,
+        dureeCredit: formData.dureeCredit,
+      })
     } catch (error) {
       console.error("Erreur sauvegarde financement:", error)
       toast.error("Erreur lors de la sauvegarde du financement")
