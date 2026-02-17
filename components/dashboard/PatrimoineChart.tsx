@@ -362,7 +362,7 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                     padding: '12px'
                   }}
                   labelStyle={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '8px' }}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name?: string) => {
                     const label = name === 'patrimoineEstime'
                       ? 'Estimation marché'
                       : 'Capital remboursé'
