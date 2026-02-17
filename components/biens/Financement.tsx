@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Calendar, CreditCard, TrendingUp, Clock, DollarSign, Target, Wallet } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ interface FinancementProps {
 }
 
 export function Financement({ bien }: FinancementProps) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -29,6 +29,21 @@ export function Financement({ bien }: FinancementProps) {
     tauxCredit: bien.tauxCredit?.toString() || "0",
     dureeCredit: bien.dureeCredit?.toString() || "0",
   })
+
+  // Synchroniser le formData quand React Query re-fetch le bien
+  useEffect(() => {
+    if (!editing) {
+      setFormData({
+        dateDebutCredit: bien.dateDebutCredit
+          ? new Date(bien.dateDebutCredit).toISOString().split('T')[0]
+          : "",
+        mensualiteCredit: bien.mensualiteCredit?.toString() || "0",
+        montantCredit: bien.montantCredit?.toString() || "0",
+        tauxCredit: bien.tauxCredit?.toString() || "0",
+        dureeCredit: bien.dureeCredit?.toString() || "0",
+      })
+    }
+  }, [bien.dateDebutCredit, bien.mensualiteCredit, bien.montantCredit, bien.tauxCredit, bien.dureeCredit]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calcul de la progression du crédit
   const progressionCredit = useMemo(() => {
@@ -100,15 +115,9 @@ export function Financement({ bien }: FinancementProps) {
 
       toast.success("Financement mis à jour avec succès")
       setEditing(false)
-      router.refresh()
-      // Forcer le re-render du composant avec les nouvelles données
-      setFormData({
-        dateDebutCredit: formData.dateDebutCredit,
-        mensualiteCredit: formData.mensualiteCredit,
-        montantCredit: formData.montantCredit,
-        tauxCredit: formData.tauxCredit,
-        dureeCredit: formData.dureeCredit,
-      })
+      // Invalider le cache React Query pour re-fetcher le bien à jour
+      queryClient.invalidateQueries({ queryKey: ['bien', bien.id] })
+      queryClient.invalidateQueries({ queryKey: ['biens'] })
     } catch (error) {
       console.error("Erreur sauvegarde financement:", error)
       toast.error("Erreur lors de la sauvegarde du financement")

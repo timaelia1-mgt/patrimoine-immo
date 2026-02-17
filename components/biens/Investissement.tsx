@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { 
   Home, 
   FileText, 
@@ -30,7 +30,7 @@ interface InvestissementProps {
 }
 
 export function Investissement({ bien }: InvestissementProps) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   
@@ -41,6 +41,18 @@ export function Investissement({ bien }: InvestissementProps) {
     travauxInitiaux: bien.travauxInitiaux?.toString() || "0",
     autresFrais: bien.autresFrais?.toString() || "0",
   })
+
+  // Synchroniser le formData quand React Query re-fetch le bien
+  useEffect(() => {
+    if (!editing) {
+      setFormData({
+        prixAchat: bien.prixAchat?.toString() || "0",
+        fraisNotaire: bien.fraisNotaire?.toString() || "0",
+        travauxInitiaux: bien.travauxInitiaux?.toString() || "0",
+        autresFrais: bien.autresFrais?.toString() || "0",
+      })
+    }
+  }, [bien.prixAchat, bien.fraisNotaire, bien.travauxInitiaux, bien.autresFrais]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // État investissements secondaires
   const [investissementsSecondaires, setInvestissementsSecondaires] = useState<InvestissementSecondaire[]>([])
@@ -110,8 +122,9 @@ export function Investissement({ bien }: InvestissementProps) {
 
       toast.success("Investissement initial mis à jour")
       setEditing(false)
-      // Ne PAS reset le formData — garder les nouvelles valeurs affichées
-      router.refresh()
+      // Invalider le cache React Query pour re-fetcher le bien à jour
+      queryClient.invalidateQueries({ queryKey: ['bien', bien.id] })
+      queryClient.invalidateQueries({ queryKey: ['biens'] })
     } catch (error) {
       console.error("Erreur sauvegarde investissement:", error)
       toast.error("Erreur lors de la sauvegarde")

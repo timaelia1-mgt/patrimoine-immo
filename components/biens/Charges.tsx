@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Calculator, Landmark, Building2, Shield, Briefcase, Receipt } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ interface ChargesProps {
 }
 
 export function Charges({ bien }: ChargesProps) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [affichage, setAffichage] = useState<"mensuel" | "annuel">("mensuel")
@@ -30,6 +30,19 @@ export function Charges({ bien }: ChargesProps) {
     fraisGestion: bien.fraisGestion?.toString() || "0",
     autresCharges: bien.autresCharges?.toString() || "0",
   })
+
+  // Synchroniser le formData quand React Query re-fetch le bien
+  useEffect(() => {
+    if (!editing) {
+      setFormData({
+        taxeFonciere: bien.taxeFonciere?.toString() || "0",
+        chargesCopro: bien.chargesCopro?.toString() || "0",
+        assurance: bien.assurance?.toString() || "0",
+        fraisGestion: bien.fraisGestion?.toString() || "0",
+        autresCharges: bien.autresCharges?.toString() || "0",
+      })
+    }
+  }, [bien.taxeFonciere, bien.chargesCopro, bien.assurance, bien.fraisGestion, bien.autresCharges]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const multiplicateur = affichage === "annuel" ? 12 : 1
 
@@ -96,8 +109,9 @@ export function Charges({ bien }: ChargesProps) {
 
       toast.success("Charges mises à jour avec succès")
       setEditing(false)
-      // Ne PAS reset le formData — garder les nouvelles valeurs affichées
-      router.refresh()
+      // Invalider le cache React Query pour re-fetcher le bien à jour
+      queryClient.invalidateQueries({ queryKey: ['bien', bien.id] })
+      queryClient.invalidateQueries({ queryKey: ['biens'] })
     } catch (error) {
       console.error("Erreur sauvegarde charges:", error)
       toast.error("Erreur lors de la sauvegarde des charges")
