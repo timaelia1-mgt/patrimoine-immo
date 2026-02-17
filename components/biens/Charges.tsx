@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Calculator, Landmark, Building2, Shield, Briefcase, Receipt } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,6 +30,19 @@ export function Charges({ bien }: ChargesProps) {
     fraisGestion: bien.fraisGestion?.toString() || "0",
     autresCharges: bien.autresCharges?.toString() || "0",
   })
+
+  // Synchroniser le formData quand la prop bien change
+  useEffect(() => {
+    if (!editing) {
+      setFormData({
+        taxeFonciere: bien.taxeFonciere?.toString() || "0",
+        chargesCopro: bien.chargesCopro?.toString() || "0",
+        assurance: bien.assurance?.toString() || "0",
+        fraisGestion: bien.fraisGestion?.toString() || "0",
+        autresCharges: bien.autresCharges?.toString() || "0",
+      })
+    }
+  }, [bien, editing])
 
   const multiplicateur = affichage === "annuel" ? 12 : 1
 

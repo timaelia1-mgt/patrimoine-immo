@@ -42,6 +42,18 @@ export function Investissement({ bien }: InvestissementProps) {
     autresFrais: bien.autresFrais?.toString() || "0",
   })
 
+  // Synchroniser le formData quand la prop bien change
+  useEffect(() => {
+    if (!editing) {
+      setFormData({
+        prixAchat: bien.prixAchat?.toString() || "0",
+        fraisNotaire: bien.fraisNotaire?.toString() || "0",
+        travauxInitiaux: bien.travauxInitiaux?.toString() || "0",
+        autresFrais: bien.autresFrais?.toString() || "0",
+      })
+    }
+  }, [bien, editing])
+
   // État investissements secondaires
   const [investissementsSecondaires, setInvestissementsSecondaires] = useState<InvestissementSecondaire[]>([])
   const [loadingSecondaires, setLoadingSecondaires] = useState(true)
