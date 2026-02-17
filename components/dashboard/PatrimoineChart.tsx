@@ -100,14 +100,10 @@ function calculatePatrimoineEvolution(biens: any[]) {
       console.log('[Chart] bien:', bien.nom, 'typeFinancement:', bien.typeFinancement, 'isComptant:', isComptant, 'isCredit:', isCredit)
       
       if (isComptant) {
-        // ---- BIEN COMPTANT ----
-        const dateAcquisition = getDateAcquisition(bien)
-        if (dateAcquisition > currentDate) return // pas encore acquis
-        
-        // Réel : montant investi (pas d'amortissement, c'est du comptant)
+        // Bien comptant : on ajoute toujours sa valeur d'investissement
+        // Indépendant de la date - le bien vaut ce qu'il a coûté
         patrimoineReel += montantInvestissement
-        patrimoineEstime += montantInvestissement  // même valeur, pas d'appréciation
-        
+        patrimoineEstime += montantInvestissement
       } else if (isCredit) {
         // ---- BIEN À CRÉDIT ----
         const dateDebutCredit = getDateDebutCredit(bien)
