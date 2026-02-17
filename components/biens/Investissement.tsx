@@ -111,6 +111,13 @@ export function Investissement({ bien }: InvestissementProps) {
       toast.success("Investissement initial mis à jour")
       setEditing(false)
       router.refresh()
+      // Forcer le re-render du composant avec les nouvelles données
+      setFormData({
+        prixAchat: formData.prixAchat,
+        fraisNotaire: formData.fraisNotaire,
+        travauxInitiaux: formData.travauxInitiaux,
+        autresFrais: formData.autresFrais,
+      })
     } catch (error) {
       console.error("Erreur sauvegarde investissement:", error)
       toast.error("Erreur lors de la sauvegarde")
