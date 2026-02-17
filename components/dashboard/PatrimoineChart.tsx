@@ -94,8 +94,8 @@ function calculatePatrimoineEvolution(biens: any[]) {
       // Si pas de données d'investissement, on ne compte pas ce bien
       if (montantInvestissement === 0) return
 
-      const isComptant = bien.typeFinancement?.toLowerCase() === 'comptant'
-      const isCredit = bien.typeFinancement?.toLowerCase() === 'credit'
+      const isComptant = bien.typeFinancement?.toLowerCase() === 'comptant' || bien.typeFinancement?.toUpperCase() === 'CASH'
+      const isCredit = bien.typeFinancement?.toLowerCase() === 'credit' || bien.typeFinancement?.toUpperCase() === 'CREDIT'
       
       console.log('[Chart] bien:', bien.nom, 'typeFinancement:', bien.typeFinancement, 'isComptant:', isComptant, 'isCredit:', isCredit)
       
