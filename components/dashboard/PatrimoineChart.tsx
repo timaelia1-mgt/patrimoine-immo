@@ -6,10 +6,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { AlertTriangle } from 'lucide-react'
 import { logger } from '@/lib/logger'
 
-// Taux d'appréciation immobilière moyen utilisé pour estimer la valeur des biens comptants.
-// Valeur historique moyenne en France : ~2% par an sur le long terme.
-const APPRECIATION_ANNUELLE = 0.02
-
 interface PatrimoineChartProps {
   biens: any[]
 }
@@ -107,19 +103,10 @@ function calculatePatrimoineEvolution(biens: any[]) {
         // ---- BIEN COMPTANT ----
         const dateAcquisition = getDateAcquisition(bien)
         if (dateAcquisition > currentDate) return // pas encore acquis
-
-        const anneesEcoulees = Math.max(
-          0,
-          (currentDate.getFullYear() - dateAcquisition.getFullYear()) +
-            (currentDate.getMonth() - dateAcquisition.getMonth()) / 12
-        )
         
         // Réel : montant investi (pas d'amortissement, c'est du comptant)
         patrimoineReel += montantInvestissement
-        
-        // Estimé : montant investi + appréciation 2%/an
-        const valeurEstimee = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
-        patrimoineEstime += valeurEstimee
+        patrimoineEstime += montantInvestissement  // même valeur, pas d'appréciation
         
       } else if (isCredit) {
         // ---- BIEN À CRÉDIT ----
@@ -156,16 +143,8 @@ function calculatePatrimoineEvolution(biens: any[]) {
         // Réel : capital remboursé uniquement
         patrimoineReel += capitalReelBien
         
-        // Estimation : valeur du bien sur le marché (appréciation 2%/an) - capital restant dû
-        const dateDebut = getDateDebutCredit(bien)
-        const anneesEcoulees = Math.max(0,
-          (currentDate.getFullYear() - dateDebut.getFullYear()) +
-          (currentDate.getMonth() - dateDebut.getMonth()) / 12
-        )
-        const valeurMarcheBien = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
-        const capitalRestantDu = Math.max(0, montantTotal - capitalRembourse)
-        const patrimoineNetEstime = valeurMarcheBien - capitalRestantDu
-        patrimoineEstime += Math.max(0, patrimoineNetEstime)
+        // Estimé = réel (on pourra rajouter une vraie estimation plus tard)
+        patrimoineEstime += capitalReelBien
       }
     })
     
@@ -301,7 +280,7 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-400 mb-1">Estimation 20 ans ⚠️</p>
+              <p className="text-sm text-slate-400 mb-1">Projection 20 ans</p>
               <p className="text-2xl font-bold text-amber-400">
                 {new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
@@ -309,7 +288,6 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                   minimumFractionDigits: 0
                 }).format(projectedValue)}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Basée sur +2%/an (indicatif)</p>
             </div>
           </div>
         </CardHeader>
@@ -431,10 +409,6 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                 <span className="text-slate-400">Capital remboursé (réel)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5" style={{borderTop: '2px dashed #F59E0B', background: 'none'}}></div>
-                <span className="text-slate-400">Estimation valeur marché</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
                 <span className="text-slate-400">Aujourd&apos;hui</span>
               </div>
@@ -443,10 +417,10 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
             {/* Disclaimer */}
             <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-3">
               <p className="text-xs text-slate-500 text-center leading-relaxed">
-                ⚠️ <strong className="text-slate-400">Estimation indicative uniquement.</strong> La courbe pointillée amber projette 
-                une appréciation immobilière de +2%/an (moyenne historique France). Elle ne tient pas compte 
-                de la vacance locative, travaux imprévus, évolution du marché ni de la fiscalité. 
-                La courbe verte représente uniquement le capital réellement remboursé.
+                ⚠️ <strong className="text-slate-400">Projection indicative uniquement.</strong> La courbe verte représente le capital 
+                réellement remboursé sur vos crédits + la valeur investie sur vos biens comptants. 
+                Elle ne tient pas compte de l&apos;évolution du marché immobilier, vacance locative, 
+                travaux imprévus ni de la fiscalité.
               </p>
             </div>
           </div>
