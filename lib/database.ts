@@ -31,15 +31,6 @@ export interface Bien {
   autresFrais?: number | null
   dateAcquisition?: string | null
   dateMiseEnLocation?: string | null
-  revenusAnterieursOverride?: number | null
-  chargesAnterieuresOverride?: number | null
-  enrichissementFinancement: boolean
-  enrichissementInvestissement: boolean
-  enrichissementHistorique: boolean
-  enrichissementRentabilite: boolean
-  enrichissementCharges: boolean
-  enrichissementLocataire: boolean
-  enrichissementDepenses: boolean
   createdAt: string
   updatedAt: string
 }
@@ -210,7 +201,6 @@ export async function createBien(userId: string, bien: Partial<Bien>): Promise<B
     taux_credit: bien.tauxCredit ? parseFloat(bien.tauxCredit.toString()) : null,
     duree_credit: bien.dureeCredit ? parseInt(bien.dureeCredit.toString()) : null,
     mensualite_credit: bien.mensualiteCredit ? parseFloat(bien.mensualiteCredit.toString()) : null,
-    apport: 0, // Valeur par défaut, peut être enrichi plus tard
     loyer_mensuel: bien.loyerMensuel ? parseFloat(bien.loyerMensuel.toString()) : 0,
     taxe_fonciere: bien.taxeFonciere ? parseFloat(bien.taxeFonciere.toString()) : 0,
     charges_copro: bien.chargesCopro ? parseFloat(bien.chargesCopro.toString()) : 0,
@@ -290,15 +280,6 @@ export async function updateBien(bienId: string, updates: Partial<Bien>, supabas
     autresFrais: "autres_frais",
     dateAcquisition: "date_acquisition",
     dateMiseEnLocation: "date_mise_en_location",
-    revenusAnterieursOverride: "revenus_anterieurs_override",
-    chargesAnterieuresOverride: "charges_anterieures_override",
-    enrichissementFinancement: "enrichissement_financement",
-    enrichissementInvestissement: "enrichissement_investissement",
-    enrichissementHistorique: "enrichissement_historique",
-    enrichissementRentabilite: "enrichissement_rentabilite",
-    enrichissementCharges: "enrichissement_charges",
-    enrichissementLocataire: "enrichissement_locataire",
-    enrichissementDepenses: "enrichissement_depenses",
   }
 
   for (const [key, value] of Object.entries(updates)) {
@@ -519,15 +500,6 @@ function convertBienFromSupabase(data: any): Bien {
     autresFrais: getValue("autres_frais", "autresFrais") ? parseFloat(getValue("autres_frais", "autresFrais").toString()) : null,
     dateAcquisition: getValue("date_acquisition", "dateAcquisition") || null,
     dateMiseEnLocation: getValue("date_mise_en_location", "dateMiseEnLocation") || null,
-    revenusAnterieursOverride: getValue("revenus_anterieurs_override", "revenusAnterieursOverride") ? parseFloat(getValue("revenus_anterieurs_override", "revenusAnterieursOverride").toString()) : null,
-    chargesAnterieuresOverride: getValue("charges_anterieures_override", "chargesAnterieuresOverride") ? parseFloat(getValue("charges_anterieures_override", "chargesAnterieuresOverride").toString()) : null,
-    enrichissementFinancement: getValue("enrichissement_financement", "enrichissementFinancement") || false,
-    enrichissementInvestissement: getValue("enrichissement_investissement", "enrichissementInvestissement") || false,
-    enrichissementHistorique: getValue("enrichissement_historique", "enrichissementHistorique") || false,
-    enrichissementRentabilite: getValue("enrichissement_rentabilite", "enrichissementRentabilite") || false,
-    enrichissementCharges: getValue("enrichissement_charges", "enrichissementCharges") || false,
-    enrichissementLocataire: getValue("enrichissement_locataire", "enrichissementLocataire") || false,
-    enrichissementDepenses: getValue("enrichissement_depenses", "enrichissementDepenses") || false,
     createdAt: getValue("created_at", "createdAt") || new Date().toISOString(),
     updatedAt: getValue("updated_at", "updatedAt") || new Date().toISOString(),
   }
