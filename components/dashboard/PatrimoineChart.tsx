@@ -53,7 +53,33 @@ function checkDonneesInvestissementCompletes(biens: any[]): {
   }
 }
 
-// Fonction pour calculer l'évolution du patrimoine net
+// Helper pour récupérer une date d'acquisition valide
+function getDateAcquisition(bien: any): Date {
+  if (bien.dateAcquisition) {
+    const d = new Date(bien.dateAcquisition)
+    if (!isNaN(d.getTime())) return d
+  }
+  if (bien.createdAt) {
+    const d = new Date(bien.createdAt)
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date()
+}
+
+// Helper pour récupérer une date de début de crédit valide
+function getDateDebutCredit(bien: any): Date {
+  if (bien.dateDebutCredit) {
+    const d = new Date(bien.dateDebutCredit)
+    if (!isNaN(d.getTime())) return d
+  }
+  if (bien.createdAt) {
+    const d = new Date(bien.createdAt)
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date()
+}
+
+// Fonction pour calculer l'évolution du patrimoine net (2 courbes)
 function calculatePatrimoineEvolution(biens: any[]) {
   const now = new Date()
   const startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1)
@@ -63,90 +89,44 @@ function calculatePatrimoineEvolution(biens: any[]) {
   let currentDate = new Date(startDate)
   
   while (currentDate <= endDate) {
-    let patrimoineTotal = 0
+    let patrimoineReel = 0
+    let patrimoineEstime = 0
     
     biens.forEach(bien => {
       const montantInvestissement = calculateMontantInvestissement(bien)
       
-      // Si pas de données d'investissement, on ne compte pas ce bien dans le patrimoine
-      // L'avertissement en haut du graphique incite l'utilisateur à compléter les données
-      if (montantInvestissement === 0) {
-        return // Skip ce bien
-      }
-      
-      if (bien.typeFinancement === 'CASH') {
-        // Pour un bien comptant, on calcule la valeur avec l'appréciation immobilière
-        const dateAcquisition = (() => {
-          if (bien.dateAcquisition) {
-            const d = new Date(bien.dateAcquisition)
-            if (!isNaN(d.getTime())) {
-              return d
-            }
-          }
-          
-          if (bien.createdAt) {
-            const d = new Date(bien.createdAt)
-            if (!isNaN(d.getTime())) {
-              return d
-            }
-          }
-          
-          return new Date()
-        })()
+      // Si pas de données d'investissement, on ne compte pas ce bien
+      if (montantInvestissement === 0) return
 
-        // Vérifier que la date n'est pas dans le futur
-        if (dateAcquisition > currentDate) {
-          return // Skip ce bien pour cette date
-        }
-        
-        // Nombre d'années écoulées depuis l'acquisition
+      const isComptant = bien.typeFinancement?.toLowerCase() === 'comptant'
+      const isCredit = bien.typeFinancement?.toLowerCase() === 'credit'
+      
+      if (isComptant) {
+        // ---- BIEN COMPTANT ----
+        const dateAcquisition = getDateAcquisition(bien)
+        if (dateAcquisition > currentDate) return // pas encore acquis
+
         const anneesEcoulees = Math.max(
           0,
           (currentDate.getFullYear() - dateAcquisition.getFullYear()) +
             (currentDate.getMonth() - dateAcquisition.getMonth()) / 12
         )
         
-        // Valeur actuelle = valeur initiale × (1 + taux)^années
-        const valeurActuelle = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
-        patrimoineTotal += valeurActuelle
+        // Réel : montant investi (pas d'amortissement, c'est du comptant)
+        patrimoineReel += montantInvestissement
         
-      } else if (bien.typeFinancement === 'CREDIT') {
-        // Validation et parsing sécurisé des dates
-        const dateDebutCredit = (() => {
-          if (bien.dateDebutCredit) {
-            const d = new Date(bien.dateDebutCredit)
-            // Vérifier que la date est valide
-            if (!isNaN(d.getTime())) {
-              return d
-            }
-          }
-          
-          // Fallback sur createdAt
-          if (bien.createdAt) {
-            const d = new Date(bien.createdAt)
-            if (!isNaN(d.getTime())) {
-              return d
-            }
-          }
-          
-          // Dernier fallback : date actuelle
-          return new Date()
-        })()
-
-        // Vérifier que la date n'est pas dans le futur (erreur de saisie)
-        if (dateDebutCredit > currentDate) {
-          // Si date future, on considère que le crédit n'a pas encore commencé
-          return // Skip ce bien pour cette date
-        }
+        // Estimé : montant investi + appréciation 2%/an
+        const valeurEstimee = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
+        patrimoineEstime += valeurEstimee
+        
+      } else if (isCredit) {
+        // ---- BIEN À CRÉDIT ----
+        const dateDebutCredit = getDateDebutCredit(bien)
+        if (dateDebutCredit > currentDate) return // crédit pas encore commencé
         
         const dureeMois = bien.dureeCredit || 240
-
-        // Validation : durée doit être positive et raisonnable
-        if (dureeMois <= 0 || dureeMois > 600) {
-          return // Skip ce bien si durée invalide
-        }
+        if (dureeMois <= 0 || dureeMois > 600) return // durée invalide
         
-        // Utiliser montantCredit s'il existe, sinon montantInvestissement
         const montantTotal = bien.montantCredit || montantInvestissement
         
         const moisEcoules = Math.max(
@@ -155,29 +135,34 @@ function calculatePatrimoineEvolution(biens: any[]) {
             (currentDate.getMonth() - dateDebutCredit.getMonth())
         )
         
-        // ✅ Calcul avec amortissement dégressif
-        const taux = (bien.tauxCredit || 0) / 100 / 12 // Taux mensuel
+        // Calcul du capital remboursé avec amortissement dégressif
+        const taux = (bien.tauxCredit || 0) / 100 / 12
         const mensualite = bien.mensualiteCredit || 0
         
         let capitalRembourse = 0
         
         if (moisEcoules > 0 && taux > 0 && mensualite > 0) {
-          // Formule d'amortissement dégressif
           const capitalRestant = montantTotal * Math.pow(1 + taux, moisEcoules) -
                                  mensualite * ((Math.pow(1 + taux, moisEcoules) - 1) / taux)
           capitalRembourse = montantTotal - Math.max(0, Math.min(montantTotal, capitalRestant))
         } else if (moisEcoules >= dureeMois) {
-          // Crédit terminé
           capitalRembourse = montantTotal
         }
         
-        patrimoineTotal += Math.max(0, capitalRembourse)
+        const capitalReelBien = Math.max(0, capitalRembourse)
+        
+        // Réel : capital remboursé uniquement
+        patrimoineReel += capitalReelBien
+        
+        // Estimé : pareil que réel pour les crédits (on n'applique pas l'appréciation sur le capital remboursé)
+        patrimoineEstime += capitalReelBien
       }
     })
     
     dataPoints.push({
       date: currentDate.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-      patrimoine: Math.round(patrimoineTotal),
+      patrimoineReel: Math.round(patrimoineReel),
+      patrimoineEstime: Math.round(patrimoineEstime),
       isPast: currentDate <= now,
       isNow: currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear()
     })
@@ -190,7 +175,6 @@ function calculatePatrimoineEvolution(biens: any[]) {
 
 export const PatrimoineChart = memo(function PatrimoineChart({ biens }: PatrimoineChartProps) {
   // Mémoïser le calcul du patrimoine pour éviter les recalculs inutiles
-  // Le calcul ne se refait que si les biens changent
   const { data, hasError } = useMemo(() => {
     let calculatedData: any[] = []
     let error = false
@@ -204,16 +188,16 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
     }
     
     return { data: calculatedData, hasError: error }
-  }, [biens]) // Ne recalculer que si les biens changent
+  }, [biens])
   
   // Mémoïser les valeurs calculées
   const currentValue = useMemo(
-    () => data.find(d => d.isNow)?.patrimoine || 0,
+    () => data.find(d => d.isNow)?.patrimoineReel || 0,
     [data]
   )
   
   const projectedValue = useMemo(
-    () => data[data.length - 1]?.patrimoine || 0,
+    () => data[data.length - 1]?.patrimoineEstime || 0,
     [data]
   )
   
@@ -243,7 +227,7 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                 Impossible de calculer le patrimoine
               </h4>
               <p className="text-sm text-slate-300">
-                Une erreur s'est produite lors du calcul. Vérifiez que tous vos biens ont des données valides (dates, montants, etc.).
+                Une erreur s&apos;est produite lors du calcul. Vérifiez que tous vos biens ont des données valides (dates, montants, etc.).
               </p>
             </div>
           </div>
@@ -272,10 +256,10 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-amber-300 mb-1">
-                📊 Données d'investissement manquantes
+                📊 Données d&apos;investissement manquantes
               </h4>
               <p className="text-sm text-slate-300 leading-relaxed">
-                Complétez la section <strong className="text-amber-200">Investissement</strong> de vos biens pour voir l'évolution réelle de votre patrimoine.
+                Complétez la section <strong className="text-amber-200">Investissement</strong> de vos biens pour voir l&apos;évolution réelle de votre patrimoine.
               </p>
               {donneesInvestissement.biensManquants.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -307,7 +291,7 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-400 mb-1">Projection 20 ans</p>
+              <p className="text-sm text-slate-400 mb-1">Estimation 20 ans ⚠️</p>
               <p className="text-2xl font-bold text-amber-400">
                 {new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
@@ -315,6 +299,7 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                   minimumFractionDigits: 0
                 }).format(projectedValue)}
               </p>
+              <p className="text-xs text-slate-500 mt-1">Basée sur +2%/an (indicatif)</p>
             </div>
           </div>
         </CardHeader>
@@ -323,8 +308,12 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data}>
                 <defs>
-                  <linearGradient id="colorPatrimoine" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <linearGradient id="colorEstime" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorReel" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
@@ -334,23 +323,14 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
                   tickFormatter={(value, index) => {
-                    // Extraire l'année de la date (format: "avr. 2026" ou "janv. 2024")
                     const yearMatch = value?.match(/\d{4}/)
                     if (!yearMatch) return ''
                     
                     const year = yearMatch[0]
-                    const currentYear = new Date().getFullYear()
-                    const yearNum = parseInt(year)
-                    
-                    // Calculer le nombre total de points de données
                     const totalPoints = data.length
-                    
-                    // Afficher environ 8-10 labels sur toute la période
                     const interval = Math.max(1, Math.floor(totalPoints / 8))
                     
-                    // Afficher si c'est un multiple de l'intervalle, ou le premier/dernier
                     if (index % interval === 0 || index === 0 || index === totalPoints - 1) {
-                      // Toujours afficher l'année complète pour plus de clarté
                       return year
                     }
                     return ''
@@ -360,15 +340,11 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
                   tickFormatter={(value) => {
-                    // Formatage amélioré avec espace et meilleure lisibilité
                     if (value >= 1000000) {
-                      // Pour les millions : "1,5 M€"
                       return `${(value / 1000000).toFixed(1).replace('.', ',')} M€`
                     } else if (value >= 1000) {
-                      // Pour les milliers : "160 k€" avec espace
                       return `${(value / 1000).toFixed(0)} k€`
                     } else {
-                      // Pour les petites valeurs : format complet
                       return new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: 'EUR',
@@ -386,22 +362,38 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                     padding: '12px'
                   }}
                   labelStyle={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '8px' }}
-                  itemStyle={{ color: '#10b981' }}
-                  formatter={(value: any) => [
-                    new Intl.NumberFormat('fr-FR', {
-                      style: 'currency',
-                      currency: 'EUR',
-                      minimumFractionDigits: 0
-                    }).format(value),
-                    'Patrimoine Net'
-                  ]}
+                  formatter={(value: any, name: string) => {
+                    const label = name === 'patrimoineEstime'
+                      ? 'Estimation marché'
+                      : 'Capital remboursé'
+                    return [
+                      new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: 'EUR',
+                        minimumFractionDigits: 0
+                      }).format(value),
+                      label
+                    ]
+                  }}
                 />
+                {/* Area estimation (pointillés, amber) */}
+                <Area
+                  type="monotone"
+                  dataKey="patrimoineEstime"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  fill="url(#colorEstime)"
+                  dot={false}
+                  name="patrimoineEstime"
+                />
+                {/* Area réel (solide, emerald) */}
                 <Area 
                   type="monotone" 
-                  dataKey="patrimoine" 
+                  dataKey="patrimoineReel" 
                   stroke="#10b981" 
                   strokeWidth={3}
-                  fill="url(#colorPatrimoine)"
+                  fill="url(#colorReel)"
                   dot={(props: any) => {
                     const { cx, cy, payload } = props
                     if (payload.isNow) {
@@ -412,24 +404,40 @@ export const PatrimoineChart = memo(function PatrimoineChart({ biens }: Patrimoi
                         </g>
                       )
                     }
-                    return null
+                    return <g />
                   }}
+                  name="patrimoineReel"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
-              <span className="text-slate-400">Patrimoine accumulé</span>
+
+          {/* Légende + Disclaimer */}
+          <div className="mt-4 space-y-3">
+            {/* Légende */}
+            <div className="flex items-center justify-center gap-6 text-sm flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-emerald-400"></div>
+                <span className="text-slate-400">Capital remboursé (réel)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5" style={{borderTop: '2px dashed #F59E0B', background: 'none'}}></div>
+                <span className="text-slate-400">Estimation valeur marché</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span className="text-slate-400">Aujourd&apos;hui</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-              <span className="text-slate-400">Aujourd'hui</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
-              <span className="text-slate-400">Projection</span>
+            
+            {/* Disclaimer */}
+            <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-3">
+              <p className="text-xs text-slate-500 text-center leading-relaxed">
+                ⚠️ <strong className="text-slate-400">Estimation indicative uniquement.</strong> La courbe pointillée amber projette 
+                une appréciation immobilière de +2%/an (moyenne historique France). Elle ne tient pas compte 
+                de la vacance locative, travaux imprévus, évolution du marché ni de la fiscalité. 
+                La courbe verte représente uniquement le capital réellement remboursé.
+              </p>
             </div>
           </div>
         </CardContent>
