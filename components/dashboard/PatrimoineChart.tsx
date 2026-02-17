@@ -101,6 +101,8 @@ function calculatePatrimoineEvolution(biens: any[]) {
       const isComptant = bien.typeFinancement?.toLowerCase() === 'comptant'
       const isCredit = bien.typeFinancement?.toLowerCase() === 'credit'
       
+      console.log('[Chart] bien:', bien.nom, 'typeFinancement:', bien.typeFinancement, 'isComptant:', isComptant, 'isCredit:', isCredit)
+      
       if (isComptant) {
         // ---- BIEN COMPTANT ----
         const dateAcquisition = getDateAcquisition(bien)
@@ -154,8 +156,16 @@ function calculatePatrimoineEvolution(biens: any[]) {
         // Réel : capital remboursé uniquement
         patrimoineReel += capitalReelBien
         
-        // Estimé : pareil que réel pour les crédits (on n'applique pas l'appréciation sur le capital remboursé)
-        patrimoineEstime += capitalReelBien
+        // Estimation : valeur du bien sur le marché (appréciation 2%/an) - capital restant dû
+        const dateDebut = getDateDebutCredit(bien)
+        const anneesEcoulees = Math.max(0,
+          (currentDate.getFullYear() - dateDebut.getFullYear()) +
+          (currentDate.getMonth() - dateDebut.getMonth()) / 12
+        )
+        const valeurMarcheBien = montantInvestissement * Math.pow(1 + APPRECIATION_ANNUELLE, anneesEcoulees)
+        const capitalRestantDu = Math.max(0, montantTotal - capitalRembourse)
+        const patrimoineNetEstime = valeurMarcheBien - capitalRestantDu
+        patrimoineEstime += Math.max(0, patrimoineNetEstime)
       }
     })
     
