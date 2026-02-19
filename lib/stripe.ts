@@ -175,3 +175,27 @@ export function getRemainingBiens(planType: PlanType, currentBiensCount: number)
   if (maxBiens === null) return null // illimité
   return Math.max(0, maxBiens - currentBiensCount)
 }
+
+/**
+ * Types de fonctionnalités premium
+ */
+export type Feature = 'export_pdf' | 'export_excel' | 'quittances' | 'rapport_annuel'
+
+/**
+ * Vérifie si un plan peut utiliser une fonctionnalité
+ * @param planType - Type de plan de l'utilisateur
+ * @param feature - Fonctionnalité à vérifier
+ * @returns true si le plan peut utiliser la fonctionnalité
+ * 
+ * Plan Découverte (gratuit) : bloque exports et quittances
+ * Plans payants (essentiel, premium) : tout débloqué
+ */
+export function canUseFeature(planType: PlanType, feature: Feature): boolean {
+  // Plans payants ont accès à tout
+  if (planType === 'essentiel' || planType === 'premium') {
+    return true
+  }
+  
+  // Plan Découverte : fonctionnalités bloquées
+  return false
+}
