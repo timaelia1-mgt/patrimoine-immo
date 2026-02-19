@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { LoyersHeader } from "./loyers/LoyersHeader"
 import { CalendrierPaiements } from "./loyers/CalendrierPaiements"
 import { LoyersStatistiques } from "./loyers/LoyersStatistiques"
+import type { PlanType } from "@/lib/stripe"
 
 // Lazy-load du modal pour réduire le bundle initial
 const QuittanceModal = dynamic(
@@ -23,9 +24,10 @@ const QuittanceModal = dynamic(
 interface LoyersProps {
   bien: any
   lotId?: string
+  userPlan: PlanType
 }
 
-export function Loyers({ bien, lotId }: LoyersProps) {
+export function Loyers({ bien, lotId, userPlan }: LoyersProps) {
   const router = useRouter()
 
   const [lot, setLot] = useState<any>(null)
@@ -291,6 +293,7 @@ export function Loyers({ bien, lotId }: LoyersProps) {
           onClose={() => setQuittanceOpen(false)}
           data={quittanceData}
           locataireEmail={quittanceData.locataireEmail}
+          userPlan={userPlan}
         />
       )}
     </div>

@@ -6,15 +6,20 @@ import type { QuittanceData } from '@/lib/generateQuittance'
 import { logger } from '@/lib/logger'
 import { toast } from 'sonner'
 import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { useFeatureAccess } from '@/lib/hooks/useFeatureAccess'
+import { FeatureLockedModal } from '@/components/modals/FeatureLockedModal'
+import type { PlanType } from '@/lib/stripe'
 
 interface QuittanceModalProps {
   isOpen: boolean
   onClose: () => void
   data: QuittanceData
   locataireEmail?: string | null
+  userPlan: PlanType
 }
 
-export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: QuittanceModalProps) {
+export function QuittanceModal({ isOpen, onClose, data, locataireEmail, userPlan }: QuittanceModalProps) {
+  const quittanceAccess = useFeatureAccess(userPlan, 'quittances')
   const [loading, setLoading] = useState(false)
   const [loadingDownload, setLoadingDownload] = useState(false)
   const [datePayeLocataire, setDatePayeLocataire] = useState('')
@@ -350,14 +355,14 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-8">
           <Button 
-            onClick={handleDownload} 
+            onClick={() => quittanceAccess.checkAndExecute(handleDownload)} 
             disabled={loadingDownload || loading}
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingDownload ? '⏳ Téléchargement...' : '📥 Télécharger le PDF'}
           </Button>
           <Button 
-            onClick={handleSendEmail} 
+            onClick={() => quittanceAccess.checkAndExecute(handleSendEmail)} 
             disabled={loading || loadingDownload || !locataireEmail}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -370,6 +375,13 @@ export function QuittanceModal({ isOpen, onClose, data, locataireEmail }: Quitta
           )}
         </div>
       </div>
+
+      <FeatureLockedModal
+        open={quittanceAccess.showModal}
+        onClose={() => quittanceAccess.setShowModal(false)}
+        featureName="Quittances de loyer"
+        featureDescription="Générez et envoyez des quittances PDF professionnelles à vos locataires."
+      />
     </div>
   )
 }

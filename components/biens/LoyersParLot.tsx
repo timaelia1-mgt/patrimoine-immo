@@ -5,9 +5,11 @@ import { Loader2, Building2 } from "lucide-react"
 import { getLots } from "@/lib/database"
 import { formatCurrency } from "@/lib/calculations"
 import { Loyers } from "./Loyers"
+import type { PlanType } from "@/lib/stripe"
 
 interface LoyersParLotProps {
   bien: any
+  userPlan: PlanType
 }
 
 const COULEURS_LOTS = [
@@ -18,7 +20,7 @@ const COULEURS_LOTS = [
   { bg: "from-orange-600/20 to-orange-800/20", border: "border-orange-500/30", text: "text-orange-400", shadow: "shadow-orange-500/10" },
 ]
 
-export function LoyersParLot({ bien }: LoyersParLotProps) {
+export function LoyersParLot({ bien, userPlan }: LoyersParLotProps) {
   const [lots, setLots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>("")
@@ -61,7 +63,7 @@ export function LoyersParLot({ bien }: LoyersParLotProps) {
 
   // Si 1 seul lot : afficher directement sans sous-onglets
   if (lots.length === 1) {
-    return <Loyers bien={bien} lotId={lots[0].id} />
+    return <Loyers bien={bien} lotId={lots[0].id} userPlan={userPlan} />
   }
 
   // Si plusieurs lots : afficher les cards cliquables + contenu
@@ -109,7 +111,7 @@ export function LoyersParLot({ bien }: LoyersParLotProps) {
       {/* Contenu du lot sélectionné */}
       {activeTab && (
         <div className="animate-in fade-in duration-300">
-          <Loyers bien={bien} lotId={activeTab} />
+          <Loyers bien={bien} lotId={activeTab} userPlan={userPlan} />
         </div>
       )}
     </div>

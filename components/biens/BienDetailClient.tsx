@@ -12,6 +12,9 @@ import { toast } from "sonner"
 import { deleteBien, type Bien } from "@/lib/database"
 import { useQueryClient } from "@tanstack/react-query"
 import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics"
+import { useAuth } from "@/lib/auth-context"
+import { useProfile } from "@/lib/hooks/use-profile"
+import type { PlanType } from "@/lib/stripe"
 import { Edit, Trash2 } from "lucide-react"
 import { BienFormDialog } from "@/components/biens/BienFormDialog"
 
@@ -70,6 +73,9 @@ interface BienDetailClientProps {
 export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const { data: profile } = useProfile({ userId: user?.id })
+  const userPlan = (profile?.plan || 'gratuit') as PlanType
   const [bien, setBien] = useState(initialBien)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
@@ -191,7 +197,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
 
         <TabsContent value="loyers">
           <div className="space-y-6">
-            <LoyersParLot bien={bien} />
+            <LoyersParLot bien={bien} userPlan={userPlan} />
             
             {/* Historique des quittances */}
             <HistoriqueQuittances

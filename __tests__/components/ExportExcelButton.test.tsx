@@ -1,3 +1,20 @@
+// Mocks doivent être avant les imports
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  })),
+}))
+
+vi.mock('@/lib/hooks/useFeatureAccess', () => ({
+  useFeatureAccess: vi.fn(() => ({
+    canUse: true,
+    showModal: false,
+    setShowModal: vi.fn(),
+    checkAndExecute: vi.fn((action: () => void) => action()),
+  })),
+}))
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +28,7 @@ import { ExportExcelButton } from '@/components/dashboard/ExportExcelButton'
  * - Bouton export PDF (rapport annuel)
  * - Lien vers Import/Backup
  * 
- * Props : { nombreBiens: number }
+ * Props : { nombreBiens: number, userPlan: PlanType }
  */
 
 // Mock de fetch global
@@ -71,31 +88,31 @@ describe('ExportExcelButton', () => {
 
   describe('rendu de base', () => {
     it('devrait afficher le bouton Excel', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       expect(screen.getByText('Excel')).toBeInTheDocument()
     })
 
     it('devrait afficher le bouton Rapport PDF', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       expect(screen.getByText('Rapport PDF')).toBeInTheDocument()
     })
 
     it('devrait afficher le lien Import & Backup', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       expect(screen.getByText('Import & Backup')).toBeInTheDocument()
     })
 
     it('devrait afficher le titre "Exports rapides"', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       expect(screen.getByText('Exports rapides')).toBeInTheDocument()
     })
 
     it('devrait afficher le lien "Plus d\'options"', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       expect(screen.getByText("Plus d'options")).toBeInTheDocument()
     })
@@ -107,21 +124,21 @@ describe('ExportExcelButton', () => {
 
   describe('boutons désactivés si aucun bien', () => {
     it('devrait désactiver le bouton Excel si nombreBiens = 0', () => {
-      render(<ExportExcelButton nombreBiens={0} />)
+      render(<ExportExcelButton nombreBiens={0} userPlan="premium" />)
       
       const excelButton = screen.getByText('Excel').closest('button')
       expect(excelButton).toBeDisabled()
     })
 
     it('devrait désactiver le bouton PDF si nombreBiens = 0', () => {
-      render(<ExportExcelButton nombreBiens={0} />)
+      render(<ExportExcelButton nombreBiens={0} userPlan="premium" />)
       
       const pdfButton = screen.getByText('Rapport PDF').closest('button')
       expect(pdfButton).toBeDisabled()
     })
 
     it('devrait ne pas appeler l\'API si bouton désactivé', () => {
-      render(<ExportExcelButton nombreBiens={0} />)
+      render(<ExportExcelButton nombreBiens={0} userPlan="premium" />)
       
       const excelButton = screen.getByText('Excel').closest('button')
       expect(excelButton).toBeDisabled()
@@ -142,7 +159,7 @@ describe('ExportExcelButton', () => {
       })
 
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -158,7 +175,7 @@ describe('ExportExcelButton', () => {
       const { toast } = await import('sonner')
       
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -176,7 +193,7 @@ describe('ExportExcelButton', () => {
       const { toast } = await import('sonner')
       
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={3} />)
+      render(<ExportExcelButton nombreBiens={3} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -198,7 +215,7 @@ describe('ExportExcelButton', () => {
       const { toast } = await import('sonner')
       
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -222,7 +239,7 @@ describe('ExportExcelButton', () => {
       })
 
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const pdfButton = screen.getByText('Rapport PDF').closest('button')!
       await user.click(pdfButton)
@@ -238,7 +255,7 @@ describe('ExportExcelButton', () => {
       const { toast } = await import('sonner')
       
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const pdfButton = screen.getByText('Rapport PDF').closest('button')!
       await user.click(pdfButton)
@@ -261,7 +278,7 @@ describe('ExportExcelButton', () => {
       )
 
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -279,7 +296,7 @@ describe('ExportExcelButton', () => {
       })
 
       const user = userEvent.setup()
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
 
       const excelButton = screen.getByText('Excel').closest('button')!
       await user.click(excelButton)
@@ -296,14 +313,14 @@ describe('ExportExcelButton', () => {
 
   describe('liens', () => {
     it('devrait avoir un lien vers /parametres pour "Plus d\'options"', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       const moreOptionsLink = screen.getByText("Plus d'options").closest('a')
       expect(moreOptionsLink).toHaveAttribute('href', '/parametres')
     })
 
     it('devrait avoir un lien vers /parametres pour "Import & Backup"', () => {
-      render(<ExportExcelButton nombreBiens={5} />)
+      render(<ExportExcelButton nombreBiens={5} userPlan="premium" />)
       
       const importLink = screen.getByText('Import & Backup').closest('a')
       expect(importLink).toHaveAttribute('href', '/parametres')
