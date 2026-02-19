@@ -7,6 +7,9 @@ import { LoadingButton } from '@/components/ui/loading-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
+import { useFeatureAccess } from '@/lib/hooks/useFeatureAccess'
+import { FeatureLockedModal } from '@/components/modals/FeatureLockedModal'
+import type { PlanType } from '@/lib/stripe'
 import { 
   Download, 
   FileSpreadsheet, 
@@ -18,11 +21,14 @@ import {
 
 interface ExportSectionProps {
   nombreBiens: number
+  userPlan: PlanType
 }
 
-export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }: ExportSectionProps) {
+export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens, userPlan }: ExportSectionProps) {
   const [isLoadingExcel, setIsLoadingExcel] = useState(false)
   const [isLoadingPDF, setIsLoadingPDF] = useState(false)
+  const excelAccess = useFeatureAccess(userPlan, 'export_excel')
+  const pdfAccess = useFeatureAccess(userPlan, 'rapport_annuel')
 
   const isAnyLoading = isLoadingExcel || isLoadingPDF
 
@@ -104,6 +110,7 @@ export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }
   }
 
   return (
+    <>
     <div className="mt-8 animate-in fade-in duration-500" style={{ animationDelay: '0.85s' }}>
       <Card className="border-0 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl shadow-2xl overflow-hidden">
         <CardContent className="p-0">
@@ -136,7 +143,7 @@ export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Export Excel */}
               <LoadingButton
-                onClick={handleExportExcel}
+                onClick={() => excelAccess.checkAndExecute(handleExportExcel)}
                 disabled={isAnyLoading || nombreBiens === 0}
                 loading={isLoadingExcel}
                 className="h-auto py-4 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex-col gap-1"
@@ -148,7 +155,7 @@ export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }
               
               {/* Export PDF */}
               <LoadingButton
-                onClick={handleExportPDF}
+                onClick={() => pdfAccess.checkAndExecute(handleExportPDF)}
                 disabled={isAnyLoading || nombreBiens === 0}
                 loading={isLoadingPDF}
                 className="h-auto py-4 px-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white shadow-lg shadow-rose-500/20 disabled:opacity-50 flex-col gap-1"
@@ -174,5 +181,20 @@ export const ExportExcelButton = memo(function ExportExcelButton({ nombreBiens }
         </CardContent>
       </Card>
     </div>
+
+    <FeatureLockedModal
+      open={excelAccess.showModal}
+      onClose={() => excelAccess.setShowModal(false)}
+      featureName="Export Excel"
+      featureDescription="Exportez toutes vos données en Excel pour une analyse détaillée."
+    />
+
+    <FeatureLockedModal
+      open={pdfAccess.showModal}
+      onClose={() => pdfAccess.setShowModal(false)}
+      featureName="Rapport PDF annuel"
+      featureDescription="Générez un rapport PDF complet de votre patrimoine immobilier."
+    />
+    </>
   )
 })

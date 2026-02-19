@@ -325,7 +325,7 @@ export function DashboardClient({ biens, userId }: DashboardClientProps) {
 
           {/* Section Export Excel */}
           {biens.length > 0 && (
-            <ExportExcelButton nombreBiens={biens.length} />
+            <ExportExcelButton nombreBiens={biens.length} userPlan={planType} />
           )}
 
           {/* Section Mes Biens */}
