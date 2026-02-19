@@ -29,8 +29,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     // Gestion loyers
     jourPaiement: profile?.rentPaymentDay?.toString() || "5",
     delaiPaiement: profile?.paymentDelayDays?.toString() || "5",
-    alertesEmail: profile?.emailAlertsEnabled ?? true,
-    alertesNotification: profile?.appNotificationsEnabled ?? true,
   })
 
   const [loading, setLoading] = useState(false)
@@ -67,8 +65,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
           currency: settings.devise,
           rentPaymentDay: parseInt(settings.jourPaiement),
           paymentDelayDays: parseInt(settings.delaiPaiement),
-          emailAlertsEnabled: settings.alertesEmail,
-          appNotificationsEnabled: settings.alertesNotification,
         }),
       })
       
@@ -309,31 +305,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="alertesEmail"
-              checked={settings.alertesEmail}
-              onChange={(e) => setSettings({ ...settings, alertesEmail: e.target.checked })}
-              className="w-4 h-4"
-            />
-            <Label htmlFor="alertesEmail" className="cursor-pointer">
-              Recevoir des alertes par email pour les loyers en retard
-            </Label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="alertesNotification"
-              checked={settings.alertesNotification}
-              onChange={(e) => setSettings({ ...settings, alertesNotification: e.target.checked })}
-              className="w-4 h-4"
-            />
-            <Label htmlFor="alertesNotification" className="cursor-pointer">
-              Afficher des notifications dans l'application
-            </Label>
-          </div>
         </CardContent>
       </Card>
 
