@@ -6,8 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useTheme } from "@/lib/theme-provider"
-import { Moon, Sun } from "lucide-react"
 import type { UserProfile } from "@/lib/database"
 import { createClient } from "@/lib/supabase/client"
 import { DataManagementSection } from "./DataManagementSection"
@@ -18,7 +16,6 @@ interface ParametresClientProps {
 }
 
 export function ParametresClient({ profile, userEmail }: ParametresClientProps) {
-  const { theme, toggleTheme } = useTheme()
   const router = useRouter()
   
   const [settings, setSettings] = useState({
@@ -204,58 +201,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Apparence</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {theme === "light" ? (
-                <Sun className="w-5 h-5 text-amber-500" />
-              ) : (
-                <Moon className="w-5 h-5 text-blue-400" />
-              )}
-              <div>
-                <p className="font-medium">Thème</p>
-                <p className="text-sm text-muted-foreground">
-                  {theme === "light" ? "Mode clair" : "Mode sombre"}
-                </p>
-              </div>
-            </div>
-            
-            <button
-              onClick={toggleTheme}
-              className={`
-                relative inline-flex h-8 w-14 items-center rounded-full transition-colors
-                ${theme === "dark" 
-                  ? "bg-slate-700" 
-                  : "bg-slate-300"
-                }
-              `}
-            >
-              <span
-                className={`
-                  flex h-6 w-6 items-center justify-center transform rounded-full transition-transform
-                  ${theme === "dark" 
-                    ? "translate-x-7 bg-primary-500 border-2 border-slate-600" 
-                    : "translate-x-1 bg-white border-2 border-slate-200"
-                  }
-                  shadow-lg
-                `}
-              >
-                {theme === "dark" ? (
-                  <Moon className="w-4 h-4 text-white" />
-                ) : (
-                  <Sun className="w-4 h-4 text-amber-500" />
-                )}
-              </span>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* SECTION 2 : Gestion des loyers */}
       {/* SECTION 2 : Gestion des loyers */}
       <Card>
         <CardHeader>
