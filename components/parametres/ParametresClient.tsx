@@ -22,10 +22,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
     // Infos compte
     nom: profile?.name || "",
     devise: profile?.currency || "EUR",
-    
-    // Gestion loyers
-    jourPaiement: profile?.rentPaymentDay?.toString() || "5",
-    delaiPaiement: profile?.paymentDelayDays?.toString() || "5",
   })
 
   const [loading, setLoading] = useState(false)
@@ -60,8 +56,6 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         body: JSON.stringify({
           name: settings.nom.trim(),
           currency: settings.devise,
-          rentPaymentDay: parseInt(settings.jourPaiement),
-          paymentDelayDays: parseInt(settings.delaiPaiement),
         }),
       })
       
@@ -201,59 +195,7 @@ export function ParametresClient({ profile, userEmail }: ParametresClientProps) 
         </CardContent>
       </Card>
 
-      {/* SECTION 2 : Gestion des loyers */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des loyers</CardTitle>
-          <CardDescription>Paramètres de suivi des paiements</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="jourPaiement">Jour de paiement des loyers</Label>
-            <select
-              id="jourPaiement"
-              value={settings.jourPaiement}
-              onChange={(e) => setSettings({ ...settings, jourPaiement: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm"
-            >
-              <option value="1">1er du mois</option>
-              <option value="2">2 du mois</option>
-              <option value="3">3 du mois</option>
-              <option value="4">4 du mois</option>
-              <option value="5">5 du mois</option>
-              <option value="6">6 du mois</option>
-              <option value="7">7 du mois</option>
-              <option value="8">8 du mois</option>
-              <option value="9">9 du mois</option>
-              <option value="10">10 du mois</option>
-              <option value="15">15 du mois</option>
-              <option value="20">20 du mois</option>
-              <option value="25">25 du mois</option>
-              <option value="30">30 du mois</option>
-            </select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Le jour auquel vous attendez les loyers chaque mois
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="delaiPaiement">Délai de paiement (jours)</Label>
-            <Input
-              id="delaiPaiement"
-              type="number"
-              value={settings.delaiPaiement}
-              onChange={(e) => setSettings({ ...settings, delaiPaiement: e.target.value })}
-              placeholder="5"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Nombre de jours après lequel un loyer est considéré en retard
-            </p>
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* SECTION 3 : Sécurité */}
+      {/* SECTION 2 : Sécurité */}
       <Card>
         <CardHeader>
           <CardTitle>Sécurité</CardTitle>
