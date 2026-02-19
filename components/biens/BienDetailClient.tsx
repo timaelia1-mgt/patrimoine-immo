@@ -74,7 +74,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const { data: profile } = useProfile({ userId: user?.id })
+  const { data: profile } = useProfile({ userId: user?.id || '' })
   const userPlan = (profile?.plan || 'gratuit') as PlanType
   const [bien, setBien] = useState(initialBien)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
