@@ -224,7 +224,7 @@ export function BienDetailClient({ bien: initialBien }: BienDetailClientProps) {
         </TabsContent>
 
         <TabsContent value="locataires">
-          <LocatairesList bien={bien} />
+          <LocatairesList bien={bien} userPlan={userPlan} />
         </TabsContent>
 
         <TabsContent value="documents">

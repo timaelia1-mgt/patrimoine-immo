@@ -88,12 +88,8 @@ export function ComparisonTable() {
             </tr>
             <tr className="hover:bg-slate-50 dark:hover:bg-slate-750">
               <td className="p-4 text-slate-700 dark:text-slate-300">Gestion locataires</td>
-              <td className="p-4 text-center">
-                <Check className="h-5 w-5 text-green-600 mx-auto" />
-              </td>
-              <td className="p-4 text-center bg-amber-50 dark:bg-amber-900/20">
-                <Check className="h-5 w-5 text-green-600 mx-auto" />
-              </td>
+              <td className="p-4 text-center text-slate-500">1 seul</td>
+              <td className="p-4 text-center bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">Multi-locataires</td>
               <td className="p-4 text-center text-purple-600 dark:text-purple-400">Multi-locataires</td>
             </tr>
             <tr className="hover:bg-slate-50 dark:hover:bg-slate-750">

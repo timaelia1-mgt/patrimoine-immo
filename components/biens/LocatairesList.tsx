@@ -26,9 +26,13 @@ import { KPICard } from "@/components/biens/KPICard"
 import { formatCurrency } from "@/lib/calculations"
 import { getLocataires, upsertLocataire, deleteLocataire, getLots } from "@/lib/database"
 import { toast } from "sonner"
+import { useFeatureAccess } from "@/lib/hooks/useFeatureAccess"
+import { FeatureLockedModal } from "@/components/modals/FeatureLockedModal"
+import type { PlanType } from "@/lib/stripe"
 
 interface LocatairesListProps {
   bien: any
+  userPlan: PlanType
 }
 
 const MODE_PAIEMENT_OPTIONS = [
@@ -38,7 +42,7 @@ const MODE_PAIEMENT_OPTIONS = [
   { value: "especes", label: "Espèces", variant: "orange" },
 ] as const
 
-export function LocatairesList({ bien }: LocatairesListProps) {
+export function LocatairesList({ bien, userPlan }: LocatairesListProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [locataires, setLocataires] = useState<any[]>([])
@@ -46,6 +50,7 @@ export function LocatairesList({ bien }: LocatairesListProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
+  const multiLocatairesAccess = useFeatureAccess(userPlan, 'multi_locataires')
   
   const [formData, setFormData] = useState({
     id: "",
@@ -226,6 +231,11 @@ export function LocatairesList({ bien }: LocatairesListProps) {
             {!adding && !editingId && (
               <Button
                 onClick={() => {
+                  // Si plan gratuit et déjà 1 locataire → bloquer
+                  if (locataires.length >= 1 && !multiLocatairesAccess.canUse) {
+                    multiLocatairesAccess.setShowModal(true)
+                    return
+                  }
                   const lotParDefaut = lots.find(l => l.estLotDefaut)
                   setFormData({
                     ...formData,
@@ -468,6 +478,13 @@ export function LocatairesList({ bien }: LocatairesListProps) {
           )}
         </CardContent>
       </Card>
+
+      <FeatureLockedModal
+        open={multiLocatairesAccess.showModal}
+        onClose={() => multiLocatairesAccess.setShowModal(false)}
+        featureName="Multi-locataires"
+        featureDescription="Ajoutez plusieurs locataires par bien pour gérer vos colocations et immeubles de rapport."
+      />
     </div>
   )
 }

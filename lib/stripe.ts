@@ -182,7 +182,7 @@ export function getRemainingBiens(planType: PlanType, currentBiensCount: number)
 /**
  * Types de fonctionnalités premium
  */
-export type Feature = 'export_pdf' | 'export_excel' | 'quittances' | 'rapport_annuel'
+export type Feature = 'export_pdf' | 'export_excel' | 'quittances' | 'rapport_annuel' | 'multi_locataires'
 
 /**
  * Vérifie si un plan peut utiliser une fonctionnalité
