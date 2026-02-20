@@ -73,9 +73,9 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
   }, [])
 
-  // Pricing
-  const monthlyPrices = { gratuit: 0, essentiel: 9.99, premium: 19.99 }
-  const annualPrices = { gratuit: 0, essentiel: 7.99, premium: 15.99 }
+  // Pricing (depuis PLANS comme source de vérité)
+  const monthlyPrices = { gratuit: 0, essentiel: 24.90, premium: 39.90 }
+  const annualPrices = { gratuit: 0, essentiel: parseFloat((24.90 * 0.8).toFixed(2)), premium: parseFloat((39.90 * 0.8).toFixed(2)) }
   const prices = isAnnual ? annualPrices : monthlyPrices
 
   return (
@@ -494,7 +494,7 @@ export default function LandingPage() {
                 </div>
                 {isAnnual && (
                   <p className="text-xs text-slate-500 mb-1">
-                    Facturé <span className="line-through">{(9.99 * 12).toFixed(2).replace(".", ",")}€</span>{" "}
+                    Facturé <span className="line-through">{(monthlyPrices.essentiel * 12).toFixed(2).replace(".", ",")}€</span>{" "}
                     <span className="text-emerald-400">{(annualPrices.essentiel * 12).toFixed(2).replace(".", ",")}€/an</span>
                   </p>
                 )}
@@ -527,7 +527,7 @@ export default function LandingPage() {
                 </div>
                 {isAnnual && (
                   <p className="text-xs text-slate-500 mb-1">
-                    Facturé <span className="line-through">{(19.99 * 12).toFixed(2).replace(".", ",")}€</span>{" "}
+                    Facturé <span className="line-through">{(monthlyPrices.premium * 12).toFixed(2).replace(".", ",")}€</span>{" "}
                     <span className="text-emerald-400">{(annualPrices.premium * 12).toFixed(2).replace(".", ",")}€/an</span>
                   </p>
                 )}

@@ -31,8 +31,10 @@ export interface PlanConfig {
   name: string
   /** Prix mensuel en euros */
   price: number
-  /** ID du prix Stripe (null pour le plan gratuit) */
+  /** ID du prix Stripe mensuel (null pour le plan gratuit) */
   priceId: string | null
+  /** ID du prix Stripe annuel (null pour le plan gratuit) */
+  priceIdYearly: string | null
   /** Nombre maximum de biens (null = illimité) */
   maxBiens: number | null
   /** Liste des fonctionnalités incluses */
@@ -48,6 +50,7 @@ export const PLANS = {
     name: 'Gratuit',
     price: 0,
     priceId: null,
+    priceIdYearly: null,
     maxBiens: 2,
     features: [
       'Jusqu\'à 2 biens immobiliers',
@@ -58,32 +61,32 @@ export const PLANS = {
   },
   essentiel: {
     name: 'Essentiel',
-    price: 9.99,
+    price: 24.90,
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL ?? null,
+    priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ESSENTIEL_YEARLY ?? null,
     maxBiens: 10,
     features: [
       'Jusqu\'à 10 biens immobiliers',
       'Calculs de rentabilité avancés',
       'Suivi des loyers et charges',
-      'Génération de quittances PDF',
       'Export Excel/PDF complet',
-      'Support email',
+      'Génération de quittances',
     ],
   },
   premium: {
     name: 'Premium',
-    price: 19.99,
+    price: 39.90,
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM ?? null,
+    priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_YEARLY ?? null,
     maxBiens: null, // illimité
     features: [
       'Biens immobiliers illimités',
       'Tous les calculs avancés',
       'Gestion multi-locataires',
+      'Export Excel/PDF complet',
+      'Génération de quittances',
       'Historique complet',
       'Rapports personnalisés',
-      'Export illimité',
-      'Support prioritaire',
-      'Accès anticipé aux nouvelles fonctionnalités',
     ],
   },
 } as const
@@ -109,7 +112,7 @@ export function isValidPlanType(plan: string): plan is PlanType {
  * @returns Configuration complète du plan
  * @example
  * const details = getPlanDetails('essentiel')
- * console.log(details.price) // 9.99
+ * console.log(details.price) // 24.90
  * console.log(details.maxBiens) // 10
  */
 export function getPlanDetails(planType: PlanType): typeof PLANS[PlanType] {

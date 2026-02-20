@@ -14,6 +14,7 @@ interface PlanCardProps {
   features: readonly string[]
   isCurrentPlan: boolean
   isPopular?: boolean
+  isAnnual?: boolean
   onUpgrade: (priceId: string, planName: string) => void
   disabled?: boolean
   loading?: boolean
@@ -27,6 +28,7 @@ export function PlanCard({
   features,
   isCurrentPlan,
   isPopular = false,
+  isAnnual = false,
   onUpgrade,
   disabled = false,
   loading = false,
@@ -37,18 +39,26 @@ export function PlanCard({
     }
   }
 
+  // Calcul du prix affiché
+  const displayPrice = isAnnual && price > 0
+    ? parseFloat((price * 0.8).toFixed(2))
+    : price
+
+  // Prix annuel total
+  const annualTotal = parseFloat((displayPrice * 12).toFixed(2))
+
   return (
     <Card
       className={cn(
         'relative p-6 flex flex-col transition-all duration-200',
-        isPopular && 'border-2 border-indigo-500 shadow-xl md:scale-105 z-10',
-        isCurrentPlan && 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700',
+        isPopular && 'border-2 border-amber-500 shadow-xl md:scale-105 z-10',
+        isCurrentPlan && 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700',
         !isPopular && !isCurrentPlan && 'hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600'
       )}
     >
       {/* Badge Popular */}
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
           ⭐ Populaire
         </div>
       )}
@@ -64,7 +74,7 @@ export function PlanCard({
       <div className="text-center mb-6 pt-2">
         <h3 className={cn(
           "text-2xl font-bold mb-2",
-          isPopular && "text-indigo-600 dark:text-indigo-400"
+          isPopular && "text-amber-500"
         )}>
           {name}
         </h3>
@@ -73,11 +83,18 @@ export function PlanCard({
             <span className="text-4xl font-bold text-green-600 dark:text-green-400">Gratuit</span>
           ) : (
             <>
-              <span className="text-4xl font-bold">{price}€</span>
+              <span className="text-4xl font-bold">{displayPrice.toFixed(2).replace('.', ',')}€</span>
               <span className="text-slate-500 dark:text-slate-400">/mois</span>
             </>
           )}
         </div>
+        {isAnnual && price > 0 && (
+          <p className="text-xs text-slate-500 mt-1">
+            Facturé <span className="line-through">{(price * 12).toFixed(2).replace('.', ',')}€</span>{' '}
+            <span className="text-emerald-400 font-medium">{annualTotal.toFixed(2).replace('.', ',')}€/an</span>
+            <span className="ml-1 text-emerald-400">(économisez 20%)</span>
+          </p>
+        )}
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
           {maxBiens === null ? '♾️ Biens illimités' : `📦 Jusqu'à ${maxBiens} bien${maxBiens > 1 ? 's' : ''}`}
         </p>
@@ -92,7 +109,7 @@ export function PlanCard({
           <li key={index} className="flex items-start gap-3">
             <Check className={cn(
               "h-5 w-5 flex-shrink-0 mt-0.5",
-              isPopular ? "text-indigo-600 dark:text-indigo-400" : "text-green-600 dark:text-green-400"
+              isPopular ? "text-amber-500" : "text-green-600 dark:text-green-400"
             )} />
             <span className="text-sm text-slate-700 dark:text-slate-300">{feature}</span>
           </li>
@@ -121,7 +138,7 @@ export function PlanCard({
           className={cn(
             'w-full font-semibold',
             isPopular 
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg' 
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg' 
               : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100'
           )}
         >

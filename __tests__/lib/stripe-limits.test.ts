@@ -96,12 +96,12 @@ describe('Vérification des limites de biens', () => {
 
       const essentiel = getPlanDetails('essentiel')
       expect(essentiel.name).toBe('Essentiel')
-      expect(essentiel.price).toBe(9.99)
+      expect(essentiel.price).toBe(24.90)
       expect(essentiel.maxBiens).toBe(10)
 
       const premium = getPlanDetails('premium')
       expect(premium.name).toBe('Premium')
-      expect(premium.price).toBe(19.99)
+      expect(premium.price).toBe(39.90)
       expect(premium.maxBiens).toBeNull()
     })
 
